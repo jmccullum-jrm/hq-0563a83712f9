@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e0d0b" />
+  <title>Home HQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: {
+              950: '#0a0907',
+              900: '#0e0d0b',
+              850: '#141210',
+              800: '#181612',
+              750: '#1d1b16',
+              700: '#211f1a',
+              600: '#2a2723',
+              500: '#3a3631',
+              400: '#5a554c',
+              300: '#8b8478',
+              200: '#bcb5a6',
+              100: '#e8e2d4',
+              50:  '#f5f0e3',
+            },
+            gold: {
+              300: '#e6c895',
+              400: '#d4a96a',
+              500: '#c19654',
+              600: '#a07a3e',
+            },
+            sage:   { 400: '#8aa78b', 500: '#6f8c70' },
+            ember:  { 400: '#e07856', 500: '#c9603f' },
+            amber2: { 400: '#d4a96a' },
+          },
+          fontFamily: {
+            display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { background: #0e0d0b; color: #e8e2d4; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', system-ui, sans-serif; font-feature-settings: "ss01","cv11"; }
+    .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2723; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3a3631; }
+    /* Subtle texture */
+    .grain::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none;
+      background-image: radial-gradient(rgba(255,255,255,0.012) 1px, transparent 1px);
+      background-size: 3px 3px; opacity: .35; z-index: 0;
+    }
+    /* Card */
+    .card {
+      background: linear-gradient(180deg, #1a1814 0%, #181612 100%);
+      border: 1px solid #2a2723;
+      border-radius: 18px;
+    }
+    .card-soft {
+      background: #161410;
+      border: 1px solid #24211c;
+      border-radius: 16px;
+    }
+    .btn-primary {
+      background: linear-gradient(180deg,#d4a96a,#c19654);
+      color: #1a140a;
+      font-weight: 600;
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn-ghost { background: transparent; color: #e8e2d4; }
+    .btn-ghost:hover { background: #211f1a; }
+    .pill { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 500; line-height: 1; }
+    .pill-overdue { background: rgba(224,120,86,0.12); color: #e9886a; border: 1px solid rgba(224,120,86,0.28); }
+    .pill-soon    { background: rgba(212,169,106,0.12); color: #e6c895; border: 1px solid rgba(212,169,106,0.25); }
+    .pill-ok      { background: rgba(138,167,139,0.12); color: #a6c1a7; border: 1px solid rgba(138,167,139,0.25); }
+    .pill-info    { background: rgba(140,160,200,0.10); color: #b5c2dc; border: 1px solid rgba(140,160,200,0.22); }
+    .pill-muted   { background: #211f1a; color: #8b8478; border: 1px solid #2a2723; }
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, #2a2723, transparent); }
+    input, select, textarea {
+      background: #131210 !important; border: 1px solid #2a2723 !important; color: #e8e2d4 !important;
+      border-radius: 12px; padding: .65rem .85rem; width: 100%; font-size: .95rem;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #c19654 !important; box-shadow: 0 0 0 3px rgba(193,150,84,.18); }
+    label { font-size: .75rem; color: #8b8478; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
+    .modal-backdrop { background: rgba(8,7,5,0.7); backdrop-filter: blur(8px); }
+    .modal-shell { background: #161410; border: 1px solid #2a2723; border-radius: 22px; }
+    /* Anim */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: translateY(0);} }
+    .anim-in { animation: fadeUp .25s ease-out both; }
+    /* Hide scrollbar on horizontal chip rows */
+    .no-bar::-webkit-scrollbar { display: none; }
+    .no-bar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* iOS safe area */
+    .pb-safe { padding-bottom: calc(.75rem + env(safe-area-inset-bottom)); }
+    .pt-safe { padding-top: calc(.5rem + env(safe-area-inset-top)); }
+  </style>
+</head>
+<body class="grain">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useMemo, useRef, useCallback, createContext, useContext } = React;
+
+    /* ---------- date helpers ---------- */
+    const DAY = 1000*60*60*24;
+    const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+    const parseDate = (s) => { if (!s) return null; const d = new Date(s+'T00:00:00'); return isNaN(d) ? null : d; };
+    const toISO = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); };
+    const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / DAY);
+    const daysUntil = (s) => { const d = parseDate(s); if (!d) return null; return Math.round((d - today())/DAY); };
+    const fmtDate = (s, opts) => {
+      const d = parseDate(s); if (!d) return '—';
+      return d.toLocaleDateString(undefined, opts || { month:'short', day:'numeric', year:'numeric' });
+    };
+    const fmtRelative = (s) => {
+      const n = daysUntil(s); if (n === null) return '—';
+      if (n === 0) return 'today';
+      if (n === 1) return 'tomorrow';
+      if (n === -1) return 'yesterday';
+      if (n < 0) return `${Math.abs(n)} days overdue`;
+      if (n < 7) return `in ${n} days`;
+      if (n < 30) return `in ${Math.round(n/7)} wk`;
+      if (n < 365) return `in ${Math.round(n/30)} mo`;
+      return `in ${(n/365).toFixed(1)} yr`;
+    };
+    const addInterval = (iso, freq) => {
+      const d = parseDate(iso); if (!d || !freq) return null;
+      const n = freq.count || 1;
+      const x = new Date(d);
+      if (freq.unit === 'days') x.setDate(x.getDate()+n);
+      else if (freq.unit === 'weeks') x.setDate(x.getDate()+n*7);
+      else if (freq.unit === 'months') x.setMonth(x.getMonth()+n);
+      else if (freq.unit === 'years') x.setFullYear(x.getFullYear()+n);
+      return toISO(x);
+    };
+    const freqLabel = (f) => {
+      if (!f) return '—';
+      const u = f.count === 1 ? f.unit.replace(/s$/,'') : f.unit;
+      return `every ${f.count} ${u}`;
+    };
+    const uid = () => Math.random().toString(36).slice(2,10);
+
+    /* ---------- icons (inline SVG, hairline weight) ---------- */
+    const Icon = ({ name, size=18, className='' }) => {
+      const props = { width:size, height:size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:1.6, strokeLinecap:'round', strokeLinejoin:'round', className };
+      const paths = {
+        home:        <><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></>,
+        users:       <><circle cx="9" cy="8" r="3.2"/><path d="M2.5 19c.7-3.1 3.4-5 6.5-5s5.8 1.9 6.5 5"/><circle cx="17" cy="9" r="2.6"/><path d="M21.5 18c-.4-2.2-2-3.6-4.5-3.6"/></>,
+        wrench:      <><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4 2.5-2.5z"/></>,
+        cube:        <><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></>,
+        wine:        <><path d="M8 3h8l-1 7a4 4 0 1 1-6 0l-1-7z"/><path d="M12 17v4"/><path d="M9 21h6"/></>,
+        plus:        <><path d="M12 5v14"/><path d="M5 12h14"/></>,
+        sparkles:    <><path d="M12 4v3M12 17v3M4 12h3M17 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M6.3 17.7l2.1-2.1M15.6 8.4l2.1-2.1"/></>,
+        phone:       <><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.7.6 2.5a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.8.3 1.6.5 2.5.6a2 2 0 0 1 1.7 2z"/></>,
+        message:     <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
+        mail:        <><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
+        edit:        <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></>,
+        trash:       <><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6 18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></>,
+        check:       <><path d="m5 12 5 5L20 7"/></>,
+        calendar:    <><rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/></>,
+        list:        <><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r=".8"/><circle cx="3.5" cy="12" r=".8"/><circle cx="3.5" cy="18" r=".8"/></>,
+        clock:       <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+        x:           <><path d="M6 6l12 12M18 6 6 18"/></>,
+        chevR:       <><path d="m9 6 6 6-6 6"/></>,
+        dot:         <circle cx="12" cy="12" r="3"/>,
+        filter:      <><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></>,
+        leaf:        <><path d="M5 21c0-9 7-16 16-16-1 9-7 15-16 16z"/><path d="M5 21c4-4 7-7 16-16"/></>,
+        copy:        <><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></>,
+        search:      <><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></>,
+        shield:      <><path d="M12 3 4 6v6c0 4.5 3.2 8.4 8 9 4.8-.6 8-4.5 8-9V6l-8-3z"/></>,
+        zap:         <><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></>,
+        receipt:     <><path d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3l-3 2-3-2-3 2-3-2-3 2z"/><path d="M9 9h6M9 13h6M9 17h4"/></>,
+        key:         <><circle cx="8" cy="15" r="4"/><path d="m10.8 12.8 8.2-8.2 2 2-2 2 2 2-2 2-2-2-2 2"/></>,
+        car:         <><path d="M5 17h14M3 13l2-6a2 2 0 0 1 2-1.5h10a2 2 0 0 1 2 1.5l2 6"/><path d="M3 13v5a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2M21 13v5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-2"/><circle cx="7.5" cy="14.5" r="1"/><circle cx="16.5" cy="14.5" r="1"/></>,
+        heart:       <><path d="M20.8 5.6a5.5 5.5 0 0 0-7.8 0L12 6.6l-1-1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></>,
+        link:        <><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1"/><path d="M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/></>,
+        building:    <><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 8h.01M15 8h.01M9 12h.01M15 12h.01M9 16h.01M15 16h.01M10 21v-4h4v4"/></>,
+        more:        <><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></>,
+      };
+      return <svg {...props}>{paths[name] || null}</svg>;
+    };
+
+    /* ---------- storage ---------- */
+    const STORAGE_KEY = 'homehq.public.v1';
+    const loadState = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch { return null; }
+    };
+    const saveState = (state) => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    };
+
+    /* ---------- seed data ---------- */
+    const todayISO = toISO(today());
+    const offsetISO = (n) => toISO(new Date(today().getTime() + n*DAY));
+
+    const seedVendors = [];
+
+    const seedMaintenance = [];
+
+    const seedAppliances = [];
+
+    /* ---------- NEW MODULE SEEDS ---------- */
+    const seedInsurance = [];
+
+    const seedVehicles = [];
+
+    const seedUtilities = [];
+
+    const seedProperty = [];
+
+    const seedSubscriptions = [];
+
+    const seedBenefits = [];
+
+    const seedWine = [];
+
+    const initialState = {
+      vendors: seedVendors,
+      maintenance: seedMaintenance,
+      appliances: seedAppliances,
+      wine: seedWine,
+      wineLog: [],
+      insurance: seedInsurance,
+      vehicles: seedVehicles,
+      utilities: seedUtilities,
+      property: seedProperty,
+      subscriptions: seedSubscriptions,
+      benefits: seedBenefits,
+    };
+
+    /* ---------- derived helpers ---------- */
+    const maintenanceNextDue = (m) => addInterval(m.lastCompleted, m.freq);
+    const maintenanceStatus = (m) => {
+      const due = maintenanceNextDue(m);
+      const n = daysUntil(due);
+      if (n === null) return { tone:'muted', label:'no date' };
+      if (n < 0) return { tone:'overdue', label:`${Math.abs(n)}d overdue` };
+      if (n <= 30) return { tone:'soon', label:`due in ${n}d` };
+      return { tone:'ok', label:`in ${n}d` };
+    };
+    const wineState = (w) => {
+      const y = new Date().getFullYear();
+      if (y < (w.drinkStart || 0)) return 'aging';
+      if (y > (w.drinkEnd || 9999)) return 'past';
+      return 'now';
+    };
+
+    /* ---------- App ---------- */
+    const Ctx = createContext(null);
+
+    const App = () => {
+      const [state, setState] = useState(() => {
+        const saved = loadState();
+        const base = window.__SHARED_INIT__ || initialState;
+        if (!saved) return base;
+        // Migration: add new modules if user is on an older version
+        const migrated = { ...saved };
+        ['insurance','vehicles','utilities','property','subscriptions','benefits'].forEach(k => {
+          if (!Array.isArray(migrated[k])) migrated[k] = base[k];
+        });
+        if (!Array.isArray(migrated.wineLog)) migrated.wineLog = [];
+        return migrated;
+      });
+      const [view, setView] = useState('dashboard');
+      const [modal, setModal] = useState(null);
+      const [toast, setToast] = useState(null);
+
+      useEffect(() => { saveState(state); }, [state]);
+
+      const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(null), 2400); };
+
+      // generic CRUD factory for the new flat-list modules
+      const mk = (key) => ({
+        add:    (item)        => setState(s => ({...s, [key]:[{...item, id:uid()}, ...(s[key]||[])]})),
+        update: (id, patch)   => setState(s => ({...s, [key]: (s[key]||[]).map(x => x.id===id?{...x,...patch}:x)})),
+        delete: (id)          => setState(s => ({...s, [key]: (s[key]||[]).filter(x => x.id!==id)})),
+      });
+      const insOps  = mk('insurance');
+      const vehOps  = mk('vehicles');
+      const utiOps  = mk('utilities');
+      const proOps  = mk('property');
+      const subOps  = mk('subscriptions');
+      const benOps  = mk('benefits');
+
+      const ctx = {
+        state, setState, view, setView, modal, setModal, showToast,
+        // vendors
+        addVendor: (v) => setState(s => ({...s, vendors:[{...v, id:uid()}, ...s.vendors]})),
+        updateVendor: (id, patch) => setState(s => ({...s, vendors: s.vendors.map(v => v.id===id?{...v,...patch}:v)})),
+        deleteVendor: (id) => setState(s => ({...s, vendors: s.vendors.filter(v => v.id!==id)})),
+        // maintenance
+        addTask: (t) => setState(s => ({...s, maintenance:[{...t, id:uid()}, ...s.maintenance]})),
+        updateTask: (id, patch) => setState(s => ({...s, maintenance: s.maintenance.map(t => t.id===id?{...t,...patch}:t)})),
+        deleteTask: (id) => setState(s => ({...s, maintenance: s.maintenance.filter(t => t.id!==id)})),
+        completeTask: (id) => setState(s => ({...s, maintenance: s.maintenance.map(t => t.id===id ? {...t, lastCompleted: todayISO} : t)})),
+        // appliances
+        addAppliance: (a) => setState(s => ({...s, appliances:[{...a, id:uid()}, ...s.appliances]})),
+        updateAppliance: (id, patch) => setState(s => ({...s, appliances: s.appliances.map(a => a.id===id?{...a,...patch}:a)})),
+        deleteAppliance: (id) => setState(s => ({...s, appliances: s.appliances.filter(a => a.id!==id)})),
+        // wine
+        addBottle: (w) => setState(s => ({...s, wine:[{...w, id:uid()}, ...s.wine]})),
+        updateBottle: (id, patch) => setState(s => ({...s, wine: s.wine.map(w => w.id===id?{...w,...patch}:w)})),
+        deleteBottle: (id) => setState(s => ({...s, wine: s.wine.filter(w => w.id!==id)})),
+        // new modules
+        addInsurance: insOps.add, updateInsurance: insOps.update, deleteInsurance: insOps.delete,
+        addVehicle: vehOps.add, updateVehicle: vehOps.update, deleteVehicle: vehOps.delete,
+        addUtility: utiOps.add, updateUtility: utiOps.update, deleteUtility: utiOps.delete,
+        addProperty: proOps.add, updateProperty: proOps.update, deleteProperty: proOps.delete,
+        addSubscription: subOps.add, updateSubscription: subOps.update, deleteSubscription: subOps.delete,
+        addBenefit: benOps.add, updateBenefit: benOps.update, deleteBenefit: benOps.delete,
+        // reset
+        resetAll: () => { setState(initialState); showToast('Reset to seed data'); },
+      };
+
+      return (
+        <Ctx.Provider value={ctx}>
+          <div className="min-h-screen relative">
+            <Shell view={view} setView={setView}>
+              {view === 'dashboard'    && <DashboardView />}
+              {view === 'vendors'      && <VendorsView />}
+              {view === 'maintenance'  && <MaintenanceView />}
+              {view === 'appliances'   && <AppliancesView />}
+              {view === 'insurance'    && <InsuranceView />}
+              {view === 'property'     && <PropertyView />}
+              {view === 'utilities'    && <UtilitiesView />}
+              {view === 'subscriptions'&& <SubscriptionsView />}
+              {view === 'vehicles'     && <VehiclesView />}
+              {view === 'benefits'     && <BenefitsView />}
+              {view === 'wine'         && <PlaceholderView title="Wine Cellar" subtitle="Coming after Appliances — drink-now, aging, pairings." icon="wine" />}
+            </Shell>
+            {modal && <Modal onClose={()=>setModal(null)}>{modal}</Modal>}
+            {toast && <Toast>{toast}</Toast>}
+          </div>
+        </Ctx.Provider>
+      );
+    };
+
+    /* ---------- Shell ---------- */
+    const NAV_PRIMARY = [
+      { id:'dashboard',   label:'Today',       icon:'home' },
+      { id:'vendors',     label:'Vendors',     icon:'users' },
+      { id:'maintenance', label:'Maintenance', icon:'wrench' },
+      { id:'appliances',  label:'Appliances',  icon:'cube' },
+    ];
+    const NAV_RECORDS = [
+      { id:'insurance',     label:'Insurance',     icon:'shield' },
+      { id:'property',      label:'Property',      icon:'key' },
+      { id:'utilities',     label:'Utilities',     icon:'zap' },
+      { id:'subscriptions', label:'Subscriptions', icon:'receipt' },
+      { id:'vehicles',      label:'Vehicles',      icon:'car' },
+      { id:'benefits',      label:'Benefits',      icon:'heart' },
+    ];
+    const NAV_OTHER = [
+      { id:'wine',        label:'Wine',        icon:'wine' },
+    ];
+    const NAV_ALL = [...NAV_PRIMARY, ...NAV_RECORDS, ...NAV_OTHER];
+    // Mobile bottom nav: 5 most used + "More"
+    const NAV_MOBILE = [...NAV_PRIMARY, { id:'_more', label:'More', icon:'more' }];
+
+    const Shell = ({ view, setView, children }) => {
+      const [moreOpen, setMoreOpen] = useState(false);
+      const greeting = (() => {
+        const h = new Date().getHours();
+        if (h < 5) return 'Late night';
+        if (h < 12) return 'Good morning';
+        if (h < 17) return 'Good afternoon';
+        if (h < 21) return 'Good evening';
+        return 'Good evening';
+      })();
+      const nice = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+      const title = NAV_ALL.find(n=>n.id===view)?.label || '';
+
+      const NavLink = ({ n }) => (
+        <button onClick={()=>setView(n.id)}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${view===n.id?'bg-ink-700 text-ink-50':'text-ink-300 hover:text-ink-100 hover:bg-ink-800'}`}>
+          <Icon name={n.icon} size={17} className={view===n.id?'text-gold-400':''} />
+          <span>{n.label}</span>
+          {view===n.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-gold-400" />}
+        </button>
+      );
+
+      return (
+        <div className="min-h-screen relative z-10 md:flex">
+          {/* Side rail (desktop) */}
+          <aside className="hidden md:flex md:flex-col md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-ink-600 bg-ink-900/80 backdrop-blur">
+            <div className="px-6 pt-7 pb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold">H</div>
+                <div className="font-display text-lg tracking-tight">Home HQ</div>
+              </div>
+            </div>
+            <nav className="px-3 mt-2 flex-1 overflow-y-auto">
+              {NAV_PRIMARY.map(n => <NavLink key={n.id} n={n} />)}
+              <div className="px-3 pt-4 pb-1.5 text-[10px] uppercase tracking-[0.18em] text-ink-400">Records</div>
+              {NAV_RECORDS.map(n => <NavLink key={n.id} n={n} />)}
+              <div className="px-3 pt-4 pb-1.5 text-[10px] uppercase tracking-[0.18em] text-ink-400">Pleasure</div>
+              {NAV_OTHER.map(n => <NavLink key={n.id} n={n} />)}
+            </nav>
+            <div className="px-6 py-5 text-[11px] text-ink-400 leading-relaxed">
+              <div className="font-display text-ink-200 text-sm mb-1">The McCullum house</div>
+              <div>v0.2 · local data</div>
+            </div>
+          </aside>
+
+          {/* Main */}
+          <main className="flex-1 min-w-0 pb-24 md:pb-12">
+            {/* Top bar */}
+            <header className="px-5 md:px-10 pt-safe md:pt-10">
+              <div className="md:hidden flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold">H</div>
+                  <div className="font-display text-base tracking-tight">Home HQ</div>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-ink-400">{nice}</div>
+              </div>
+              <div className="md:flex md:items-end md:justify-between md:gap-6">
+                <div>
+                  <div className="hidden md:block text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-2">{nice}</div>
+                  <h1 className="font-display text-3xl md:text-[2.4rem] tracking-tight leading-tight">
+                    {view === 'dashboard' ? <>{greeting}, <span className="text-gold-400">Justin.</span></> : title}
+                  </h1>
+                  {view === 'dashboard' && <p className="text-ink-300 text-sm md:text-base mt-1.5 max-w-xl">A calm view of the household. Take a look — anything that needs attention is right here.</p>}
+                </div>
+              </div>
+            </header>
+
+            <section className="px-5 md:px-10 mt-6 md:mt-8">
+              {children}
+            </section>
+          </main>
+
+          {/* Bottom nav (mobile) */}
+          <nav className="md:hidden fixed bottom-0 inset-x-0 bg-ink-900/95 backdrop-blur border-t border-ink-600 z-30 pb-safe">
+            <div className="flex justify-around">
+              {NAV_MOBILE.map(n => {
+                const active = n.id === '_more' ? false : view === n.id;
+                return (
+                  <button key={n.id} onClick={()=> n.id==='_more' ? setMoreOpen(true) : setView(n.id)}
+                    className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 ${active?'text-gold-400':'text-ink-300'}`}>
+                    <Icon name={n.icon} size={20} />
+                    <span className="text-[10px] tracking-wide">{n.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Mobile "More" sheet */}
+          {moreOpen && (
+            <div className="md:hidden fixed inset-0 z-40 modal-backdrop flex items-end" onClick={()=>setMoreOpen(false)}>
+              <div className="modal-shell w-full anim-in" onClick={e=>e.stopPropagation()}>
+                <ModalHeader title="More" subtitle="Records & references" onClose={()=>setMoreOpen(false)} />
+                <div className="p-4 grid grid-cols-2 gap-2.5 pb-safe">
+                  {[...NAV_RECORDS, ...NAV_OTHER].map(n => (
+                    <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
+                      className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
+                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                        <Icon name={n.icon} size={18} />
+                      </div>
+                      <div className="text-sm font-medium">{n.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    /* ---------- shared UI ---------- */
+    const SectionHeader = ({ title, count, action, hint }) => (
+      <div className="flex items-end justify-between mb-3">
+        <div>
+          <div className="flex items-baseline gap-2">
+            <h2 className="font-display text-xl md:text-2xl tracking-tight">{title}</h2>
+            {typeof count === 'number' && <span className="text-ink-400 text-sm tabular-nums">{count}</span>}
+          </div>
+          {hint && <div className="text-ink-400 text-xs mt-0.5">{hint}</div>}
+        </div>
+        {action}
+      </div>
+    );
+
+    const Pill = ({ tone='muted', children, dot=false }) => (
+      <span className={`pill pill-${tone}`}>
+        {dot && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />}
+        {children}
+      </span>
+    );
+
+    const Empty = ({ icon='sparkles', title, body, cta }) => (
+      <div className="card p-8 text-center">
+        <div className="mx-auto w-12 h-12 rounded-2xl bg-ink-700 grid place-items-center text-gold-400 mb-3">
+          <Icon name={icon} size={22} />
+        </div>
+        <div className="font-display text-lg">{title}</div>
+        {body && <div className="text-ink-300 text-sm mt-1.5 max-w-md mx-auto">{body}</div>}
+        {cta && <div className="mt-4">{cta}</div>}
+      </div>
+    );
+
+    const Modal = ({ children, onClose }) => {
+      useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKey);
+        document.body.style.overflow = 'hidden';
+        return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+      }, [onClose]);
+      return (
+        <div className="fixed inset-0 z-50 modal-backdrop flex items-end md:items-center justify-center px-3 md:px-6 pb-3 md:pb-0">
+          <div className="modal-shell w-full max-w-lg max-h-[90vh] overflow-y-auto anim-in" onClick={e=>e.stopPropagation()}>
+            {children}
+          </div>
+        </div>
+      );
+    };
+
+    const ModalHeader = ({ title, subtitle, onClose }) => (
+      <div className="flex items-start justify-between p-5 md:p-6 border-b border-ink-600 sticky top-0 bg-ink-850/95 backdrop-blur">
+        <div>
+          <div className="font-display text-xl tracking-tight">{title}</div>
+          {subtitle && <div className="text-ink-300 text-sm mt-0.5">{subtitle}</div>}
+        </div>
+        <button onClick={onClose} className="w-9 h-9 rounded-full grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-ink-100">
+          <Icon name="x" size={18} />
+        </button>
+      </div>
+    );
+
+    const Toast = ({ children }) => (
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 anim-in">
+        <div className="card px-4 py-2.5 text-sm flex items-center gap-2 shadow-2xl">
+          <Icon name="check" size={16} className="text-sage-400" />
+          <span>{children}</span>
+        </div>
+      </div>
+    );
+
+    const Btn = ({ variant='primary', icon, children, ...rest }) => (
+      <button {...rest}
+        className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition ${
+          variant==='primary' ? 'btn-primary' :
+          variant==='soft'    ? 'bg-ink-700 hover:bg-ink-600 text-ink-100' :
+          variant==='ghost'   ? 'btn-ghost border border-ink-600' :
+          variant==='danger'  ? 'bg-ember-500/15 text-ember-400 hover:bg-ember-500/20 border border-ember-500/30' :
+          ''
+        } ${rest.className||''}`}>
+        {icon && <Icon name={icon} size={16} />}
+        {children}
+      </button>
+    );
+
+    /* ===================== DASHBOARD ===================== */
+    const DashboardView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setView, setModal } = ctx;
+
+      const overdue = useMemo(() => {
+        const items = [];
+        // maintenance
+        state.maintenance.forEach(m => {
+          const next = maintenanceNextDue(m);
+          const n = daysUntil(next);
+          if (n !== null && n < 0) items.push({ kind:'maint', id:m.id, title:m.name, when:next, n });
+        });
+        // vendors next visit overdue
+        state.vendors.forEach(v => {
+          if (v.nextVisit && daysUntil(v.nextVisit) < 0) items.push({ kind:'vendor', id:v.id, title:`${v.serviceType} — ${v.company}`, when:v.nextVisit, n:daysUntil(v.nextVisit), sub:v.name });
+        });
+        // warranties expired
+        state.appliances.forEach(a => {
+          const n = daysUntil(a.warrantyExpires);
+          if (n !== null && n < 0) items.push({ kind:'warranty', id:a.id, title:`${a.name} warranty`, when:a.warrantyExpires, n });
+        });
+        return items.sort((a,b)=>a.n-b.n);
+      }, [state]);
+
+      const upcoming = useMemo(() => {
+        const items = [];
+        state.maintenance.forEach(m => {
+          const next = maintenanceNextDue(m);
+          const n = daysUntil(next);
+          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'maint', id:m.id, title:m.name, when:next, n, sub:`~$${m.estimatedCost}` });
+        });
+        state.vendors.forEach(v => {
+          const n = daysUntil(v.nextVisit);
+          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'vendor', id:v.id, title:`${v.serviceType} — ${v.company}`, when:v.nextVisit, n, sub:v.name });
+        });
+        // property dues in next 30 days
+        (state.property || []).forEach(p => {
+          const n = daysUntil(p.nextDue);
+          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'property', id:p.id, title:p.label, when:p.nextDue, n, sub:p.cadence ? `${p.cadence}${p.amount?` · $${p.amount}`:''}` : '' });
+        });
+        // subscription renewals in next 30 days
+        (state.subscriptions || []).forEach(s => {
+          const n = daysUntil(s.renewalDate);
+          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'sub', id:s.id, title:s.name, when:s.renewalDate, n, sub:s.cost?`$${s.cost} ${s.cadence}`:'' });
+        });
+        return items.sort((a,b)=>a.n-b.n);
+      }, [state]);
+
+      const warranties = useMemo(() => {
+        return state.appliances
+          .filter(a => { const n = daysUntil(a.warrantyExpires); return n !== null && n >= 0 && n <= 90; })
+          .sort((a,b) => daysUntil(a.warrantyExpires) - daysUntil(b.warrantyExpires));
+      }, [state]);
+
+      const renewals = useMemo(() => {
+        return (state.insurance || [])
+          .filter(p => { const n = daysUntil(p.renewalDate); return n !== null && n >= 0 && n <= 60; })
+          .sort((a,b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
+      }, [state]);
+
+      const drinkNow = useMemo(() => state.wine.filter(w => wineState(w) === 'now').slice(0, 3), [state]);
+
+      const generateDigest = () => {
+        const lines = [];
+        const datestr = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+        lines.push(`Home HQ — Weekly digest · ${datestr}`);
+        lines.push('');
+        if (overdue.length) {
+          lines.push(`⚠︎ Overdue (${overdue.length})`);
+          overdue.slice(0,8).forEach(i => lines.push(`  • ${i.title} — ${Math.abs(i.n)}d overdue`));
+          lines.push('');
+        }
+        if (upcoming.length) {
+          lines.push(`Coming up — next 30 days (${upcoming.length})`);
+          upcoming.slice(0,12).forEach(i => lines.push(`  • ${i.title} — ${fmtRelative(i.when)} (${fmtDate(i.when,{month:'short',day:'numeric'})})`));
+          lines.push('');
+        }
+        if (renewals.length) {
+          lines.push(`Insurance renewals — next 60 days (${renewals.length})`);
+          renewals.forEach(p => lines.push(`  • ${p.carrier} ${p.type} — ${fmtDate(p.renewalDate,{month:'short',day:'numeric',year:'numeric'})}`));
+          lines.push('');
+        }
+        if (warranties.length) {
+          lines.push(`Warranties expiring — next 90 days (${warranties.length})`);
+          warranties.forEach(a => lines.push(`  • ${a.name} — ${fmtDate(a.warrantyExpires,{month:'short',day:'numeric',year:'numeric'})}`));
+          lines.push('');
+        }
+        if (drinkNow.length) {
+          lines.push(`Drink now (${drinkNow.length})`);
+          drinkNow.forEach(w => lines.push(`  • ${w.vintage} ${w.producer} ${w.label} — ${w.location} (×${w.qty})`));
+          lines.push('');
+        }
+        const totalCost = upcoming.filter(i=>i.kind==='maint').reduce((acc,i)=>{
+          const m = state.maintenance.find(x=>x.id===i.id); return acc + (m?.estimatedCost||0);
+        },0);
+        if (totalCost) lines.push(`Estimated maintenance cost in next 30 days: ~$${totalCost.toLocaleString()}`);
+        const text = lines.join('\n');
+        setModal(<DigestModal text={text} onClose={()=>setModal(null)} />);
+      };
+
+      return (
+        <div className="space-y-8 max-w-5xl">
+
+          {/* Tile row: stats */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <StatTile label="Overdue"      value={overdue.length}  tone="overdue" hint="needs attention" />
+            <StatTile label="Next 30 days" value={upcoming.length} tone="soon"    hint="upcoming" />
+            <StatTile label="Renewals"     value={renewals.length} tone="info"    hint="≤ 60 days" />
+            <StatTile label="Warranties"   value={warranties.length} tone="info"  hint="≤ 90 days" />
+            <StatTile label="Drink now"    value={drinkNow.length} tone="ok"      hint="in window" />
+          </div>
+
+          {/* Generate digest */}
+          <div className="card p-5 md:p-6 flex items-center justify-between gap-4">
+            <div>
+              <div className="font-display text-lg tracking-tight">This week's digest</div>
+              <div className="text-ink-300 text-sm mt-1">A clean, forwardable summary of everything that needs attention.</div>
+            </div>
+            <Btn icon="sparkles" onClick={generateDigest}>Generate</Btn>
+          </div>
+
+          {/* Overdue */}
+          <section>
+            <SectionHeader title="Overdue" count={overdue.length} hint="Roll these forward when they're done." />
+            {overdue.length === 0 ? (
+              <Empty icon="check" title="Nothing overdue" body="Great — the house is caught up. New items will surface here as they fall behind."/>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-3">
+                {overdue.map(i => <DashboardItem key={i.kind+i.id} item={i} kind="overdue" onComplete={i.kind==='maint' ? ()=>{ ctx.completeTask(i.id); ctx.showToast('Marked complete'); } : null} onJump={()=> setView(i.kind==='maint'?'maintenance':i.kind==='vendor'?'vendors':'appliances')} />)}
+              </div>
+            )}
+          </section>
+
+          {/* Coming up */}
+          <section>
+            <SectionHeader title="Coming up" count={upcoming.length} hint="Next 30 days — maintenance, vendors, dues, subscriptions." />
+            {upcoming.length === 0 ? (
+              <Empty icon="calendar" title="The next 30 days are clear" body="Nothing to prep. Add or edit a vendor, task, or subscription and it'll show up here." />
+            ) : (
+              <div className="grid md:grid-cols-2 gap-3">
+                {upcoming.map(i => <DashboardItem key={i.kind+i.id} item={i} kind="soon"
+                  onJump={()=> setView(
+                    i.kind==='maint'?'maintenance':
+                    i.kind==='vendor'?'vendors':
+                    i.kind==='property'?'property':
+                    i.kind==='sub'?'subscriptions':
+                    'appliances'
+                  )} />)}
+              </div>
+            )}
+          </section>
+
+          {/* Insurance renewals */}
+          <section>
+            <SectionHeader title="Insurance renewals" count={renewals.length} hint="Within 60 days — review coverage + premium." />
+            {renewals.length === 0 ? (
+              <Empty icon="shield" title="No insurance renewals on the cliff" body="When a policy is within 60 days of renewal, it'll appear here." />
+            ) : (
+              <div className="grid md:grid-cols-2 gap-3">
+                {renewals.map(p => (
+                  <button key={p.id} onClick={()=>setView('insurance')} className="card p-4 text-left flex items-start gap-3 hover:border-gold-400/40 transition">
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0"><Icon name="shield" size={18}/></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{p.carrier} <span className="text-ink-300 font-normal">· {p.type}</span></div>
+                      <div className="text-ink-300 text-xs mt-0.5 truncate">{p.coverageSummary || p.policyNumber || '—'}</div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Pill tone="soon" dot>Renews {fmtDate(p.renewalDate)}</Pill>
+                        <span className="text-ink-400 text-xs">{fmtRelative(p.renewalDate)}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Warranties */}
+          <section>
+            <SectionHeader title="Warranties expiring" count={warranties.length} hint="Within 90 days — time to evaluate or extend." />
+            {warranties.length === 0 ? (
+              <Empty icon="cube" title="No warranties on the cliff" body="When something's within 90 days of expiring, it'll appear here so you can decide whether to extend." />
+            ) : (
+              <div className="grid md:grid-cols-2 gap-3">
+                {warranties.map(a => (
+                  <div key={a.id} className="card p-4 flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0"><Icon name="cube" size={18}/></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{a.name}</div>
+                      <div className="text-ink-300 text-xs mt-0.5 truncate">{a.brand} {a.model} · {a.room}</div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Pill tone="soon" dot>Expires {fmtDate(a.warrantyExpires)}</Pill>
+                        <span className="text-ink-400 text-xs">{fmtRelative(a.warrantyExpires)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Drink now */}
+          <section>
+            <SectionHeader title="Drink now" count={drinkNow.length} hint="In their peak window — open something tonight." />
+            {drinkNow.length === 0 ? (
+              <Empty icon="wine" title="No bottles in window" body="Add wines with drink windows and we'll surface 2–3 here when they're ready." />
+            ) : (
+              <div className="grid md:grid-cols-3 gap-3">
+                {drinkNow.map(w => (
+                  <div key={w.id} className="card p-4">
+                    <div className="text-[11px] uppercase tracking-wider text-ink-400 mb-1">{w.region}</div>
+                    <div className="font-display text-base leading-snug">{w.producer}</div>
+                    <div className="text-ink-200 text-sm">{w.label}</div>
+                    <div className="text-ink-300 text-xs mt-1">{w.vintage} · {w.varietal}</div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <Pill tone="ok" dot>peak {w.drinkStart}–{w.drinkEnd}</Pill>
+                      <span className="text-ink-400 text-xs">{w.location} · ×{w.qty}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      );
+    };
+
+    const StatTile = ({ label, value, tone, hint }) => (
+      <div className="card p-4 md:p-5 flex flex-col gap-1.5">
+        <div className="text-[11px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
+        <div className="flex items-baseline gap-2">
+          <div className={`font-display text-3xl md:text-4xl tabular-nums ${
+            tone==='overdue' ? 'text-ember-400' :
+            tone==='soon'    ? 'text-gold-400'  :
+            tone==='ok'      ? 'text-sage-400'  :
+            'text-ink-100'
+          }`}>{value}</div>
+          {hint && <div className="text-ink-400 text-xs">{hint}</div>}
+        </div>
+      </div>
+    );
+
+    const DashboardItem = ({ item, kind, onComplete, onJump }) => (
+      <div className="card p-4 flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${kind==='overdue'?'bg-ember-500/12 text-ember-400':'bg-ink-700 text-gold-400'}`}>
+          <Icon name={
+            item.kind==='maint'?'wrench':
+            item.kind==='vendor'?'users':
+            item.kind==='property'?'key':
+            item.kind==='sub'?'receipt':
+            'cube'
+          } size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium truncate">{item.title}</div>
+          {item.sub && <div className="text-ink-300 text-xs mt-0.5 truncate">{item.sub}</div>}
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <Pill tone={kind==='overdue'?'overdue':'soon'} dot>{kind==='overdue'?`${Math.abs(item.n)}d overdue`:fmtRelative(item.when)}</Pill>
+            <span className="text-ink-400 text-xs">{fmtDate(item.when,{month:'short',day:'numeric'})}</span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {onComplete && <button onClick={onComplete} title="Mark done" className="w-9 h-9 rounded-lg grid place-items-center text-sage-400 hover:bg-ink-700"><Icon name="check" size={16}/></button>}
+          <button onClick={onJump} title="Open" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700"><Icon name="chevR" size={16}/></button>
+        </div>
+      </div>
+    );
+
+    const DigestModal = ({ text, onClose }) => {
+      const [copied, setCopied] = useState(false);
+      const copy = async () => {
+        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(()=>setCopied(false), 1500); } catch {}
+      };
+      const mailto = () => {
+        const url = `mailto:?subject=${encodeURIComponent("Home HQ weekly digest")}&body=${encodeURIComponent(text)}`;
+        window.location.href = url;
+      };
+      return (
+        <>
+          <ModalHeader title="This week's digest" subtitle="Forward this to yourself or your spouse." onClose={onClose} />
+          <div className="p-5 md:p-6">
+            <textarea readOnly value={text} className="font-mono text-[12.5px] leading-relaxed h-72 resize-none" />
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <Btn variant="ghost" icon="mail" onClick={mailto}>Email</Btn>
+              <Btn icon="copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== VENDORS ===================== */
+    const VendorsView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const [filter, setFilter] = useState('all');
+      const [thisWeek, setThisWeek] = useState(false);
+      const [query, setQuery] = useState('');
+
+      const types = useMemo(() => {
+        const set = new Set(state.vendors.map(v => v.serviceType));
+        return ['all', ...Array.from(set).sort()];
+      }, [state.vendors]);
+
+      const filtered = useMemo(() => {
+        return state.vendors.filter(v => {
+          if (filter !== 'all' && v.serviceType !== filter) return false;
+          if (thisWeek) { const n = daysUntil(v.nextVisit); if (n === null || n < 0 || n > 7) return false; }
+          if (query) {
+            const q = query.toLowerCase();
+            if (!`${v.name} ${v.company} ${v.serviceType} ${v.notes||''}`.toLowerCase().includes(q)) return false;
+          }
+          return true;
+        });
+      }, [state.vendors, filter, thisWeek, query]);
+
+      const open = (v) => setModal(<VendorForm vendor={v} onClose={()=>setModal(null)} />);
+
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Everyone who works on the house. Tap to edit. Use the call/text/email buttons to reach out fast.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add vendor</Btn>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+              <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search vendors, notes, services…" className="!pl-9" />
+            </div>
+            <button onClick={()=>setThisWeek(s=>!s)} className={`shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm border ${thisWeek?'bg-gold-400/12 border-gold-400/40 text-gold-300':'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
+              <Icon name="calendar" size={15} /> This week
+            </button>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
+            {types.map(t => (
+              <button key={t} onClick={()=>setFilter(t)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs border transition ${filter===t ? 'bg-ink-100 text-ink-900 border-ink-100' : 'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
+                {t === 'all' ? 'All' : t}
+              </button>
+            ))}
+          </div>
+
+          {filtered.length === 0 ? (
+            <Empty icon="users" title="No vendors match" body="Try clearing the filter, or add a new vendor." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vendor</Btn>} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {filtered.map(v => <VendorCard key={v.id} v={v} onEdit={()=>open(v)} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const VendorCard = ({ v, onEdit }) => {
+      const ctx = useContext(Ctx);
+      const nextN = daysUntil(v.nextVisit);
+      const sched = v.schedule?.recurring ? freqLabel(v.schedule.freq) + (v.schedule.dayOfWeek?` · ${v.schedule.dayOfWeek}s`:'') : 'On-demand';
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wider text-ink-400">{v.serviceType}</div>
+              <div className="font-display text-lg leading-tight mt-0.5">{v.company}</div>
+              <div className="text-ink-200 text-sm">{v.name}</div>
+            </div>
+            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          </div>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {v.nextVisit && (
+              <Pill tone={nextN<0?'overdue':nextN<=7?'soon':'info'} dot>
+                {nextN<0?`${Math.abs(nextN)}d overdue`:`Next ${fmtDate(v.nextVisit,{month:'short',day:'numeric'})}`}
+              </Pill>
+            )}
+            <Pill tone="muted">{sched}</Pill>
+            {v.rate && <Pill tone="muted">{v.rate}</Pill>}
+          </div>
+          {v.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2 leading-relaxed">{v.notes}</div>}
+          <div className="divider my-4" />
+          <div className="flex items-center gap-2">
+            <a href={`tel:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="phone" size={15}/> Call</a>
+            <a href={`sms:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="message" size={15}/> Text</a>
+            <a href={`mailto:${v.email}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="mail" size={15}/> Email</a>
+          </div>
+        </div>
+      );
+    };
+
+    const VendorForm = ({ vendor, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !vendor;
+      const [v, setV] = useState(vendor || {
+        name:'', company:'', serviceType:'', phone:'', email:'', rate:'',
+        schedule:{ recurring:false, freq:{count:1, unit:'months'}, dayOfWeek:'' },
+        lastVisit:'', nextVisit:'', notes:''
+      });
+      const setField = (k, val) => setV(prev => ({...prev, [k]: val}));
+      const setSched = (k, val) => setV(prev => ({...prev, schedule: {...prev.schedule, [k]: val}}));
+      const setFreq = (k, val) => setV(prev => ({...prev, schedule: {...prev.schedule, freq: {...prev.schedule.freq, [k]: val}}}));
+
+      const save = () => {
+        const payload = {...v};
+        if (!payload.schedule.recurring) payload.schedule = {recurring:false};
+        if (isNew) ctx.addVendor(payload); else ctx.updateVendor(vendor.id, payload);
+        ctx.showToast(isNew?'Vendor added':'Vendor updated');
+        onClose();
+      };
+      const remove = () => {
+        if (window.confirm(`Delete ${vendor.company}?`)) { ctx.deleteVendor(vendor.id); ctx.showToast('Vendor deleted'); onClose(); }
+      };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add vendor':'Edit vendor'} subtitle={isNew?'Takes about 30 seconds.':v.company} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Service type</label><input value={v.serviceType} onChange={e=>setField('serviceType',e.target.value)} placeholder="e.g. House Cleaner"/></div>
+              <div><label>Company</label><input value={v.company} onChange={e=>setField('company',e.target.value)} placeholder="Castillo Cleaning"/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Contact name</label><input value={v.name} onChange={e=>setField('name',e.target.value)} placeholder="Maria Castillo"/></div>
+              <div><label>Rate</label><input value={v.rate} onChange={e=>setField('rate',e.target.value)} placeholder="$220 / visit"/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Phone</label><input value={v.phone} onChange={e=>setField('phone',e.target.value)} placeholder="+1 415 555 0000"/></div>
+              <div><label>Email</label><input value={v.email} onChange={e=>setField('email',e.target.value)} placeholder="email@…"/></div>
+            </div>
+            <div className="card-soft p-3.5">
+              <div className="flex items-center justify-between">
+                <label className="!mb-0">Recurring schedule</label>
+                <button type="button" onClick={()=>setSched('recurring', !v.schedule.recurring)}
+                  className={`w-11 h-6 rounded-full relative transition ${v.schedule.recurring?'bg-gold-500':'bg-ink-600'}`}>
+                  <span className={`absolute top-0.5 ${v.schedule.recurring?'left-[1.4rem]':'left-0.5'} w-5 h-5 rounded-full bg-ink-100 transition-all`}></span>
+                </button>
+              </div>
+              {v.schedule.recurring && (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <div><label>Every</label><input type="number" min="1" value={v.schedule.freq.count} onChange={e=>setFreq('count', Math.max(1, +e.target.value))}/></div>
+                  <div><label>Unit</label>
+                    <select value={v.schedule.freq.unit} onChange={e=>setFreq('unit', e.target.value)}>
+                      <option value="days">days</option><option value="weeks">weeks</option><option value="months">months</option><option value="years">years</option>
+                    </select>
+                  </div>
+                  <div><label>Day (opt.)</label>
+                    <select value={v.schedule.dayOfWeek} onChange={e=>setSched('dayOfWeek', e.target.value)}>
+                      <option value="">—</option>
+                      {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=><option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Last visit</label><input type="date" value={v.lastVisit||''} onChange={e=>setField('lastVisit', e.target.value)}/></div>
+              <div><label>Next visit</label><input type="date" value={v.nextVisit||''} onChange={e=>setField('nextVisit', e.target.value)}/></div>
+            </div>
+            <div><label>Notes</label><textarea rows="3" value={v.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Gate code, key location, what they're great/bad at…"/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add vendor':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== MAINTENANCE ===================== */
+    const MaintenanceView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const [tab, setTab] = useState('list'); // list | timeline
+
+      const sorted = useMemo(() => {
+        return [...state.maintenance].sort((a,b) => {
+          const an = daysUntil(maintenanceNextDue(a)) ?? 9e9;
+          const bn = daysUntil(maintenanceNextDue(b)) ?? 9e9;
+          return an - bn;
+        });
+      }, [state.maintenance]);
+
+      const open = (t) => setModal(<TaskForm task={t} onClose={()=>setModal(null)} />);
+
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Big-ticket recurring tasks. Mark complete and the next due date rolls forward automatically.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add task</Btn>
+          </div>
+
+          <div className="inline-flex rounded-xl border border-ink-600 p-0.5 bg-ink-850">
+            <button onClick={()=>setTab('list')}     className={`px-3.5 py-1.5 rounded-lg text-sm inline-flex items-center gap-2 ${tab==='list'?'bg-ink-700 text-ink-100':'text-ink-300'}`}><Icon name="list" size={14}/> List</button>
+            <button onClick={()=>setTab('timeline')} className={`px-3.5 py-1.5 rounded-lg text-sm inline-flex items-center gap-2 ${tab==='timeline'?'bg-ink-700 text-ink-100':'text-ink-300'}`}><Icon name="calendar" size={14}/> 12-month timeline</button>
+          </div>
+
+          {tab === 'list' ? (
+            <div className="grid md:grid-cols-2 gap-3">
+              {sorted.map(m => <TaskCard key={m.id} m={m} onEdit={()=>open(m)} />)}
+            </div>
+          ) : (
+            <Timeline tasks={sorted} onPick={(m)=>open(m)} />
+          )}
+        </div>
+      );
+    };
+
+    const TaskCard = ({ m, onEdit }) => {
+      const ctx = useContext(Ctx);
+      const next = maintenanceNextDue(m);
+      const status = maintenanceStatus(m);
+      const vendor = ctx.state.vendors.find(v => v.company === m.vendorHint);
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium leading-snug">{m.name}</div>
+              <div className="text-ink-300 text-xs mt-0.5">{freqLabel(m.freq)}{m.estimatedCost?` · ~$${m.estimatedCost}`:''}</div>
+            </div>
+            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          </div>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <Pill tone={status.tone} dot>{status.label}</Pill>
+            <span className="text-ink-400 text-xs">Last: {fmtDate(m.lastCompleted)}</span>
+            <span className="text-ink-400 text-xs">·</span>
+            <span className="text-ink-400 text-xs">Next: {fmtDate(next)}</span>
+          </div>
+          {(m.notes || vendor || m.vendorHint) && (
+            <div className="mt-3 text-ink-300 text-xs leading-relaxed">
+              {(vendor || m.vendorHint) && <div className="mb-1"><span className="text-ink-400">Vendor:</span> {vendor?.company || m.vendorHint}</div>}
+              {m.notes && <div className="line-clamp-2">{m.notes}</div>}
+            </div>
+          )}
+          <div className="divider my-4"/>
+          <div className="flex items-center gap-2">
+            <button onClick={()=>{ ctx.completeTask(m.id); ctx.showToast(`Completed: ${m.name}`); }}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-sage-500/10 text-sage-400 hover:bg-sage-500/15 border border-sage-500/25 text-sm">
+              <Icon name="check" size={15}/> Mark complete
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    const TaskForm = ({ task, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !task;
+      const [t, setT] = useState(task || { name:'', freq:{count:1, unit:'years'}, lastCompleted: todayISO, estimatedCost:0, notes:'', vendorHint:'' });
+      const setField = (k, val) => setT(prev => ({...prev, [k]: val}));
+      const setFreq = (k, val) => setT(prev => ({...prev, freq: {...prev.freq, [k]: val}}));
+      const save = () => {
+        if (isNew) ctx.addTask(t); else ctx.updateTask(task.id, t);
+        ctx.showToast(isNew?'Task added':'Task updated');
+        onClose();
+      };
+      const remove = () => { if (window.confirm(`Delete ${task.name}?`)) { ctx.deleteTask(task.id); ctx.showToast('Task deleted'); onClose(); } };
+      const vendors = ctx.state.vendors;
+      return (
+        <>
+          <ModalHeader title={isNew?'Add maintenance task':'Edit task'} subtitle={isNew?'Recurring big-ticket items.':t.name} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div><label>Task name</label><input value={t.name} onChange={e=>setField('name', e.target.value)} placeholder="e.g. Gutter cleaning"/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Every</label><input type="number" min="1" value={t.freq.count} onChange={e=>setFreq('count', Math.max(1, +e.target.value))}/></div>
+              <div><label>Unit</label>
+                <select value={t.freq.unit} onChange={e=>setFreq('unit', e.target.value)}>
+                  <option value="days">days</option><option value="weeks">weeks</option><option value="months">months</option><option value="years">years</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Last completed</label><input type="date" value={t.lastCompleted||''} onChange={e=>setField('lastCompleted', e.target.value)}/></div>
+              <div><label>Est. cost ($)</label><input type="number" min="0" value={t.estimatedCost||0} onChange={e=>setField('estimatedCost', +e.target.value)}/></div>
+            </div>
+            <div><label>Preferred vendor</label>
+              <select value={t.vendorHint||''} onChange={e=>setField('vendorHint', e.target.value)}>
+                <option value="">— none —</option>
+                {vendors.map(v => <option key={v.id} value={v.company}>{v.company} · {v.serviceType}</option>)}
+              </select>
+            </div>
+            <div><label>Notes</label><textarea rows="3" value={t.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Anything specific (paint code, sealant brand, prep, etc.)"/></div>
+            {!isNew && (
+              <div className="card-soft p-3 flex items-center justify-between">
+                <div className="text-ink-300 text-xs">Next due: <span className="text-ink-100">{fmtDate(maintenanceNextDue(t))}</span></div>
+                <Btn variant="soft" icon="check" onClick={()=>{ ctx.completeTask(task.id); ctx.showToast('Marked complete'); onClose(); }}>Mark complete now</Btn>
+              </div>
+            )}
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add task':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    const Timeline = ({ tasks, onPick }) => {
+      const months = useMemo(() => {
+        const arr = [];
+        const start = new Date(today().getFullYear(), today().getMonth(), 1);
+        for (let i=0; i<12; i++) {
+          const m = new Date(start.getFullYear(), start.getMonth()+i, 1);
+          arr.push(m);
+        }
+        return arr;
+      }, []);
+      const buckets = useMemo(() => {
+        const map = months.map(()=>[]);
+        tasks.forEach(t => {
+          const next = maintenanceNextDue(t); if (!next) return;
+          const d = parseDate(next);
+          months.forEach((m, i) => {
+            const end = new Date(m.getFullYear(), m.getMonth()+1, 1);
+            if (d >= m && d < end) map[i].push(t);
+          });
+        });
+        return map;
+      }, [tasks, months]);
+      const totalCost = (mIdx) => buckets[mIdx].reduce((acc,t)=>acc + (t.estimatedCost||0), 0);
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="text-ink-300 text-xs mb-3">Next 12 months — clusters help with budget planning. Tap a task to edit.</div>
+          <div className="space-y-3">
+            {months.map((m, i) => (
+              <div key={i} className="flex gap-4 items-start">
+                <div className="w-20 md:w-24 shrink-0 pt-1">
+                  <div className="text-ink-100 text-sm font-medium">{m.toLocaleDateString(undefined,{month:'short'})}</div>
+                  <div className="text-ink-400 text-[11px]">{m.getFullYear()}</div>
+                  {totalCost(i) > 0 && <div className="text-gold-400 text-[11px] mt-0.5 tabular-nums">~${totalCost(i).toLocaleString()}</div>}
+                </div>
+                <div className="flex-1 min-h-[2rem] border-l border-dashed border-ink-600 pl-4 py-1">
+                  {buckets[i].length === 0 ? (
+                    <div className="text-ink-500 text-xs italic">—</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {buckets[i].map(t => {
+                        const status = maintenanceStatus(t);
+                        return (
+                          <button key={t.id} onClick={()=>onPick(t)}
+                            className={`text-[12px] px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 transition hover:translate-y-[-1px] ${
+                              status.tone==='overdue' ? 'border-ember-500/30 text-ember-400 bg-ember-500/10' :
+                              status.tone==='soon'    ? 'border-gold-400/30 text-gold-300 bg-gold-400/10' :
+                                                        'border-ink-600 text-ink-200 bg-ink-800'
+                            }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70"/>
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    /* ===================== APPLIANCES ===================== */
+    const AppliancesView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const [query, setQuery] = useState('');
+      const [filter, setFilter] = useState('all');
+
+      const rooms = useMemo(() => {
+        const set = new Set(state.appliances.map(a => a.room).filter(Boolean));
+        return ['all', ...Array.from(set)];
+      }, [state.appliances]);
+
+      const filtered = useMemo(() => {
+        return state.appliances.filter(a => {
+          if (filter !== 'all' && a.room !== filter) return false;
+          if (query) {
+            const q = query.toLowerCase();
+            if (!`${a.name} ${a.brand} ${a.model} ${a.serial||''} ${a.notes||''}`.toLowerCase().includes(q)) return false;
+          }
+          return true;
+        });
+      }, [state.appliances, filter, query]);
+
+      const open = (a) => setModal(<ApplianceForm appliance={a} onClose={()=>setModal(null)} />);
+
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Major appliances + equipment, with model numbers and warranties. Tap to edit. Photograph the model plate for anything still marked unknown.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add appliance</Btn>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+              <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search appliances, models, serials…" className="!pl-9" />
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
+            {rooms.map(r => (
+              <button key={r} onClick={()=>setFilter(r)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs border transition ${filter===r ? 'bg-ink-100 text-ink-900 border-ink-100' : 'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
+                {r === 'all' ? 'All rooms' : r}
+              </button>
+            ))}
+          </div>
+          {filtered.length === 0 ? (
+            <Empty icon="cube" title="No appliances match" body="Try clearing the filter, or add a new appliance." cta={<Btn icon="plus" onClick={()=>open(null)}>Add appliance</Btn>} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {filtered.map(a => <ApplianceCard key={a.id} a={a} onEdit={()=>open(a)} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const ApplianceCard = ({ a, onEdit }) => {
+      const wn = daysUntil(a.warrantyExpires);
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wider text-ink-400">{a.room || '—'}</div>
+              <div className="font-display text-lg leading-tight mt-0.5">{a.name}</div>
+              <div className="text-ink-200 text-sm">{a.brand} {a.model && <span className="text-ink-300">· {a.model}</span>}</div>
+            </div>
+            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          </div>
+          {a.serial && <div className="text-ink-400 text-xs mt-2">SN {a.serial}</div>}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {a.warrantyExpires && (
+              <Pill tone={wn<0?'overdue':wn<=90?'soon':'ok'} dot>
+                {wn<0?`Expired ${fmtDate(a.warrantyExpires)}`:`Warranty thru ${fmtDate(a.warrantyExpires)}`}
+              </Pill>
+            )}
+            {a.purchaseDate && <Pill tone="muted">Bought {fmtDate(a.purchaseDate)}</Pill>}
+            {a.purchasePrice ? <Pill tone="muted">${a.purchasePrice.toLocaleString()}</Pill> : null}
+          </div>
+          {a.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-3 leading-relaxed">{a.notes}</div>}
+        </div>
+      );
+    };
+
+    const ApplianceForm = ({ appliance, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !appliance;
+      const [a, setA] = useState(appliance || { name:'', room:'', brand:'', model:'', serial:'', purchaseDate:'', purchasePrice:0, warrantyExpires:'', manualUrl:'', notes:'' });
+      const setField = (k, v) => setA(prev => ({...prev, [k]: v}));
+      const save = () => {
+        if (isNew) ctx.addAppliance(a); else ctx.updateAppliance(appliance.id, a);
+        ctx.showToast(isNew?'Appliance added':'Appliance updated');
+        onClose();
+      };
+      const remove = () => { if (window.confirm(`Delete ${appliance.name}?`)) { ctx.deleteAppliance(appliance.id); ctx.showToast('Appliance deleted'); onClose(); } };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add appliance':'Edit appliance'} subtitle={isNew?'Capture the basics — fill in the rest later.':a.name} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Name</label><input value={a.name} onChange={e=>setField('name', e.target.value)} placeholder="Refrigerator"/></div>
+              <div><label>Room / location</label><input value={a.room} onChange={e=>setField('room', e.target.value)} placeholder="Kitchen — 1619"/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Brand</label><input value={a.brand} onChange={e=>setField('brand', e.target.value)} placeholder="Samsung"/></div>
+              <div><label>Model</label><input value={a.model} onChange={e=>setField('model', e.target.value)} placeholder="RS28A500ASR/AA"/></div>
+            </div>
+            <div><label>Serial</label><input value={a.serial} onChange={e=>setField('serial', e.target.value)} placeholder=""/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Purchase date</label><input type="date" value={a.purchaseDate||''} onChange={e=>setField('purchaseDate', e.target.value)}/></div>
+              <div><label>Price ($)</label><input type="number" min="0" value={a.purchasePrice||0} onChange={e=>setField('purchasePrice', +e.target.value)}/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Warranty expires</label><input type="date" value={a.warrantyExpires||''} onChange={e=>setField('warrantyExpires', e.target.value)}/></div>
+              <div><label>Manual URL</label><input value={a.manualUrl||''} onChange={e=>setField('manualUrl', e.target.value)} placeholder="https://…"/></div>
+            </div>
+            <div><label>Notes</label><textarea rows="3" value={a.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Service history, quirks, install context…"/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== INSURANCE ===================== */
+    const INS_TYPES = ['home','auto','umbrella','life','flood','earthquake','other'];
+    const InsuranceView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const list = useMemo(() => [...(state.insurance||[])].sort((a,b) => {
+        const ad = daysUntil(a.renewalDate) ?? 9e9; const bd = daysUntil(b.renewalDate) ?? 9e9; return ad - bd;
+      }), [state.insurance]);
+      const open = (item) => setModal(<InsuranceForm item={item} onClose={()=>setModal(null)} />);
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Every policy in one place. Tap to edit, then drill into the carrier portal via the link.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>
+          </div>
+          {list.length === 0 ? (
+            <Empty icon="shield" title="No policies yet" body="Add your first policy." cta={<Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {list.map(p => <InsuranceCard key={p.id} p={p} onEdit={()=>open(p)} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const InsuranceCard = ({ p, onEdit }) => {
+      const n = daysUntil(p.renewalDate);
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wider text-ink-400">{p.type}{p.property ? ` · ${p.property}` : ''}</div>
+              <div className="font-display text-lg leading-tight mt-0.5">{p.carrier}</div>
+              {p.coverageSummary && <div className="text-ink-300 text-sm">{p.coverageSummary}</div>}
+            </div>
+            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          </div>
+          {p.policyNumber && <div className="text-ink-200 text-xs mt-2 font-mono">Policy {p.policyNumber}</div>}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {p.renewalDate && (
+              <Pill tone={n<0?'overdue':n<=60?'soon':'info'} dot>
+                {n<0?`Renewed ${fmtDate(p.renewalDate)}`:`Renews ${fmtDate(p.renewalDate)}`}
+              </Pill>
+            )}
+            {p.premium ? <Pill tone="muted">${p.premium.toLocaleString()} {p.premiumCadence||''}</Pill> : null}
+          </div>
+          {(p.agentName || p.agentPhone || p.agentEmail) && (
+            <div className="text-ink-300 text-xs mt-3">
+              {p.agentName && <div>{p.agentName}</div>}
+              <div className="flex items-center gap-3 mt-0.5">
+                {p.agentPhone && <a href={`tel:${p.agentPhone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={12}/> {p.agentPhone}</a>}
+                {p.agentEmail && <a href={`mailto:${p.agentEmail}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="mail" size={12}/> email</a>}
+              </div>
+            </div>
+          )}
+          {p.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{p.notes}</div>}
+          {p.documentUrl && (
+            <>
+              <div className="divider my-4"/>
+              <a href={p.documentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open carrier portal</a>
+            </>
+          )}
+        </div>
+      );
+    };
+
+    const InsuranceForm = ({ item, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !item;
+      const [v, setV] = useState(item || { type:'home', carrier:'', policyNumber:'', agentName:'', agentPhone:'', agentEmail:'', premium:0, premiumCadence:'annual', renewalDate:'', coverageSummary:'', documentUrl:'', property:'', notes:'' });
+      const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
+      const save = () => { if (isNew) ctx.addInsurance(v); else ctx.updateInsurance(item.id, v); ctx.showToast(isNew?'Policy added':'Policy updated'); onClose(); };
+      const remove = () => { if (window.confirm(`Delete ${item.carrier}?`)) { ctx.deleteInsurance(item.id); ctx.showToast('Policy deleted'); onClose(); } };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add policy':'Edit policy'} subtitle={isNew?'':v.carrier} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Type</label>
+                <select value={v.type} onChange={e=>setF('type', e.target.value)}>
+                  {INS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div><label>Property (optional)</label><input value={v.property||''} onChange={e=>setF('property', e.target.value)} placeholder="1619 Seattle"/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Carrier</label><input value={v.carrier} onChange={e=>setF('carrier', e.target.value)}/></div>
+              <div><label>Policy #</label><input value={v.policyNumber||''} onChange={e=>setF('policyNumber', e.target.value)}/></div>
+            </div>
+            <div><label>Coverage summary</label><input value={v.coverageSummary||''} onChange={e=>setF('coverageSummary', e.target.value)}/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Premium ($)</label><input type="number" min="0" value={v.premium||0} onChange={e=>setF('premium', +e.target.value)}/></div>
+              <div><label>Cadence</label>
+                <select value={v.premiumCadence||'annual'} onChange={e=>setF('premiumCadence', e.target.value)}>
+                  <option value="annual">annual</option><option value="semiannual">semi-annual</option><option value="monthly">monthly</option>
+                </select>
+              </div>
+            </div>
+            <div><label>Renewal date</label><input type="date" value={v.renewalDate||''} onChange={e=>setF('renewalDate', e.target.value)}/></div>
+            <div><label>Agent name</label><input value={v.agentName||''} onChange={e=>setF('agentName', e.target.value)}/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Agent phone</label><input value={v.agentPhone||''} onChange={e=>setF('agentPhone', e.target.value)}/></div>
+              <div><label>Agent email</label><input value={v.agentEmail||''} onChange={e=>setF('agentEmail', e.target.value)}/></div>
+            </div>
+            <div><label>Document / portal URL</label><input value={v.documentUrl||''} onChange={e=>setF('documentUrl', e.target.value)}/></div>
+            <div><label>Notes</label><textarea rows="3" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== UTILITIES ===================== */
+    const UTIL_KINDS = ['electric','gas','water','internet','trash','sewer','other'];
+    const UtilitiesView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const list = state.utilities || [];
+      const open = (item) => setModal(<UtilityForm item={item} onClose={()=>setModal(null)} />);
+      const grouped = useMemo(() => {
+        const g = {};
+        list.forEach(u => { const k = u.property || 'Other'; (g[k] = g[k] || []).push(u); });
+        return g;
+      }, [list]);
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Account numbers (last-4), payment cadence, and login URLs.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>
+          </div>
+          {list.length === 0 ? (
+            <Empty icon="zap" title="No utilities yet" body="Add your first utility account." cta={<Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>} />
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(grouped).map(([propLabel, items]) => (
+                <div key={propLabel}>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-2">{propLabel}</div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {items.map(u => <UtilityCard key={u.id} u={u} onEdit={()=>open(u)} />)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const UtilityCard = ({ u, onEdit }) => (
+      <div className="card p-4 md:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wider text-ink-400">{u.kind}</div>
+            <div className="font-display text-lg leading-tight mt-0.5">{u.provider}</div>
+            {u.accountNumber && <div className="text-ink-300 text-xs mt-1 font-mono">{u.accountNumber}</div>}
+          </div>
+          <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+        </div>
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          {u.monthlyEstimate ? <Pill tone="muted">~${u.monthlyEstimate}/mo</Pill> : null}
+          {u.autopay ? <Pill tone="ok" dot>autopay</Pill> : (u.autopay === false ? <Pill tone="muted">manual</Pill> : null)}
+        </div>
+        {u.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{u.notes}</div>}
+        {(u.loginUrl || u.contactPhone) && (
+          <>
+            <div className="divider my-4"/>
+            <div className="flex items-center gap-3 text-sm">
+              {u.loginUrl && <a href={u.loginUrl} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
+              {u.contactPhone && <a href={`tel:${u.contactPhone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={14}/> {u.contactPhone}</a>}
+            </div>
+          </>
+        )}
+      </div>
+    );
+
+    const UtilityForm = ({ item, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !item;
+      const [v, setV] = useState(item || { kind:'electric', provider:'', accountNumber:'', monthlyEstimate:0, autopay:null, loginUrl:'', contactPhone:'', property:'', notes:'' });
+      const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
+      const save = () => { if (isNew) ctx.addUtility(v); else ctx.updateUtility(item.id, v); ctx.showToast(isNew?'Utility added':'Utility updated'); onClose(); };
+      const remove = () => { if (window.confirm(`Delete ${item.provider}?`)) { ctx.deleteUtility(item.id); ctx.showToast('Deleted'); onClose(); } };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add utility':'Edit utility'} subtitle={isNew?'':v.provider} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Kind</label>
+                <select value={v.kind} onChange={e=>setF('kind', e.target.value)}>
+                  {UTIL_KINDS.map(k => <option key={k} value={k}>{k}</option>)}
+                </select>
+              </div>
+              <div><label>Property</label><input value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
+            </div>
+            <div><label>Provider</label><input value={v.provider} onChange={e=>setF('provider', e.target.value)}/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Account #</label><input value={v.accountNumber||''} onChange={e=>setF('accountNumber', e.target.value)}/></div>
+              <div><label>Avg / mo ($)</label><input type="number" min="0" value={v.monthlyEstimate||0} onChange={e=>setF('monthlyEstimate', +e.target.value)}/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Login URL</label><input value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
+              <div><label>Contact phone</label><input value={v.contactPhone||''} onChange={e=>setF('contactPhone', e.target.value)}/></div>
+            </div>
+            <div className="card-soft p-3.5 flex items-center justify-between">
+              <label className="!mb-0">Autopay enabled</label>
+              <button type="button" onClick={()=>setF('autopay', v.autopay===true?false:v.autopay===false?null:true)}
+                className={`w-11 h-6 rounded-full relative transition ${v.autopay===true?'bg-gold-500':v.autopay===false?'bg-ember-500/40':'bg-ink-600'}`}>
+                <span className={`absolute top-0.5 ${v.autopay===true?'left-[1.4rem]':v.autopay===false?'left-3':'left-0.5'} w-5 h-5 rounded-full bg-ink-100 transition-all`}></span>
+              </button>
+            </div>
+            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== PROPERTY ===================== */
+    const PROP_KINDS = ['mortgage','hoa','property_tax','home_warranty','security','other'];
+    const PropertyView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const list = useMemo(() => [...(state.property||[])].sort((a,b) => {
+        const ad = daysUntil(a.nextDue) ?? 9e9; const bd = daysUntil(b.nextDue) ?? 9e9; return ad - bd;
+      }), [state.property]);
+      const open = (item) => setModal(<PropertyForm item={item} onClose={()=>setModal(null)} />);
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Mortgages, HOAs, property taxes, home warranties, security.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>
+          </div>
+          {list.length === 0 ? (
+            <Empty icon="key" title="No property records yet" body="Add your first property record." cta={<Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {list.map(p => <PropertyCard key={p.id} p={p} onEdit={()=>open(p)} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const PropertyCard = ({ p, onEdit }) => {
+      const n = daysUntil(p.nextDue);
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wider text-ink-400">{(p.kind||'').replace('_',' ')}{p.property ? ` · ${p.property}` : ''}</div>
+              <div className="font-display text-lg leading-tight mt-0.5">{p.label}</div>
+              {p.contact && <div className="text-ink-300 text-sm">{p.contact}</div>}
+            </div>
+            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          </div>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {p.nextDue && <Pill tone={n<0?'overdue':n<=30?'soon':'info'} dot>Due {fmtDate(p.nextDue)}</Pill>}
+            {p.amount ? <Pill tone="muted">${p.amount.toLocaleString()} {p.cadence||''}</Pill> : (p.cadence ? <Pill tone="muted">{p.cadence}</Pill> : null)}
+          </div>
+          {p.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{p.notes}</div>}
+          {(p.loginUrl || p.phone || p.email) && (
+            <>
+              <div className="divider my-4"/>
+              <div className="flex items-center gap-3 text-sm flex-wrap">
+                {p.loginUrl && <a href={p.loginUrl} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
+                {p.phone && <a href={`tel:${p.phone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={14}/> {p.phone}</a>}
+                {p.email && <a href={`mailto:${p.email}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="mail" size={14}/> email</a>}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    };
+
+    const PropertyForm = ({ item, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !item;
+      const [v, setV] = useState(item || { kind:'mortgage', label:'', contact:'', phone:'', email:'', loginUrl:'', amount:0, cadence:'monthly', nextDue:'', property:'', notes:'' });
+      const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
+      const save = () => { if (isNew) ctx.addProperty(v); else ctx.updateProperty(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
+      const remove = () => { if (window.confirm(`Delete ${item.label}?`)) { ctx.deleteProperty(item.id); ctx.showToast('Deleted'); onClose(); } };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add property record':'Edit'} subtitle={isNew?'':v.label} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Kind</label>
+                <select value={v.kind} onChange={e=>setF('kind', e.target.value)}>
+                  {PROP_KINDS.map(k => <option key={k} value={k}>{k.replace('_',' ')}</option>)}
+                </select>
+              </div>
+              <div><label>Property (optional)</label><input value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
+            </div>
+            <div><label>Label</label><input value={v.label} onChange={e=>setF('label', e.target.value)}/></div>
+            <div><label>Contact</label><input value={v.contact||''} onChange={e=>setF('contact', e.target.value)}/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Phone</label><input value={v.phone||''} onChange={e=>setF('phone', e.target.value)}/></div>
+              <div><label>Email</label><input value={v.email||''} onChange={e=>setF('email', e.target.value)}/></div>
+            </div>
+            <div><label>Portal URL</label><input value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
+            <div className="grid grid-cols-3 gap-3">
+              <div><label>Amount ($)</label><input type="number" min="0" value={v.amount||0} onChange={e=>setF('amount', +e.target.value)}/></div>
+              <div><label>Cadence</label>
+                <select value={v.cadence||'monthly'} onChange={e=>setF('cadence', e.target.value)}>
+                  <option value="monthly">monthly</option><option value="quarterly">quarterly</option><option value="annual">annual</option>
+                </select>
+              </div>
+              <div><label>Next due</label><input type="date" value={v.nextDue||''} onChange={e=>setF('nextDue', e.target.value)}/></div>
+            </div>
+            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== SUBSCRIPTIONS ===================== */
+    const SUB_CATEGORIES = ['streaming','fitness','software','membership','other'];
+    const SubscriptionsView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const list = state.subscriptions || [];
+      const open = (item) => setModal(<SubscriptionForm item={item} onClose={()=>setModal(null)} />);
+      const monthly = useMemo(() => {
+        return list.reduce((acc, s) => acc + (s.cost || 0) / (s.cadence === 'annual' ? 12 : 1), 0);
+      }, [list]);
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Recurring spend, surfaced. Tap any line to add cost or renewal date.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>
+          </div>
+          {monthly > 0 && (
+            <div className="card-soft p-3 flex items-center justify-between">
+              <div className="text-ink-300 text-xs">Tracked monthly equivalent</div>
+              <div className="font-display text-xl text-gold-400 tabular-nums">${monthly.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
+            </div>
+          )}
+          {list.length === 0 ? (
+            <Empty icon="receipt" title="No subscriptions yet" body="Add your first subscription." cta={<Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {list.map(s => <SubscriptionCard key={s.id} s={s} onEdit={()=>open(s)} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const SubscriptionCard = ({ s, onEdit }) => {
+      const n = daysUntil(s.renewalDate);
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wider text-ink-400">{s.category}</div>
+              <div className="font-display text-lg leading-tight mt-0.5">{s.name}</div>
+            </div>
+            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          </div>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {s.cost ? <Pill tone="muted">${s.cost} {s.cadence||''}</Pill> : null}
+            {s.renewalDate && <Pill tone={n<0?'overdue':n<=30?'soon':'info'} dot>{n<0?`Renewed ${fmtDate(s.renewalDate)}`:`Renews ${fmtDate(s.renewalDate)}`}</Pill>}
+          </div>
+          {s.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{s.notes}</div>}
+        </div>
+      );
+    };
+
+    const SubscriptionForm = ({ item, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !item;
+      const [v, setV] = useState(item || { name:'', category:'streaming', cost:0, cadence:'monthly', renewalDate:'', notes:'' });
+      const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
+      const save = () => { if (isNew) ctx.addSubscription(v); else ctx.updateSubscription(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
+      const remove = () => { if (window.confirm(`Delete ${item.name}?`)) { ctx.deleteSubscription(item.id); ctx.showToast('Deleted'); onClose(); } };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add subscription':'Edit'} subtitle={isNew?'':v.name} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div><label>Name</label><input value={v.name} onChange={e=>setF('name', e.target.value)}/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Category</label>
+                <select value={v.category} onChange={e=>setF('category', e.target.value)}>
+                  {SUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div><label>Cadence</label>
+                <select value={v.cadence||'monthly'} onChange={e=>setF('cadence', e.target.value)}>
+                  <option value="monthly">monthly</option><option value="annual">annual</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Cost ($)</label><input type="number" min="0" step="0.01" value={v.cost||0} onChange={e=>setF('cost', +e.target.value)}/></div>
+              <div><label>Renewal date</label><input type="date" value={v.renewalDate||''} onChange={e=>setF('renewalDate', e.target.value)}/></div>
+            </div>
+            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== VEHICLES ===================== */
+    const VehiclesView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const list = state.vehicles || [];
+      const open = (item) => setModal(<VehicleForm item={item} onClose={()=>setModal(null)} />);
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Cars, VINs, and extended warranties.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>
+          </div>
+          {list.length === 0 ? (
+            <Empty icon="car" title="No vehicles yet" body="Add your first car." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {list.map(v => <VehicleCard key={v.id} v={v} onEdit={()=>open(v)} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const VehicleCard = ({ v, onEdit }) => {
+      const n = daysUntil(v.warrantyExpires);
+      return (
+        <div className="card p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wider text-ink-400">{v.year || ''} {v.make}</div>
+              <div className="font-display text-lg leading-tight mt-0.5">{v.model}{v.trim?` ${v.trim}`:''}</div>
+              {v.primaryDriver && <div className="text-ink-300 text-sm">Driver: {v.primaryDriver}</div>}
+            </div>
+            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          </div>
+          {v.vin && <div className="text-ink-300 text-xs mt-2 font-mono">VIN {v.vin}</div>}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {v.warrantyProvider && <Pill tone="muted">{v.warrantyProvider}</Pill>}
+            {v.warrantyExpires && <Pill tone={n<0?'overdue':n<=90?'soon':'ok'} dot>Warranty thru {fmtDate(v.warrantyExpires)}</Pill>}
+          </div>
+          {v.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{v.notes}</div>}
+          {v.warrantyContact && (
+            <>
+              <div className="divider my-4"/>
+              <div className="text-ink-200 text-xs">Warranty contact: {v.warrantyContact.includes('@') ? <a href={`mailto:${v.warrantyContact}`} className="text-gold-400">{v.warrantyContact}</a> : v.warrantyContact}</div>
+            </>
+          )}
+        </div>
+      );
+    };
+
+    const VehicleForm = ({ item, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !item;
+      const [v, setV] = useState(item || { year:'', make:'', model:'', trim:'', vin:'', color:'', primaryDriver:'', warrantyProvider:'', warrantyContact:'', warrantyExpires:'', insurancePolicyId:'', notes:'' });
+      const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
+      const save = () => { if (isNew) ctx.addVehicle(v); else ctx.updateVehicle(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
+      const remove = () => { if (window.confirm(`Delete ${item.make} ${item.model}?`)) { ctx.deleteVehicle(item.id); ctx.showToast('Deleted'); onClose(); } };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add vehicle':'Edit vehicle'} subtitle={isNew?'':`${v.make} ${v.model}`} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div><label>Year</label><input type="number" value={v.year||''} onChange={e=>setF('year', e.target.value?+e.target.value:'')}/></div>
+              <div><label>Make</label><input value={v.make||''} onChange={e=>setF('make', e.target.value)}/></div>
+              <div><label>Model</label><input value={v.model||''} onChange={e=>setF('model', e.target.value)}/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Trim</label><input value={v.trim||''} onChange={e=>setF('trim', e.target.value)}/></div>
+              <div><label>Color</label><input value={v.color||''} onChange={e=>setF('color', e.target.value)}/></div>
+            </div>
+            <div><label>VIN</label><input value={v.vin||''} onChange={e=>setF('vin', e.target.value)} className="font-mono"/></div>
+            <div><label>Primary driver</label><input value={v.primaryDriver||''} onChange={e=>setF('primaryDriver', e.target.value)}/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Warranty provider</label><input value={v.warrantyProvider||''} onChange={e=>setF('warrantyProvider', e.target.value)} placeholder="Zurich"/></div>
+              <div><label>Warranty contact</label><input value={v.warrantyContact||''} onChange={e=>setF('warrantyContact', e.target.value)} placeholder="email or phone"/></div>
+            </div>
+            <div><label>Warranty expires</label><input type="date" value={v.warrantyExpires||''} onChange={e=>setF('warrantyExpires', e.target.value)}/></div>
+            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== BENEFITS ===================== */
+    const BENEFIT_TYPES = ['medical','dental','vision','life','fsa','hsa','other'];
+    const BenefitsView = () => {
+      const ctx = useContext(Ctx);
+      const { state, setModal } = ctx;
+      const list = state.benefits || [];
+      const open = (item) => setModal(<BenefitForm item={item} onClose={()=>setModal(null)} />);
+      return (
+        <div className="space-y-5 max-w-5xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Health + employer benefits — member IDs and portal links you need at appointments.</p>
+            <Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>
+          </div>
+          {list.length === 0 ? (
+            <Empty icon="heart" title="No benefits yet" body="Add your first benefit." cta={<Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {list.map(b => <BenefitCard key={b.id} b={b} onEdit={()=>open(b)} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const BenefitCard = ({ b, onEdit }) => (
+      <div className="card p-4 md:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wider text-ink-400">{b.type}</div>
+            <div className="font-display text-lg leading-tight mt-0.5">{b.provider}</div>
+          </div>
+          <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+          {b.memberID && <><div className="text-ink-400">Member ID</div><div className="text-ink-100 font-mono">{b.memberID}</div></>}
+          {b.groupID && <><div className="text-ink-400">Group ID</div><div className="text-ink-100 font-mono">{b.groupID}</div></>}
+        </div>
+        {b.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{b.notes}</div>}
+        {b.loginUrl && (
+          <>
+            <div className="divider my-4"/>
+            <a href={b.loginUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open portal</a>
+          </>
+        )}
+      </div>
+    );
+
+    const BenefitForm = ({ item, onClose }) => {
+      const ctx = useContext(Ctx);
+      const isNew = !item;
+      const [v, setV] = useState(item || { type:'medical', provider:'', memberID:'', groupID:'', loginUrl:'', notes:'' });
+      const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
+      const save = () => { if (isNew) ctx.addBenefit(v); else ctx.updateBenefit(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
+      const remove = () => { if (window.confirm(`Delete ${item.provider}?`)) { ctx.deleteBenefit(item.id); ctx.showToast('Deleted'); onClose(); } };
+      return (
+        <>
+          <ModalHeader title={isNew?'Add benefit':'Edit benefit'} subtitle={isNew?'':v.provider} onClose={onClose} />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Type</label>
+                <select value={v.type} onChange={e=>setF('type', e.target.value)}>
+                  {BENEFIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div><label>Provider</label><input value={v.provider} onChange={e=>setF('provider', e.target.value)}/></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label>Member ID</label><input value={v.memberID||''} onChange={e=>setF('memberID', e.target.value)}/></div>
+              <div><label>Group ID</label><input value={v.groupID||''} onChange={e=>setF('groupID', e.target.value)}/></div>
+            </div>
+            <div><label>Portal URL</label><input value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
+            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+          </div>
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+            {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    /* ===================== Placeholder ===================== */
+    const PlaceholderView = ({ title, subtitle, icon }) => {
+      const ctx = useContext(Ctx);
+      return (
+        <div className="max-w-3xl">
+          <div className="card p-8 md:p-10 text-center">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-ink-700 grid place-items-center text-gold-400 mb-4">
+              <Icon name={icon} size={28} />
+            </div>
+            <div className="font-display text-2xl">{title}</div>
+            <div className="text-ink-300 text-sm mt-2 max-w-md mx-auto">{subtitle}</div>
+            <div className="text-ink-400 text-xs mt-6">Phase 1 ships Dashboard + Vendors + Deep Maintenance. Once you're happy with this, we'll build out the rest.</div>
+            <div className="mt-6">
+              <Btn variant="ghost" onClick={ctx.resetAll}>Reset to sample data</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* ---------- mount ---------- */
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    
+    /* ---------- public unlock gate (encrypted at rest) ---------- */
+    const ENCRYPTED_BLOB = "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";
+    async function decryptShared(password) {
+      const data = Uint8Array.from(atob(ENCRYPTED_BLOB), c => c.charCodeAt(0));
+      const salt = data.slice(0, 16);
+      const nonce = data.slice(16, 28);
+      const ct = data.slice(28);
+      const enc = new TextEncoder();
+      const km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      const key = await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' },
+        km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+      );
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, key, ct);
+      return JSON.parse(new TextDecoder().decode(pt));
+    }
+    const UnlockScreen = ({ onUnlock }) => {
+      const [pw, setPw] = useState('');
+      const [busy, setBusy] = useState(false);
+      const [err, setErr] = useState(null);
+      const submit = async (e) => {
+        e?.preventDefault();
+        if (!pw || busy) return;
+        setBusy(true); setErr(null);
+        try { onUnlock(await decryptShared(pw)); }
+        catch (ex) { setErr("Password didn't work. Try again."); setBusy(false); }
+      };
+      return (
+        <div className="min-h-screen relative z-10 flex items-center justify-center px-6">
+          <form onSubmit={submit} className="card p-8 md:p-10 w-full max-w-sm anim-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold text-lg">H</div>
+              <div>
+                <div className="font-display text-xl tracking-tight leading-none">Home HQ</div>
+                <div className="text-ink-400 text-[11px] uppercase tracking-wider mt-1">Private dashboard</div>
+              </div>
+            </div>
+            <div className="text-ink-200 text-sm mb-1">Welcome.</div>
+            <div className="text-ink-300 text-sm mb-5">Enter the password to view.</div>
+            <input type="password" autoFocus value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" disabled={busy} />
+            {err && <div className="text-ember-400 text-xs mt-2">{err}</div>}
+            <button type="submit" disabled={busy || !pw} className="btn-primary w-full mt-4 px-3.5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+              {busy ? 'Unlocking…' : 'View dashboard'}
+            </button>
+          </form>
+        </div>
+      );
+    };
+    const SharedRoot = () => {
+      const [decrypted, setDecrypted] = useState(null);
+      if (!decrypted) return <UnlockScreen onUnlock={(s) => { window.__SHARED_INIT__ = s; setDecrypted(s); }} />;
+      return <App />;
+    };
+
+    root.render(<SharedRoot />);
+  </script>
+</body>
+</html>
