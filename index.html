@@ -429,6 +429,9 @@
 
     /* ---------- suggestions (prepopulated from the 7/31/26 Merrill statement scan) ---------- */
     const seedSuggestions = [
+      { id:'sg-bofa-cash', priority:'high', done:false, source:'BofA stmt 7/29/26',
+        title:'$883K sitting in BofA savings at 0.05% APY',
+        body:'The Money Market Savings account (#…3955) earns ~$440/yr at 0.05%. Parked in an actual money-market fund or T-bills at ~3.7% it would earn ~$32K/yr — that’s $2,600/mo of free yield. Sweep everything beyond your checking buffer into BLF FEDFUND at Merrill (already used there), a Preferred Deposit tier, or a Treasury ladder.' },
       { id:'sg-pltr-glidepath', priority:'high', done:false, source:'Merrill stmt 7/31/26',
         title:'Decide the PLTR exit path before the collar expires (Jan 2027)',
         body:'PLTR is $1.32M — 18.7% of the portfolio, with a $1.29M unrealized LT gain (basis ~$2.70/sh). The Jan-2027 $100P/$180C collar covers only 4,000 of 10,724 shares. Start the glide path now: sell in tranches across tax years, keep annual LT gains near WA’s ~$270K capital-gains excise threshold, use specific-lot ID.' },
@@ -444,6 +447,11 @@
       { id:'sg-watchlist', priority:'low', done:false, source:'Merrill stmt 7/31/26',
         title:'Watch list: Oaktree LP, fees — and leave the Roths/UTMAs alone',
         body:'Oaktree RE Debt Fund III is marked 0.97x (−1.1% IRR) on a stale 3/31 NAV — check the Q2 mark. Advisory fees $17.1K YTD (~0.5%/yr). The $839K IRA rollover is now fully deployed ✓ and both backdoor Roths are done for 2026 ✓. UTMAs and Roths are doing their job — no changes.' },
+    ];
+
+    /* DAF balance log — append a new entry whenever you check the fund; the dashboard charts the change. */
+    const seedDafValues = [
+      { id:'daf-2026-08-14', date:'2026-08-14', value:53770.98, note:'Starting point' },
     ];
 
     /* ---------- portfolio snapshot (Merrill, baked) ---------- */
@@ -464,6 +472,7 @@
       benefits: seedBenefits,
       files: seedFiles,
       suggestions: seedSuggestions,
+      dafValues: seedDafValues,
     };
 
     /* ---------- derived helpers ---------- */
@@ -524,7 +533,7 @@
         // (wine, portfolio, future modules) is auto-backfilled — a stale save can
         // never crash the app by missing a top-level key.
         const migrated = { ...initialState, ...saved };
-        const ENTITY_KEYS = ['vendors','maintenance','appliances','wine','insurance','vehicles','utilities','property','subscriptions','benefits','files','suggestions'];
+        const ENTITY_KEYS = ['vendors','maintenance','appliances','wine','insurance','vehicles','utilities','property','subscriptions','benefits','files','suggestions','dafValues'];
         ENTITY_KEYS.forEach(k => {
           if (!Array.isArray(migrated[k])) migrated[k] = initialState[k];
         });
@@ -559,7 +568,7 @@
         if (Array.isArray(migrated.property))   migrated.property   = migrated.property.filter(p   => p.id !== 'p-ph-mortgage-sv');
         if (Array.isArray(migrated.appliances)) migrated.appliances = migrated.appliances.filter(a => a.id !== 'a-ph-sv-hot-tub');
         // Merge in NEW seed entries (e.g. placeholders) by id — preserves user edits to existing items
-        ['vendors','maintenance','appliances','insurance','vehicles','property','benefits','utilities','subscriptions','files','suggestions'].forEach(k => {
+        ['vendors','maintenance','appliances','insurance','vehicles','property','benefits','utilities','subscriptions','files','suggestions','dafValues'].forEach(k => {
           const baseList = initialState[k] || [];
           if (!baseList.length) return;
           const have = new Set((migrated[k]||[]).map(x => x.id));
@@ -693,6 +702,7 @@
       const subOps  = mk('subscriptions');
       const benOps  = mk('benefits');
       const sugOps  = mk('suggestions');
+      const dafOps  = mk('dafValues');
 
       const ctx = {
         state, setState, view, setView, modal, setModal, showToast,
@@ -752,6 +762,7 @@
         addSubscription: subOps.add, updateSubscription: subOps.update, deleteSubscription: subOps.delete,
         addBenefit: benOps.add, updateBenefit: benOps.update, deleteBenefit: benOps.delete,
         addSuggestion: sugOps.add, updateSuggestion: sugOps.update, deleteSuggestion: sugOps.delete,
+        addDafValue: dafOps.add, deleteDafValue: dafOps.delete,
         // mark a dashboard item done — applies kind-specific side effect + appends to completedLog
         markDone: (item) => {
           if (!item || !item.kind || !item.id) return;
@@ -1596,14 +1607,58 @@ const EDUCATION_529 = {
     { child:'Cameron', acct:'369263127-02', fund:'Target Enrollment 2035', units:7098.7880, price:14.78, value:104920.09 },
   ],
 };
+const BANKING = {
+  asOf: '2026-07-29',
+  total: 905616.98,
+  boxId: '2400771747634',
+  accounts: [
+    { name:'Relationship Banking (checking)', acct:'1381 2939 4006', value:22489.79,  apy:0.01, intYtd:13.77 },
+    { name:'MMS Money Market Savings',        acct:'1381 2939 3955', value:883127.19, apy:0.05, intYtd:112.30 },
+    { name:'Advance SafeBalance (kids)',      acct:'…7727', value:null },
+    { name:'Advance SafeBalance (kids)',      acct:'…7730', value:null },
+  ],
+  missingNote: 'No statements for the two kids’ SafeBalance accounts yet — drop their eStmts into the Spending docs folder in Box (or tell Claude the balances) and they’ll be added to the total.',
+};
+/* Merrill snapshot + bank cash + 529s + vested Anthropic equity (options at intrinsic spread). */
+const householdTotal = () => PORTFOLIO_DATA.totalValue + BANKING.total + EDUCATION_529.total + equityVesting().vestedValue;
+
+const EQUITY_FMV = { price: 589.01, asOf: '2026-08-14' };  // current per-share valuation, provided by Justin
 const EQUITY_COMP = {
   issuer: 'Anthropic, PBC · A&R 2021 Stock Plan',
   grants: [
-    { id:'O-5818',      type:'ISO options', qty:1130, detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36', boxId:'2406462393467' },
-    { id:'O-5818Split', type:'NQ options',  qty:2255, detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36', boxId:'2406457348367' },
-    { id:'RSU-6132',    type:'RSUs',        qty:5613, detail:'15-mo cliff then quarterly (~4 yr) from 2/20/26 · double-trigger: needs IPO/CoC by 2033 or forfeits', boxId:'2406466295226' },
+    { id:'O-5818',      kind:'option', type:'ISO options', qty:1130, strike:176.57, vc:'2026-02-10', detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36', boxId:'2406462393467' },
+    { id:'O-5818Split', kind:'option', type:'NQ options',  qty:2255, strike:176.57, vc:'2026-02-10', detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36', boxId:'2406457348367' },
+    { id:'RSU-6132',    kind:'rsu',    type:'RSUs',        qty:5613, vc:'2026-02-20', detail:'15-mo cliff then quarterly (~4 yr) from 2/20/26 · double-trigger: needs IPO/CoC by 2033 or forfeits', boxId:'2406466295226' },
   ],
-  notes: 'Options total 3,385 sh — exercise cost $597,689 at $176.57. Private company: no public mark, so nothing here is counted in the totals above. Vested options stay exercisable to expiry after leaving (unvested lapse 3 mo post-termination); 180-day IPO lock-up on everything.',
+  notes: 'Valued at the $589.01/sh current valuation: options at intrinsic spread ($412.44/sh over the $176.57 strike), RSUs at full value. Options assume standard monthly vesting over 4 years from 2/10/26 — the agreement only says “manual vesting schedule,” so correct me if it differs. RSUs hit their 15-month cliff 5/20/27, and even then are double-trigger (no settlement until IPO/CoC). Only the vested spread is counted in the household total. Vested options stay exercisable to expiry after leaving; unvested lapse 3 mo post-termination; 180-day IPO lock-up.',
+};
+/* Vested/unvested split, computed live from today's date. */
+const equityVesting = () => {
+  const now = new Date();
+  const fullMonths = (fromStr) => {
+    const from = new Date(fromStr + 'T00:00:00');
+    let m = (now.getFullYear() - from.getFullYear()) * 12 + (now.getMonth() - from.getMonth());
+    if (now.getDate() < from.getDate()) m -= 1;
+    return Math.max(0, m);
+  };
+  const perGrant = EQUITY_COMP.grants.map(g => {
+    const m = fullMonths(g.vc);
+    let vestedQty;
+    if (g.kind === 'option') {
+      vestedQty = Math.min(g.qty, Math.floor(g.qty * Math.min(m, 48) / 48));  // monthly / 4 yr (assumed)
+    } else {
+      const tranches = m >= 15 ? 1 + Math.min(11, Math.floor((m - 15) / 3)) : 0;  // 15-mo cliff, then quarterly, 12 tranches
+      vestedQty = Math.round(g.qty * tranches / 12);
+    }
+    const perShare = g.kind === 'option' ? Math.max(0, EQUITY_FMV.price - g.strike) : EQUITY_FMV.price;
+    return { ...g, vestedQty, unvestedQty: g.qty - vestedQty,
+             vestedValue: vestedQty * perShare, unvestedValue: (g.qty - vestedQty) * perShare };
+  });
+  return {
+    perGrant,
+    vestedValue:   perGrant.reduce((s,g) => s + g.vestedValue, 0),
+    unvestedValue: perGrant.reduce((s,g) => s + g.unvestedValue, 0),
+  };
 };
 
 const PORTFOLIO_AC_COLORS = {
@@ -2009,7 +2064,7 @@ const PortfolioView = () => {
   const [showSettings, setShowSettings] = useState(false);
   const priceState = usePriceQuotes();
   const d = PORTFOLIO_DATA;
-  const OUTSIDE_SCOPES = ['Bennett 529', 'Cameron 529', 'Anthropic Equity'];
+  const OUTSIDE_SCOPES = ['Cash & Banking', 'Bennett 529', 'Cameron 529', 'Anthropic Equity', 'Charitable DAF'];
   const accounts = ['__all__', ...d.accounts.map(a => a.name), ...OUTSIDE_SCOPES];
   const isOutside = OUTSIDE_SCOPES.includes(scope);
 
@@ -2116,7 +2171,11 @@ const PortfolioView = () => {
 
       <div>
         <p className="text-ink-300 text-sm max-w-2xl">
-          Merrill Lynch — snapshot total {fmtMoney(d.totalValue)} across {d.numAccounts} accounts · {d.holdings.length} positions · as of {d.asOf}. Plus {fmtMoneyK(EDUCATION_529.total)} in 529s and Anthropic equity grants — bottom of this page.
+          Merrill Lynch — snapshot total {fmtMoney(d.totalValue)} across {d.numAccounts} accounts · {d.holdings.length} positions · as of {d.asOf}.
+        </p>
+        <p className="text-ink-200 text-sm mt-1.5 max-w-2xl">
+          Household total <span className="font-medium text-gold-300 tabular-nums">{fmtMoney(householdTotal())}</span>
+          <span className="text-ink-400"> — Merrill {fmtMoneyK(d.totalValue)} + bank cash {fmtMoneyK(BANKING.total)} + 529s {fmtMoneyK(EDUCATION_529.total)} + vested Anthropic equity {fmtMoneyK(equityVesting().vestedValue)}. DAF tracked separately.</span>
         </p>
         {isLive && (
           <div className="mt-2 flex items-baseline gap-3 flex-wrap">
@@ -2440,6 +2499,23 @@ const PortfolioView = () => {
         </div>
 
         {/* ---- Outside Merrill ---- */}
+        {/* Bank accounts */}
+        <div className="card p-4 md:p-5 lg:col-span-2">
+          <SectionHeader title="Cash & Banking" hint={`Bank of America — as of ${BANKING.asOf}. Full detail under the Cash & Banking tab above.`} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {BANKING.accounts.filter(a => a.value != null).map(a => (
+              <div key={a.acct} className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
+                <div className="text-[11px] text-ink-400">{a.name}</div>
+                <div className="text-ink-100 tabular-nums font-medium mt-1">{fmtMoney(a.value)}</div>
+              </div>
+            ))}
+            <div className="rounded-xl border border-gold-400/30 bg-gold-400/5 px-3.5 py-3">
+              <div className="text-[11px] text-ink-400">Total bank cash</div>
+              <div className="font-display text-lg text-gold-400 tabular-nums mt-0.5">{fmtMoney(BANKING.total)}</div>
+            </div>
+          </div>
+        </div>
+
         {/* 529 college savings */}
         <div className="card p-4 md:p-5">
           <SectionHeader title="529 College Savings" hint={`Outside Merrill — not counted in the totals above. As of ${EDUCATION_529.asOf}.`} />
@@ -2462,7 +2538,7 @@ const PortfolioView = () => {
 
         {/* Anthropic equity comp */}
         <div className="card p-4 md:p-5">
-          <SectionHeader title="Anthropic Equity" hint={EQUITY_COMP.issuer + ' — grant docs in Box.'} />
+          <SectionHeader title="Anthropic Equity" hint={`${fmtMoney(equityVesting().vestedValue)} vested · ${fmtMoney(equityVesting().unvestedValue)} unvested at $${EQUITY_FMV.price.toFixed(2)}/sh — detail under the Anthropic Equity tab.`} />
           <div className="space-y-2.5">
             {EQUITY_COMP.grants.map(g => (
               <a key={g.id} href={`https://app.box.com/file/${g.boxId}`} target="_blank" rel="noreferrer"
@@ -2485,31 +2561,143 @@ const PortfolioView = () => {
   );
 };
 
-/* Focused views for the outside-Merrill scope tabs (529s + Anthropic equity). */
+/* BofA Charitable Gift Fund (DAF) — value log with growth tracking. Log a balance whenever you check the fund. */
+const DafPanel = () => {
+  const ctx = useContext(Ctx);
+  const [val, setVal] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0,10));
+  const raw = ctx.state.dafValues || [];
+  const rawIdx = new Map(raw.map((e, i) => [e.id, i]));
+  // sort oldest → newest; ties on date break by insertion order (new entries are prepended, so lower raw index = newer)
+  const log = [...raw].filter(e => e.value != null).sort((a,b) => {
+    const c = (a.date||'').localeCompare(b.date||'');
+    return c !== 0 ? c : (rawIdx.get(b.id) - rawIdx.get(a.id));
+  });
+  const latest = log[log.length - 1];
+  const prev = log.length > 1 ? log[log.length - 2] : null;
+  const first = log[0];
+  const delta = (a, b) => a && b ? a.value - b.value : null;
+  const pct = (a, b) => a && b && b.value ? ((a.value - b.value) / b.value * 100) : null;
+  const submit = () => {
+    const v = parseFloat(String(val).replace(/[$,]/g, ''));
+    if (!isFinite(v) || v <= 0) return;
+    ctx.addDafValue({ date, value: v, note: 'Logged manually' });
+    ctx.showToast('DAF balance logged');
+    setVal('');
+  };
+  const dSince = delta(latest, prev), pSince = pct(latest, prev);
+  const dStart = delta(latest, first), pStart = pct(latest, first);
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <PortfolioStat label="Current value" value={latest ? fmtMoney(latest.value) : '—'} />
+        <PortfolioStat label="Since last check" value={dSince == null ? '— first entry' : `${dSince >= 0 ? '+' : ''}${fmtMoneyK(dSince)} (${pSince >= 0 ? '+' : ''}${pSince.toFixed(1)}%)`} tone={dSince == null ? 'muted' : dSince >= 0 ? 'ok' : 'overdue'} />
+        <PortfolioStat label="Since start" value={dStart ? `${dStart >= 0 ? '+' : ''}${fmtMoneyK(dStart)} (${pStart >= 0 ? '+' : ''}${pStart.toFixed(1)}%)` : '—'} tone={!dStart ? 'muted' : dStart >= 0 ? 'ok' : 'overdue'} />
+        <PortfolioStat label="As of" value={latest ? latest.date : '—'} />
+      </div>
+      <div className="card p-4 md:p-5">
+        <SectionHeader title="BofA Charitable Gift Fund" hint="Donor-advised fund — already given away, so it's tracked here but never counted in the household total." />
+        <div className="flex flex-wrap items-end gap-2 mb-4">
+          <div>
+            <label className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">New balance</label>
+            <input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter') submit(); }} placeholder="$54,000"
+              className="w-32 bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-500 focus:border-gold-400/50 outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">Date</label>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+              className="bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 focus:border-gold-400/50 outline-none" />
+          </div>
+          <button onClick={submit} className="px-3.5 py-2 rounded-full btn-primary text-[12px] font-medium">Log balance</button>
+        </div>
+        <div className="space-y-1.5">
+          {[...log].reverse().map((e, i, arr) => {
+            const older = arr[i + 1];
+            const d = older ? e.value - older.value : null;
+            return (
+              <div key={e.id} className="flex items-center gap-3 text-sm border-t border-ink-700/60 pt-1.5 first:border-t-0 group/daf">
+                <span className="text-ink-400 text-[11px] w-24 shrink-0 tabular-nums">{e.date}</span>
+                <span className="text-ink-100 tabular-nums">{fmtMoney(e.value)}</span>
+                {d != null && <span className={`text-[11px] tabular-nums ${d >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>{d >= 0 ? '+' : ''}{fmtMoneyK(d)}</span>}
+                <span className="text-ink-500 text-[11px] flex-1 truncate">{e.note || ''}</span>
+                <button onClick={() => { if (window.confirm('Delete this entry?')) ctx.deleteDafValue(e.id); }}
+                  className="opacity-0 group-hover/daf:opacity-100 transition text-ink-500 hover:text-ember-400 p-1"><Icon name="x" size={12}/></button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+          Log the balance whenever you check the fund — the deltas above track growth/decline between checks. Pairs with the “gift high-gain PLTR lots to the DAF” suggestion: gifted shares land here.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Focused views for the outside-Merrill scope tabs (banking, 529s, equity, DAF). */
 const OutsideMerrillPanel = ({ scope }) => {
-  if (scope === 'Anthropic Equity') {
-    const totOpt = EQUITY_COMP.grants.filter(g => g.type.includes('options')).reduce((s,g) => s + g.qty, 0);
-    const rsus = EQUITY_COMP.grants.find(g => g.type === 'RSUs');
+  if (scope === 'Charitable DAF') return <DafPanel />;
+  if (scope === 'Cash & Banking') {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <PortfolioStat label="Options (ISO + NQ)" value={totOpt.toLocaleString()} />
-          <PortfolioStat label="Strike" value="$176.57" />
-          <PortfolioStat label="Exercise cost" value="$597,689" />
-          <PortfolioStat label="RSUs" value={rsus ? rsus.qty.toLocaleString() : '—'} />
+          <PortfolioStat label="Total bank cash" value={fmtMoney(BANKING.total)} />
+          <PortfolioStat label="Checking" value={fmtMoney(BANKING.accounts[0].value)} />
+          <PortfolioStat label="Money Market Savings" value={fmtMoney(BANKING.accounts[1].value)} />
+          <PortfolioStat label="As of" value={BANKING.asOf} />
         </div>
         <div className="card p-4 md:p-5">
-          <SectionHeader title="Grants" hint={EQUITY_COMP.issuer + ' — click a grant to open the agreement in Box.'} />
+          <SectionHeader title="Bank of America" hint="From the eStmt in Box (Spending docs) — click an account to open the statement." />
           <div className="space-y-2.5">
-            {EQUITY_COMP.grants.map(g => (
+            {BANKING.accounts.map(a => (
+              <a key={a.acct} href={`https://app.box.com/file/${BANKING.boxId}`} target="_blank" rel="noreferrer"
+                 className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3 transition ${a.value == null ? 'border-dashed border-ink-600 bg-transparent' : 'border-ink-700 bg-ink-800/40 hover:border-gold-400/40'}`}>
+                <div>
+                  <div className={`text-sm font-medium ${a.value == null ? 'text-ink-300' : 'text-ink-100'}`}>{a.name}</div>
+                  <div className="text-[11px] text-ink-400 mt-0.5">#{a.acct}{a.apy != null ? ` · ${a.apy.toFixed(2)}% APY · $${a.intYtd.toFixed(2)} interest YTD` : ''}</div>
+                </div>
+                <div className={`tabular-nums font-medium ${a.value == null ? 'text-ink-500 text-xs' : 'text-ink-100'}`}>{a.value == null ? 'statement needed' : fmtMoney(a.value)}</div>
+              </a>
+            ))}
+          </div>
+          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{BANKING.missingNote}</div>
+          <div className="text-[11px] text-ember-400/90 mt-2 leading-relaxed">
+            The $883K money market savings earns 0.05% APY (~$440/yr). At a ~3.7% money-market-fund rate it would earn ~$32K/yr — see Suggestions.
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (scope === 'Anthropic Equity') {
+    const v = equityVesting();
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <PortfolioStat label="Total value" value={fmtMoney(v.vestedValue + v.unvestedValue)} />
+          <PortfolioStat label="Vested" value={fmtMoney(v.vestedValue)} tone="ok" />
+          <PortfolioStat label="Unvested" value={fmtMoney(v.unvestedValue)} />
+          <PortfolioStat label="Valuation / share" value={'$' + EQUITY_FMV.price.toFixed(2)} />
+        </div>
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Grants" hint={EQUITY_COMP.issuer + ` — valued at $${EQUITY_FMV.price.toFixed(2)}/sh (options at spread). Click a grant to open the agreement in Box.`} />
+          <div className="space-y-2.5">
+            {v.perGrant.map(g => (
               <a key={g.id} href={`https://app.box.com/file/${g.boxId}`} target="_blank" rel="noreferrer"
                  className="flex items-start justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3 hover:border-gold-400/40 transition group/eq">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-[11px]">· {g.id}</span></div>
+                  <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-[11px]">· {g.id} · {g.qty.toLocaleString()} total</span></div>
                   <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
+                  <div className="text-[11px] mt-1.5">
+                    <span className="text-sage-400">Vested {g.vestedQty.toLocaleString()} · {fmtMoneyK(g.vestedValue)}</span>
+                    <span className="text-ink-500"> — </span>
+                    <span className="text-ink-300">Unvested {g.unvestedQty.toLocaleString()} · {fmtMoneyK(g.unvestedValue)}</span>
+                  </div>
+                  <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
+                    <div style={{width: (g.qty ? g.vestedQty/g.qty*100 : 0) + '%'}} className="bg-sage-400"/>
+                  </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-ink-100 tabular-nums font-medium">{g.qty.toLocaleString()}</div>
+                  <div className="text-ink-100 tabular-nums font-medium">{fmtMoneyK(g.vestedValue + g.unvestedValue)}</div>
                   <div className="text-[10px] text-ink-500 group-hover/eq:text-gold-300 transition">doc ↗</div>
                 </div>
               </a>
