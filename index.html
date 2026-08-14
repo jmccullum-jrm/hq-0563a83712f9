@@ -410,7 +410,15 @@
     const seedAppliances = [];
 
     /* ---------- NEW MODULE SEEDS ---------- */
-    const seedInsurance = [];
+    const seedInsurance = [
+      /* Zurich extended warranties confirmed via 4/2/25 "Warranty Info" email from Cory Pollock (Audi Seattle) — contract PDFs attached to that email. */
+      { id:'ins-zurich-tesla', type:'Extended warranty (Zurich VSC)', carrier:'Zurich', coverageSummary:'Vehicle service contract — Tesla Model Y',
+        policyNumber:'VIN 5YJYGDEE7LF008709', documentUrl:'https://mail.google.com/mail/#all/195f792addd95b46',
+        notes:'Contract PDF "MCCULLUM TESLA.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock). Claims: zurichna.com / dealer service dept.' },
+      { id:'ins-zurich-volvo', type:'Extended warranty (Zurich VSC)', carrier:'Zurich', coverageSummary:'Vehicle service contract — Volvo',
+        policyNumber:'VIN YV4102PK3L1553423', documentUrl:'https://mail.google.com/mail/#all/195f792addd95b46',
+        notes:'Contract PDF "MCCULLUM VOLVO.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock).' },
+    ];
 
     const seedVehicles = [];
 
@@ -418,7 +426,36 @@
 
     const seedProperty = [];
 
-    const seedSubscriptions = [];
+    /* Rebuilt 8/14/26 from the statements in Box (Venture card Apr-Aug, Amex Delta Apr-Aug, BofA checking Jun-Jul). */
+    const seedSubscriptions = [
+      // -- monthly, confirmed recurring --
+      { id:'sub-tmobile',    name:'T-Mobile',                     category:'other',      cost:186.89, cadence:'monthly', renewalDate:'2026-09-01', url:'https://www.t-mobile.com/signin', notes:'Auto-pay from BofA checking on the 1st.' },
+      { id:'sub-smithbros',  name:'Smith Brothers Farms',         category:'other',      cost:170,    cadence:'monthly', renewalDate:'2026-08-18', url:'https://www.smithbrothersfarms.com/login', notes:'Weekly delivery on Venture card, $24–55 each (~$170/mo).' },
+      { id:'sub-citybball',  name:'City Baseball',                category:'membership', cost:268.54, cadence:'monthly', renewalDate:'2026-09-15', url:'https://citybaseball.sportsengine.com', notes:'Monthly on the 15th Apr–Jun; plus one $815.75 charge 7/10 (camp/season fee?).' },
+      { id:'sub-sol-yoga',   name:'Sol Yoga',                     category:'fitness',    cost:100,    cadence:'monthly', renewalDate:'2026-08-26', url:'https://www.solyogaseattle.com/login', notes:'Venture card, 26th.' },
+      { id:'sub-quantum',    name:'Quantum Fiber internet',       category:'other',      cost:75,     cadence:'monthly', renewalDate:'2026-08-23', url:'https://login.quantumfiber.com', notes:'Venture card, 23rd. Also tracked under Utilities.' },
+      { id:'sub-cox',        name:'Cox Communications (Omaha)',   category:'other',      cost:70,     cadence:'monthly', renewalDate:'2026-08-30', url:'https://www.cox.com/signin', notes:'From BofA checking 6/30 — Omaha service; still needed?' },
+      { id:'sub-firstam',    name:'First American Home Warranty', category:'other',      cost:65.50,  cadence:'monthly', renewalDate:'2026-08-28', url:'https://homewarranty.firstam.com/my-account', notes:'Amex, 28th. Extra one-off $95 service charge 7/28.' },
+      { id:'sub-apple',      name:'Apple Services',               category:'software',   cost:32.08,  cadence:'monthly', renewalDate:'2026-08-19', url:'https://account.apple.com/account/manage', notes:'Three recurring charges on Venture: $5.52 (19th), $9.99 (26th), $16.57 (29th — new in July).' },
+      { id:'sub-spotify',    name:'Spotify',                      category:'streaming',  cost:24.31,  cadence:'monthly', renewalDate:'2026-08-24', url:'https://accounts.spotify.com', notes:'Venture card, 24th. Family plan pricing.' },
+      { id:'sub-google-pp',  name:'Google via PayPal',            category:'software',   cost:20.68,  cadence:'monthly', renewalDate:'2026-09-03', url:'https://myaccount.google.com/payments-and-subscriptions', notes:'Two charges ($10.99 + $9.69) from BofA checking 7/3 — likely YouTube Premium / Google services.' },
+      { id:'sub-googleone',  name:'Google One',                   category:'software',   cost:19.99,  cadence:'monthly', renewalDate:'2026-08-31', url:'https://one.google.com', notes:'Amex, end of month.' },
+      { id:'sub-stitchfix',  name:'Stitch Fix styling',           category:'other',      cost:20,     cadence:'monthly', renewalDate:'2026-09-06', url:'https://www.stitchfix.com/client/login', notes:'$20 styling fee, some months 2-3x; credited against purchases.' },
+      { id:'sub-wyze',       name:'Wyze Labs',                    category:'software',   cost:11.04,  cadence:'monthly', renewalDate:'2026-08-28', url:'https://my.wyze.com', notes:'Cam Plus on Amex, 28th. Separate $176.84 hardware buy 7/29.' },
+      { id:'sub-tesla',      name:'Tesla Premium Connectivity',   category:'software',   cost:11.04,  cadence:'monthly', renewalDate:'2026-09-11', url:'https://www.tesla.com/teslaaccount', notes:'Venture card, 11th.' },
+      { id:'sub-microsoft',  name:'Microsoft (via PayPal)',       category:'software',   cost:25.40,  cadence:'monthly', renewalDate:'2026-09-15', url:'https://account.microsoft.com/services', notes:'Seen once (7/15, BofA) — confirm cadence.' },
+      { id:'sub-netlify',    name:'Netlify',                      category:'software',   cost:3.68,   cadence:'monthly', renewalDate:'2026-09-03', url:'https://app.netlify.com', notes:'Seen once (5/3) — hosting for side projects.' },
+      // -- annual --
+      { id:'sub-amex-delta', name:'Amex Delta Platinum annual fee', category:'membership', cost:350,   cadence:'annual', renewalDate:'2027-08-02', url:'https://www.americanexpress.com/en-us/account/login', notes:'Card fee, billed 8/2.' },
+      { id:'sub-clear',      name:'CLEAR',                        category:'membership', cost:601.39, cadence:'annual', renewalDate:'2027-04-19', url:'https://my.clearme.com', notes:'Family plan, renewed 4/19/26 on Venture.' },
+      { id:'sub-mlbtv',      name:'MLB.TV',                       category:'streaming',  cost:221.09, cadence:'annual', renewalDate:'2027-04-03', url:'https://www.mlb.com/account', notes:'Renewed 4/3/26 on Amex.' },
+      { id:'sub-anthropic',  name:'Anthropic (Claude/API)',       category:'software',   cost:5.53,   cadence:'monthly', renewalDate:'2026-08-30', url:'https://claude.ai/settings/billing', notes:'Seen once (4/30, Amex) — confirm plan.' },
+      // -- large dues (cadence unconfirmed) --
+      { id:'sub-broadmoor',  name:'Broadmoor Golf Club dues',     category:'membership', cost:2961.58, cadence:'monthly', renewalDate:'2026-09-13', url:'https://www.broadmoorgolfclub.org', notes:'$2,961.58 from BofA checking 7/13 — confirm whether monthly or quarterly dues.' },
+      // -- possibly lapsed (not seen in the latest statements) --
+      { id:'sub-bottomless', name:'Bottomless coffee',            category:'other',      cost:27.25,  cadence:'monthly', renewalDate:'', url:'https://bottomless.com/login', notes:'Last seen 5/11 — looks cancelled or paused.' },
+      { id:'sub-spectrum',   name:'Spectrum Dance Theater',       category:'membership', cost:306.85, cadence:'monthly', renewalDate:'', url:'https://spectrumdance.org', notes:'Apr & May on Venture (tuition-like) — not seen since; season may have ended.' },
+    ];
 
     const seedBenefits = [];
 
@@ -429,6 +466,9 @@
 
     /* ---------- suggestions (prepopulated from the 7/31/26 Merrill statement scan) ---------- */
     const seedSuggestions = [
+      { id:'sg-amanda-car', priority:'high', done:false, source:'Your note to self, 8/13/26',
+        title:'Amanda’s new car — change insurance & sort the Zurich warranty',
+        body:'Your 8/13 email note: “change insurance for amandas new car! …and zurich.” Add the new car to the auto policy, and decide the Zurich VSC — the Tesla and Volvo both have Zurich contracts on file (see Insurance), so ask Audi Seattle/the selling dealer about coverage for the new one and whether the old car’s contract is cancellable for a prorated refund.' },
       { id:'sg-bofa-cash', priority:'high', done:false, source:'BofA stmt 7/29/26',
         title:'$883K sitting in BofA savings at 0.05% APY',
         body:'The Money Market Savings account (#…3955) earns ~$440/yr at 0.05%. Parked in an actual money-market fund or T-bills at ~3.7% it would earn ~$32K/yr — that’s $2,600/mo of free yield. Sweep everything beyond your checking buffer into BLF FEDFUND at Merrill (already used there), a Preferred Deposit tier, or a Treasury ladder.' },
@@ -1240,6 +1280,67 @@
     );
 
     /* ===================== DASHBOARD ===================== */
+    /* ---------- global search: one box over everything in Home HQ ---------- */
+    const GlobalSearch = () => {
+      const ctx = useContext(Ctx);
+      const [q, setQ] = useState('');
+      const results = useMemo(() => {
+        const needle = q.trim().toLowerCase();
+        if (needle.length < 2) return [];
+        const hit = (...vals) => vals.some(v => v != null && String(v).toLowerCase().includes(needle));
+        const out = [];
+        const push = (view, icon, title, sub) => out.push({ view, icon, title, sub });
+        const s = ctx.state;
+        (s.vendors||[]).forEach(x => hit(x.name, x.company, x.serviceType, x.notes, x.phone, x.email) && push('vendors', 'users', x.company || x.name, `Vendor · ${x.serviceType || ''}`));
+        (s.maintenance||[]).forEach(x => hit(x.name, x.notes, x.property) && push('maintenance', 'wrench', x.name, `Maintenance · ${x.property || 'both homes'}`));
+        (s.appliances||[]).forEach(x => hit(x.name, x.brand, x.model, x.serial, x.notes) && push('appliances', 'cube', x.name, `Appliance · ${x.brand || ''} ${x.model || ''}`));
+        (s.insurance||[]).forEach(x => hit(x.carrier, x.type, x.policyNumber, x.coverageSummary, x.notes, x.agentName) && push('insurance', 'shield', `${x.carrier} — ${x.type}`, `Insurance · ${x.policyNumber || ''}`));
+        (s.property||[]).forEach(x => hit(x.name, x.kind, x.notes, x.provider) && push('property', 'key', x.name, `Property · ${x.property || ''}`));
+        (s.utilities||[]).forEach(x => hit(x.name, x.provider, x.account, x.notes) && push('utilities', 'zap', x.provider || x.name, `Utility · ${x.property || ''}`));
+        (s.subscriptions||[]).forEach(x => hit(x.name, x.category, x.notes) && push('subscriptions', 'receipt', x.name, `Subscription · $${x.cost || 0} ${x.cadence || ''}`));
+        (s.vehicles||[]).forEach(x => hit(x.name, x.make, x.model, x.vin, x.plate, x.notes) && push('vehicles', 'car', x.name || `${x.make || ''} ${x.model || ''}`, `Vehicle · ${x.vin || ''}`));
+        (s.benefits||[]).forEach(x => hit(x.name, x.provider, x.notes) && push('benefits', 'heart', x.name, 'Benefit'));
+        (s.files||[]).forEach(x => hit(x.name, x.notes, x.folder) && push('files', 'folder', x.name, 'File'));
+        (s.wine||[]).forEach(x => hit(x.name, x.producer, x.region, x.notes) && push('wine', 'wine', x.name, `Wine · ${x.producer || ''}`));
+        (s.suggestions||[]).forEach(x => hit(x.title, x.body) && push('suggestions', 'bulb', x.title, `Suggestion · ${x.priority || ''}${x.done ? ' · done' : ''}`));
+        (s.dafValues||[]).length && hit('daf', 'charitable', 'gift fund', 'donor') && push('portfolio', 'chart', 'Charitable DAF', 'Portfolio · Charitable DAF tab');
+        // portfolio: accounts + holdings + outside items
+        PORTFOLIO_DATA.accounts.forEach(a => hit(a.name, a.accountNum, a.taxType) && push('portfolio', 'chart', a.name, `Portfolio · ${fmtMoneyK(a.value)}`));
+        PORTFOLIO_DATA.holdings.forEach(h => hit(h.symbol, h.description) && out.length < 40 && push('portfolio', 'chart', `${h.symbol} — ${fmtMoneyK(h.value)}`, `Portfolio · ${h.account}`));
+        BANKING.accounts.forEach(a => hit(a.name, a.acct, 'bank of america', 'savings', 'checking', 'money market') && push('portfolio', 'chart', a.name, 'Portfolio · Cash & Banking tab'));
+        EDUCATION_529.accounts.forEach(a => hit(a.child, a.fund, '529', 'college') && push('portfolio', 'chart', `${a.child} 529 — ${a.fund}`, 'Portfolio · 529 tab'));
+        EQUITY_COMP.grants.forEach(g => hit('anthropic', g.id, g.type, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Anthropic ${g.type} · ${g.id}`, 'Portfolio · Anthropic Equity tab'));
+        // dedupe by view+title
+        const seen = new Set();
+        return out.filter(r => { const k = r.view + '|' + r.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 20);
+      }, [q, ctx.state]);
+      return (
+        <div className="relative">
+          <div className="flex items-center gap-2.5 card px-4 py-3">
+            <Icon name="search" size={16} className="text-ink-400 shrink-0" />
+            <input value={q} onChange={e=>setQ(e.target.value)}
+              placeholder="Search everything — vendors, policies, holdings, subscriptions, wine…"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-ink-100 placeholder-ink-500 p-0 focus:ring-0" style={{boxShadow:'none'}} />
+            {q && <button onClick={()=>setQ('')} className="text-ink-500 hover:text-ink-200"><Icon name="x" size={14}/></button>}
+          </div>
+          {q.trim().length >= 2 && (
+            <div className="card mt-2 p-2 max-h-80 overflow-y-auto">
+              {results.length === 0
+                ? <div className="text-ink-400 text-sm px-3 py-2.5">No matches for “{q}”.</div>
+                : results.map((r, i) => (
+                  <button key={i} onClick={()=>{ ctx.setView(r.view); setQ(''); }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-ink-700/60 transition">
+                    <Icon name={r.icon} size={15} className="text-gold-400 shrink-0" />
+                    <span className="text-sm text-ink-100 truncate">{r.title}</span>
+                    <span className="text-[11px] text-ink-400 ml-auto shrink-0 truncate max-w-[45%]">{r.sub}</span>
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
     const DashboardView = () => {
       const ctx = useContext(Ctx);
       const { state, setView, setModal } = ctx;
@@ -1410,6 +1511,9 @@
 
       return (
         <div className="space-y-8 max-w-5xl">
+
+          {/* Global search */}
+          <GlobalSearch />
 
           {/* Tile row: stats */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -1656,11 +1760,11 @@ const EQUITY_FMV = { price: 589.01, asOf: '2026-08-14' };  // current per-share 
 const EQUITY_COMP = {
   issuer: 'Anthropic, PBC · A&R 2021 Stock Plan',
   grants: [
-    { id:'O-5818',      kind:'option', type:'ISO options', qty:1130, strike:176.57, vc:'2026-02-10', detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36', boxId:'2406462393467' },
-    { id:'O-5818Split', kind:'option', type:'NQ options',  qty:2255, strike:176.57, vc:'2026-02-10', detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36', boxId:'2406457348367' },
+    { id:'O-5818',      kind:'option', type:'ISO options', qty:1130, strike:176.57, vc:'2026-02-10', vestedFrac:0.5, detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36 · 50% vested (per Justin, 8/14/26)', boxId:'2406462393467' },
+    { id:'O-5818Split', kind:'option', type:'NQ options',  qty:2255, strike:176.57, vc:'2026-02-10', vestedFrac:0.5, detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36 · 50% vested (per Justin, 8/14/26)', boxId:'2406457348367' },
     { id:'RSU-6132',    kind:'rsu',    type:'RSUs',        qty:5613, vc:'2026-02-20', detail:'15-mo cliff then quarterly (~4 yr) from 2/20/26 · double-trigger: needs IPO/CoC by 2033 or forfeits', boxId:'2406466295226' },
   ],
-  notes: 'Valued at the $589.01/sh current valuation: options at intrinsic spread ($412.44/sh over the $176.57 strike), RSUs at full value. Options assume standard monthly vesting over 4 years from 2/10/26 — the agreement only says “manual vesting schedule,” so correct me if it differs. RSUs hit their 15-month cliff 5/20/27, and even then are double-trigger (no settlement until IPO/CoC). Only the vested spread is counted in the household total. Vested options stay exercisable to expiry after leaving; unvested lapse 3 mo post-termination; 180-day IPO lock-up.',
+  notes: 'Valued at the $589.01/sh current valuation: options at intrinsic spread ($412.44/sh net of the $176.57 strike), RSUs at full value. Options are 50% vested (per Justin, 8/14/26 — the agreement’s “manual vesting schedule” isn’t spelled out, so this is set explicitly; update when the next tranche vests). RSUs hit their 15-month cliff 5/20/27, and even then are double-trigger (no settlement until IPO/CoC). Only the vested spread is counted in the household total. Vested options stay exercisable to expiry after leaving; unvested lapse 3 mo post-termination; 180-day IPO lock-up.',
 };
 /* Vested/unvested split, computed live from today's date. */
 const equityVesting = () => {
@@ -1674,7 +1778,9 @@ const equityVesting = () => {
   const perGrant = EQUITY_COMP.grants.map(g => {
     const m = fullMonths(g.vc);
     let vestedQty;
-    if (g.kind === 'option') {
+    if (g.vestedFrac != null) {
+      vestedQty = Math.round(g.qty * g.vestedFrac);  // explicit fraction (per Justin)
+    } else if (g.kind === 'option') {
       vestedQty = Math.min(g.qty, Math.floor(g.qty * Math.min(m, 48) / 48));  // monthly / 4 yr (assumed)
     } else {
       const tranches = m >= 15 ? 1 + Math.min(11, Math.floor((m - 15) / 3)) : 0;  // 15-mo cliff, then quarterly, 12 tranches
@@ -2222,7 +2328,7 @@ const PortfolioView = () => {
         </p>
         <p className="text-ink-200 text-sm mt-1.5 max-w-2xl">
           Household total <span className="font-medium text-gold-300 tabular-nums">{fmtMoney(householdTotal())}</span>
-          <span className="text-ink-400"> — Merrill {fmtMoneyK(d.totalValue)} + bank cash {fmtMoneyK(BANKING.total)} + 529s {fmtMoneyK(EDUCATION_529.total)} + vested Anthropic equity {fmtMoneyK(equityVesting().vestedValue)}. DAF tracked separately.</span>
+          <span className="text-ink-400"> — Merrill {fmtMoneyK(d.totalValue)} + bank cash {fmtMoneyK(BANKING.total)} + 529s {fmtMoneyK(EDUCATION_529.total)} + vested Anthropic equity {fmtMoneyK(equityVesting().vestedValue)} (net of exercise cost). DAF tracked separately.</span>
         </p>
         {isLive && (
           <div className="mt-2 flex items-baseline gap-3 flex-wrap">
@@ -2257,7 +2363,8 @@ const PortfolioView = () => {
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Accounts overview (always shown, full data) */}
         <div className="card p-4 md:p-5 lg:col-span-2">
-          <SectionHeader title="Accounts" hint="Tap a pill above to scope the rest of this view to one account." />
+          <SectionHeader title="Accounts" hint="Tap a pill above to scope the rest of this view to one account."
+            action={<a href="https://www.mymerrill.com" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> Merrill login</a>} />
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-sm">
               <thead>
@@ -2643,7 +2750,8 @@ const DafPanel = () => {
         <PortfolioStat label="As of" value={latest ? latest.date : '—'} />
       </div>
       <div className="card p-4 md:p-5">
-        <SectionHeader title="BofA Charitable Gift Fund" hint="Donor-advised fund — already given away, so it's tracked here but never counted in the household total." />
+        <SectionHeader title="BofA Charitable Gift Fund" hint="Donor-advised fund — already given away, so it's tracked here but never counted in the household total."
+          action={<a href="https://bofa.donorfirst.org" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> DAF login</a>} />
         <div className="flex flex-wrap items-end gap-2 mb-4">
           <div>
             <label className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">New balance</label>
@@ -2694,7 +2802,8 @@ const OutsideMerrillPanel = ({ scope }) => {
           <PortfolioStat label="As of" value={BANKING.asOf} />
         </div>
         <div className="card p-4 md:p-5">
-          <SectionHeader title="Bank of America" hint="From the eStmt in Box (Spending docs) — click an account to open the statement." />
+          <SectionHeader title="Bank of America" hint="From the eStmt in Box (Spending docs) — click an account to open the statement."
+            action={<a href="https://secure.bankofamerica.com/login" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> BofA login</a>} />
           <div className="space-y-2.5">
             {BANKING.accounts.map(a => (
               <a key={a.acct} href={`https://app.box.com/file/${BANKING.boxId}`} target="_blank" rel="noreferrer"
@@ -2720,10 +2829,13 @@ const OutsideMerrillPanel = ({ scope }) => {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <PortfolioStat label="Total value" value={fmtMoney(v.vestedValue + v.unvestedValue)} />
-          <PortfolioStat label="Vested" value={fmtMoney(v.vestedValue)} tone="ok" />
-          <PortfolioStat label="Unvested" value={fmtMoney(v.unvestedValue)} />
+          <PortfolioStat label="Total value · net" value={fmtMoney(v.vestedValue + v.unvestedValue)} />
+          <PortfolioStat label="Vested · net" value={fmtMoney(v.vestedValue)} tone="ok" />
+          <PortfolioStat label="Unvested · net" value={fmtMoney(v.unvestedValue)} />
           <PortfolioStat label="Valuation / share" value={'$' + EQUITY_FMV.price.toFixed(2)} />
+        </div>
+        <div className="text-[11px] text-ink-400 -mt-1">
+          Options are valued net of the $176.57/sh exercise cost — $412.44/sh spread at the $589.01 valuation. RSUs at full value (no exercise cost).
         </div>
         <div className="card p-4 md:p-5">
           <SectionHeader title="Grants" hint={EQUITY_COMP.issuer + ` — valued at $${EQUITY_FMV.price.toFixed(2)}/sh (options at spread). Click a grant to open the agreement in Box.`} />
@@ -2738,6 +2850,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                     <span className="text-sage-400">Vested {g.vestedQty.toLocaleString()} · {fmtMoneyK(g.vestedValue)}</span>
                     <span className="text-ink-500"> — </span>
                     <span className="text-ink-300">Unvested {g.unvestedQty.toLocaleString()} · {fmtMoneyK(g.unvestedValue)}</span>
+                    {g.kind === 'option' && <span className="text-ink-500"> · net of ${g.strike.toFixed(2)}/sh exercise ({fmtMoneyK(g.qty * g.strike)} total to exercise)</span>}
                   </div>
                   <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
                     <div style={{width: (g.qty ? g.vestedQty/g.qty*100 : 0) + '%'}} className="bg-sage-400"/>
@@ -2777,7 +2890,8 @@ const OutsideMerrillPanel = ({ scope }) => {
         <PortfolioStat label="As of" value={EDUCATION_529.asOf} />
       </div>
       <div className="card p-4 md:p-5">
-        <SectionHeader title={`${a.child} — 529 College Savings`} hint={`Account #${a.acct} · 100% ${a.fund}.`} />
+        <SectionHeader title={`${a.child} — 529 College Savings`} hint={`Account #${a.acct} · 100% ${a.fund}.`}
+          action={<a href="https://www.readysave529.com" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> 529 login</a>} />
         <div className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
           <div>
             <div className="text-sm font-medium text-ink-100">{a.fund}</div>
@@ -4252,6 +4366,12 @@ const PortfolioWidget = ({ onOpen }) => {
             {s.renewalDate && <Pill tone={n<0?'overdue':n<=30?'soon':'info'} dot>{n<0?`Renewal passed ${fmtDate(s.renewalDate)} — confirm`:`Renews ${fmtDate(s.renewalDate)}`}</Pill>}
           </div>
           {s.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{s.notes}</div>}
+          {s.url && (
+            <a href={s.url} target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-1.5 text-xs text-gold-400 hover:text-gold-300 mt-3">
+              <Icon name="link" size={12}/> Log in / manage
+            </a>
+          )}
         </div>
       );
     };
@@ -4259,7 +4379,7 @@ const PortfolioWidget = ({ onOpen }) => {
     const SubscriptionForm = ({ item, onClose }) => {
       const ctx = useContext(Ctx);
       const isNew = !item;
-      const [v, setV] = useState(item || { name:'', category:'streaming', cost:0, cadence:'monthly', renewalDate:'', notes:'' });
+      const [v, setV] = useState(item || { name:'', category:'streaming', cost:0, cadence:'monthly', renewalDate:'', url:'', notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addSubscription(v); else ctx.updateSubscription(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
       const remove = () => { if (window.confirm(`Delete ${item.name}?`)) { ctx.deleteSubscription(item.id); ctx.showToast('Deleted'); onClose(); } };
@@ -4284,6 +4404,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div><label>Cost ($)</label><input type="number" min="0" step="0.01" value={v.cost||0} onChange={e=>setF('cost', +e.target.value)}/></div>
               <div><label>Renewal date</label><input type="date" value={v.renewalDate||''} onChange={e=>setF('renewalDate', e.target.value)}/></div>
             </div>
+            <div><label>Login URL</label><input value={v.url||''} onChange={e=>setF('url', e.target.value)} placeholder="https://…"/></div>
             <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
