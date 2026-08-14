@@ -1622,6 +1622,36 @@ const BANKING = {
 /* Merrill snapshot + bank cash + 529s + vested Anthropic equity (options at intrinsic spread). */
 const householdTotal = () => PORTFOLIO_DATA.totalValue + BANKING.total + EDUCATION_529.total + equityVesting().vestedValue;
 
+/* Outside-Merrill positions as holding rows, so "All Accounts" reflects the whole household. */
+const outsideHoldings = () => {
+  const v = equityVesting();
+  const rows = [];
+  BANKING.accounts.filter(a => a.value != null).forEach(a => rows.push({
+    account:'Cash & Banking', accountNum:'#' + a.acct, taxType:'Taxable', owner:'Joint',
+    productClass:'Money Accounts', symbol: a.acct.includes('3955') ? 'BOFA MMS' : 'BOFA CHK',
+    description:'Bank of America — ' + a.name, quantity:a.value, price:1, value:a.value,
+    unrealizedGL:null, unrealizedGLPct:null, costBasis:null,
+    securityType:'Cash/MMF', assetClass:'Cash & Equivalents', sector:null,
+  }));
+  EDUCATION_529.accounts.forEach(a => rows.push({
+    account:a.child + ' 529', accountNum:'#' + a.acct, taxType:'529', owner:a.child,
+    productClass:'Mutual Funds', symbol:a.fund.replace('Target Enrollment ', 'TE '),
+    description:a.fund + ' (529 college savings)', quantity:a.units, price:a.price, value:a.value,
+    unrealizedGL:null, unrealizedGLPct:null, costBasis:null,
+    securityType:'Mutual Fund', assetClass:'Equity', sector:null,
+  }));
+  const vestedQty = v.perGrant.reduce((s,g) => s + g.vestedQty, 0);
+  rows.push({
+    account:'Anthropic Equity', accountNum:'vested only', taxType:'Equity comp', owner:'Justin',
+    productClass:'Private Equity', symbol:'ANTH',
+    description:`Anthropic vested equity — ${vestedQty.toLocaleString()} sh at $${EQUITY_FMV.price.toFixed(2)} (options at spread)`,
+    quantity:vestedQty, price:null, value:v.vestedValue,
+    unrealizedGL:null, unrealizedGLPct:null, costBasis:null,
+    securityType:'Private Equity', assetClass:'Equity', sector:null,
+  });
+  return rows;
+};
+
 const EQUITY_FMV = { price: 589.01, asOf: '2026-08-14' };  // current per-share valuation, provided by Justin
 const EQUITY_COMP = {
   issuer: 'Anthropic, PBC · A&R 2021 Stock Plan',
@@ -2101,7 +2131,7 @@ const PortfolioView = () => {
     });
   }, [priceState.quotes]);
 
-  const rows = useMemo(() => scope === '__all__' ? liveHoldings : liveHoldings.filter(h => h.account === scope), [scope, liveHoldings]);
+  const rows = useMemo(() => scope === '__all__' ? [...liveHoldings, ...outsideHoldings()] : liveHoldings.filter(h => h.account === scope), [scope, liveHoldings]);
   const total = useMemo(() => rows.reduce((s,h) => s + (h.value||0), 0), [rows]);
   const baselineTotal = useMemo(() => rows.reduce((s,h) => s + (h.baselineValue != null ? h.baselineValue : (h.value||0)), 0), [rows]);
   const liveDelta = total - baselineTotal;
@@ -2139,6 +2169,23 @@ const PortfolioView = () => {
 
   const sortedHoldings = [...rows].sort((a,b) => (b.value||0) - (a.value||0));
   const isAll = scope === '__all__';
+
+  // Accounts table = Merrill accounts + outside-Merrill accounts; weights vs the combined total
+  const acctRows = useMemo(() => {
+    const v = equityVesting();
+    return [
+      ...d.accounts,
+      { name:'Cash & Banking', accountNum:'BofA …4006 / …3955', taxType:'Taxable', owner:'Joint',
+        value:BANKING.total, positions:BANKING.accounts.filter(a => a.value != null).length,
+        assetClass:{ 'Cash & Equivalents': BANKING.total } },
+      ...EDUCATION_529.accounts.map(a => ({ name:a.child + ' 529', accountNum:'#' + a.acct, taxType:'529', owner:a.child,
+        value:a.value, positions:1, assetClass:{ 'Equity': a.value } })),
+      { name:'Anthropic Equity', accountNum:'vested only', taxType:'Equity comp', owner:'Justin',
+        value:v.vestedValue, positions:v.perGrant.filter(g => g.vestedQty > 0).length,
+        assetClass:{ 'Equity': v.vestedValue } },
+    ];
+  }, []);
+  const acctTotal = acctRows.reduce((s,a) => s + a.value, 0);
 
   const pillsRow = (
     <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
@@ -2224,7 +2271,7 @@ const PortfolioView = () => {
                 </tr>
               </thead>
               <tbody>
-                {d.accounts.map(a => {
+                {acctRows.map(a => {
                   const eqP = (a.assetClass['Equity']||0)/a.value*100;
                   const caP = (a.assetClass['Cash & Equivalents']||0)/a.value*100;
                   const flagEq = a.name === 'Conservative Legacy' && eqP >= 85;
@@ -2237,7 +2284,7 @@ const PortfolioView = () => {
                       </td>
                       <td className="py-2 px-1 text-ink-300">{a.taxType}</td>
                       <td className="py-2 px-1 text-right tabular-nums text-ink-100">{fmtMoneyK(a.value)}</td>
-                      <td className="py-2 px-1 text-right tabular-nums text-ink-300">{(a.weight*100).toFixed(1)}%</td>
+                      <td className="py-2 px-1 text-right tabular-nums text-ink-300">{(a.value/acctTotal*100).toFixed(1)}%</td>
                       <td className="py-2 px-1 text-right tabular-nums text-ink-300">{a.positions}</td>
                       <td className="py-2 px-1">
                         <div className="flex h-2.5 rounded overflow-hidden bg-ink-700/50">
@@ -2913,6 +2960,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-1">Portfolio</div>
           <div className="font-display text-3xl md:text-4xl text-ink-100 tabular-nums leading-none">{fmtMoney(total)}</div>
           <div className="text-ink-400 text-xs mt-1.5">Merrill Lynch · {d.numAccounts} accounts · as of {d.asOf}</div>
+          <div className="text-xs mt-1"><span className="text-gold-300 tabular-nums font-medium">{fmtMoney(householdTotal())}</span> <span className="text-ink-400">household — incl. bank cash, 529s & vested Anthropic equity</span></div>
         </div>
         <div className="rounded-xl border border-gold-400/40 bg-gold-400/8 px-3 py-2 grid place-items-center text-center shrink-0">
           <div className="text-[9px] uppercase tracking-wider text-ink-400">Grade</div>
