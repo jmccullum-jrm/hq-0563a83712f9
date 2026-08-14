@@ -2009,7 +2009,9 @@ const PortfolioView = () => {
   const [showSettings, setShowSettings] = useState(false);
   const priceState = usePriceQuotes();
   const d = PORTFOLIO_DATA;
-  const accounts = ['__all__', ...d.accounts.map(a => a.name)];
+  const OUTSIDE_SCOPES = ['Bennett 529', 'Cameron 529', 'Anthropic Equity'];
+  const accounts = ['__all__', ...d.accounts.map(a => a.name), ...OUTSIDE_SCOPES];
+  const isOutside = OUTSIDE_SCOPES.includes(scope);
 
   // Symbols we can quote on the free tier (Stock + ETF; skip MF/MMF/PE)
   const fetchableSymbols = useMemo(() => {
@@ -2083,6 +2085,31 @@ const PortfolioView = () => {
   const sortedHoldings = [...rows].sort((a,b) => (b.value||0) - (a.value||0));
   const isAll = scope === '__all__';
 
+  const pillsRow = (
+    <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
+      {accounts.map(a => (
+        <button key={a} onClick={() => setScope(a)}
+           className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
+             scope === a
+               ? 'bg-gradient-to-b from-gold-400 to-gold-500 border-gold-500 text-ink-900'
+               : 'border-ink-600 text-ink-200 hover:bg-ink-800'
+           }`}>
+          {a === '__all__' ? 'All Accounts' : a}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (isOutside) return (
+    <div className="space-y-6 max-w-6xl">
+      <p className="text-ink-300 text-sm max-w-2xl">
+        Held outside Merrill — part of the household picture, but not counted in the Merrill snapshot totals.
+      </p>
+      {pillsRow}
+      <OutsideMerrillPanel scope={scope} />
+    </div>
+  );
+
   return (
     <div className="space-y-6 max-w-6xl">
       {showSettings && <PriceSettingsModal priceState={priceState} onClose={() => setShowSettings(false)} />}
@@ -2109,18 +2136,7 @@ const PortfolioView = () => {
       <PortfolioPriceBar priceState={priceState} fetchableSymbols={fetchableSymbols} onOpenSettings={() => setShowSettings(true)} />
 
       {/* Account scope pills */}
-      <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
-        {accounts.map(a => (
-          <button key={a} onClick={() => setScope(a)}
-             className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
-               scope === a
-                 ? 'bg-gradient-to-b from-gold-400 to-gold-500 border-gold-500 text-ink-900'
-                 : 'border-ink-600 text-ink-200 hover:bg-ink-800'
-             }`}>
-            {a === '__all__' ? 'All Accounts' : a}
-          </button>
-        ))}
-      </div>
+      {pillsRow}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -2463,6 +2479,80 @@ const PortfolioView = () => {
             ))}
           </div>
           <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{EQUITY_COMP.notes}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Focused views for the outside-Merrill scope tabs (529s + Anthropic equity). */
+const OutsideMerrillPanel = ({ scope }) => {
+  if (scope === 'Anthropic Equity') {
+    const totOpt = EQUITY_COMP.grants.filter(g => g.type.includes('options')).reduce((s,g) => s + g.qty, 0);
+    const rsus = EQUITY_COMP.grants.find(g => g.type === 'RSUs');
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <PortfolioStat label="Options (ISO + NQ)" value={totOpt.toLocaleString()} />
+          <PortfolioStat label="Strike" value="$176.57" />
+          <PortfolioStat label="Exercise cost" value="$597,689" />
+          <PortfolioStat label="RSUs" value={rsus ? rsus.qty.toLocaleString() : '—'} />
+        </div>
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Grants" hint={EQUITY_COMP.issuer + ' — click a grant to open the agreement in Box.'} />
+          <div className="space-y-2.5">
+            {EQUITY_COMP.grants.map(g => (
+              <a key={g.id} href={`https://app.box.com/file/${g.boxId}`} target="_blank" rel="noreferrer"
+                 className="flex items-start justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3 hover:border-gold-400/40 transition group/eq">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-[11px]">· {g.id}</span></div>
+                  <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-ink-100 tabular-nums font-medium">{g.qty.toLocaleString()}</div>
+                  <div className="text-[10px] text-ink-500 group-hover/eq:text-gold-300 transition">doc ↗</div>
+                </div>
+              </a>
+            ))}
+          </div>
+          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{EQUITY_COMP.notes}</div>
+        </div>
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Key dates" />
+          <div className="space-y-2 text-sm text-ink-200">
+            <div className="flex justify-between border-b border-ink-700 pb-2"><span>Vesting commencement (all grants)</span><span className="tabular-nums text-ink-300">Feb 20, 2026</span></div>
+            <div className="flex justify-between border-b border-ink-700 pb-2"><span>RSU 15-month cliff (first 1/12th vests)</span><span className="tabular-nums text-ink-300">May 20, 2027</span></div>
+            <div className="flex justify-between border-b border-ink-700 pb-2"><span>RSU double-trigger deadline (IPO/CoC or forfeit)</span><span className="tabular-nums text-ink-300">2033</span></div>
+            <div className="flex justify-between"><span>Options expire</span><span className="tabular-nums text-ink-300">Feb 19, 2036</span></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const child = scope.split(' ')[0];
+  const a = EDUCATION_529.accounts.find(x => x.child === child);
+  if (!a) return null;
+  const sibling = EDUCATION_529.accounts.find(x => x.child !== child);
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <PortfolioStat label="Value" value={fmtMoney(a.value)} />
+        <PortfolioStat label="Units" value={a.units.toLocaleString(undefined,{maximumFractionDigits:2})} />
+        <PortfolioStat label="Unit price" value={'$' + a.price.toFixed(2)} />
+        <PortfolioStat label="As of" value={EDUCATION_529.asOf} />
+      </div>
+      <div className="card p-4 md:p-5">
+        <SectionHeader title={`${a.child} — 529 College Savings`} hint={`Account #${a.acct} · 100% ${a.fund}.`} />
+        <div className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
+          <div>
+            <div className="text-sm font-medium text-ink-100">{a.fund}</div>
+            <div className="text-[11px] text-ink-400 mt-0.5">{a.units.toLocaleString(undefined,{maximumFractionDigits:2})} units @ ${a.price.toFixed(2)} · age-based glide path, de-risks toward enrollment</div>
+          </div>
+          <div className="text-ink-100 tabular-nums font-medium">{fmtMoney(a.value)}</div>
+        </div>
+        <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+          {sibling ? `Both kids' 529s total ${fmtMoney(EDUCATION_529.total)} (${sibling.child}: ${fmtMoney(sibling.value)}). ` : ''}
+          Source: app screenshots saved in Box (Spending docs, 8/13/26).
         </div>
       </div>
     </div>
