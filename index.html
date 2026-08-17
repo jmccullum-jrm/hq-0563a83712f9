@@ -330,6 +330,7 @@
         building:    <><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 8h.01M15 8h.01M9 12h.01M15 12h.01M9 16h.01M15 16h.01M10 21v-4h4v4"/></>,
         more:        <><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></>,
         bulb:        <><path d="M12 2.5a6.5 6.5 0 0 0-4.2 11.4c.8.7 1.4 1.7 1.4 2.6h5.6c0-.9.6-1.9 1.4-2.6A6.5 6.5 0 0 0 12 2.5z"/><path d="M9.5 20h5M10.5 22.5h3"/></>,
+        idcard:      <><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="2"/><path d="M5.5 16c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14 9.5h4M14 13h4"/></>,
         chart:       <><path d="M3 21V3"/><path d="M3 21h18"/><path d="M7 17V11"/><path d="M12 17V7"/><path d="M17 17V13"/></>,
         camera:      <><path d="M3 7a2 2 0 0 1 2-2h2.5l1.5-2h6l1.5 2H19a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></>,
         upload:      <><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></>,
@@ -403,7 +404,15 @@
     const todayISO = toISO(today());
     const offsetISO = (n) => toISO(new Date(today().getTime() + n*DAY));
 
-    const seedVendors = [];
+    const seedVendors = [
+      { id:'v-michelle-urrea', company:'Michelle Urrea', name:'Michelle Urrea', serviceType:'Family & childcare', phone:'(206) 271-2788', notes:'From the family IDs sheet.' },
+      { id:'v-tyler-utterback', company:'Tyler Utterback', name:'Tyler Utterback', serviceType:'Family & childcare', phone:'(209) 786-0407', notes:'From the family IDs sheet.' },
+      { id:'v-savi-gravrock', company:'Savi Gravrock', name:'Savi Gravrock', serviceType:'Family & childcare', phone:'(206) 715-8959', notes:'From the family IDs sheet.' },
+      { id:'v-blair-emdr', company:'Blair EMDR Therapy', name:'Blair', serviceType:'Therapy', phone:'530-517-5722', email:'info@blairemdrtherapy.com',
+        notes:'Couples $225/session · claims: CPT 90847, ICD F43.20, TaxID 853373840 · 2366 Eastlake Ave E, Suite 436, Seattle WA 98102 · invoiced through 6/26.' },
+      { id:'v-tim-stanley', company:'co-op therapy — Tim Stanley', name:'Tim Stanley', serviceType:'Therapy',
+        notes:'$180/session · claims: CPT 90834, ICD F43.20, Modifier 95, TaxID 471131773 · 7220 Woodlawn Ave NE Suite #305, Seattle WA 98115 · invoiced through 6/25.' },
+    ];
 
     const seedMaintenance = [];
 
@@ -417,7 +426,15 @@
         notes:'Contract PDF "MCCULLUM TESLA.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock). Claims: zurichna.com / dealer service dept.' },
       { id:'ins-zurich-volvo', type:'Extended warranty (Zurich VSC)', carrier:'Zurich', coverageSummary:'Vehicle service contract — Volvo',
         policyNumber:'VIN YV4102PK3L1553423', documentUrl:'https://mail.google.com/mail/#all/195f792addd95b46',
-        notes:'Contract PDF "MCCULLUM VOLVO.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock).' },
+        notes:'Contract PDF "MCCULLUM VOLVO.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock). Claims/review: vsc.review@zurichna.com.' },
+      /* From the family IDs sheet (8/14/26) */
+      { id:'ins-protective-life', type:'Term life — Justin & Amanda', carrier:'Protective', coverageSummary:'$1M term life, both spouses',
+        premium:433, premiumCadence:'annual', documentUrl:'https://myaccount.protective.com/login',
+        notes:'Policy portal also at ildpiocs1.protective.com. From the family IDs sheet.' },
+      { id:'ins-palomar-eq', type:'Earthquake', carrier:'Palomar', coverageSummary:'Earthquake coverage (per family sheet — add policy # and premium)',
+        notes:'Listed on the family IDs sheet with no details — pull the policy doc when handy.' },
+      { id:'ins-safeco-4322', type:'Home — 4322 Sun Valley', carrier:'Safeco', property:'4322 Sun Valley', coverageSummary:'Home policy for Fairway Nine',
+        premium:522, documentUrl:'https://www.safeco.com/', notes:'From the family IDs sheet.' },
     ];
 
     const seedVehicles = [];
@@ -489,6 +506,154 @@
         body:'Oaktree RE Debt Fund III is marked 0.97x (−1.1% IRR) on a stale 3/31 NAV — check the Q2 mark. Advisory fees $17.1K YTD (~0.5%/yr). The $839K IRA rollover is now fully deployed ✓ and both backdoor Roths are done for 2026 ✓. UTMAs and Roths are doing their job — no changes.' },
     ];
 
+    /* ---------- IDs & Logins — integrated from the family Google Sheet, 8/14/26 ----------
+       Includes credentials at Justin's explicit request (he was warned the page source is publicly fetchable). */
+    const IDS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1hxZeMoIW_CqbXWGr96eOJUYeIK6ElY-ArO1u_sYyuGc/edit';
+    const seedIds = [
+      // travel
+      { id:'id-alaska', category:'Travel', service:'Alaska Airlines', url:'https://www.alaskaair.com/account/sign-in',
+        fields:[['Justin','60290473'],['Amanda','80095632'],['Cameron','787560292'],['Bennett','937256003']] },
+      { id:'id-delta', category:'Travel', service:'Delta SkyMiles', url:'https://www.delta.com/login',
+        fields:[['Justin','9474079077 (Gold)'],['Amanda','9328038105'],['Cameron','9239327357'],['Bennett','9189229512']] },
+      { id:'id-united', category:'Travel', service:'United MileagePlus', url:'https://www.united.com/en/us/account/sign-in',
+        fields:[['Justin','CYY15593'],['Amanda','BHG96290'],['Cameron','CE498485']] },
+      { id:'id-american', category:'Travel', service:'American AAdvantage', url:'https://www.aa.com/loyalty/login',
+        fields:[['Justin','AY87D42']] },
+      { id:'id-tsapre', category:'Travel', service:'TSA PreCheck (KTN)', url:'https://ttp.dhs.gov',
+        fields:[['Justin','TT1176YKG'],['Amanda','TT11F7ZSH']] },
+      // financial
+      { id:'id-ny529', category:'Financial', service:'NY 529 (nysaves.org)', url:'https://www.nysaves.org',
+        username:'jmccullum', password:'Ross0121!', fields:[['Covers','Cameron & Bennett 529s']] },
+      { id:'id-etrade', category:'Financial', service:'E*Trade (Amanda)', url:'https://us.etrade.com/e/t/user/login',
+        username:'amandamccullum', password:'Jumanda0828' },
+      { id:'id-fidelity', category:'Financial', service:'Fidelity NetBenefits — Amanda 401(k)', url:'https://nb.fidelity.com',
+        username:'amandamccullum', password:'Jumanda0828!' },
+      { id:'id-shareworks-pltr', category:'Financial', service:'ShareWorks — Palantir', url:'https://shareworks.solium.com',
+        password:'St*rbucks0828', fields:[['Account #','DS-585985-07']] },
+      { id:'id-shareworks-stripe', category:'Financial', service:'ShareWorks — Stripe', url:'https://shareworks.solium.com',
+        password:'St*rbucks0828', fields:[['Account #','CS74383933']] },
+      { id:'id-navia', category:'Financial', service:'Navia Commuter & Wellness (Stripe)', url:'https://app.naviabenefits.com',
+        username:'amandaosemccullum', password:'St*rbucks0828' },
+      { id:'id-hsa', category:'Financial', service:'HSA (ConnectYourCare)', url:'https://www.connectyourcare.com',
+        username:'amandamccullum', password:'St*rbucks082811' },
+      { id:'id-fsa', category:'Financial', service:'FSA (WealthCare portal)', url:'https://osv.wealthcareportal.com/Page/Dashboard',
+        username:'Justinmccullum' },
+      // medical
+      { id:'id-uhc', category:'Medical', service:'United Healthcare (family medical)', url:'https://www.uhc.com/sign-in',
+        username:'amandamccullum', password:'Jumanda082810',
+        fields:[['Prefix','MSJ'],['ID','602466318'],['Suffix','1'],['Group','1000010']] },
+      { id:'id-vsp', category:'Medical', service:'VSP Vision', url:'https://www.vsp.com',
+        fields:[['Member ID','Employee SSN'],['Group ID','40165429']] },
+      { id:'id-deltadental', category:'Medical', service:'Delta Dental', url:'https://www.deltadental.com',
+        fields:[['Member ID','LUR552814'],['Group ID','00057037']] },
+      { id:'id-vmason', category:'Medical', service:'Virginia Mason portal (Common Spirit MyChart)', url:'https://patientportal.commonspirit.org/MyChart/Authentication/Login',
+        username:'amandamccullum@gmail.com', password:'Jumanda0828',
+        notes:'Cameron’s portal: username amandamccullum, same password.' },
+      { id:'id-protective', category:'Medical', service:'Protective life insurance portal', url:'https://myaccount.protective.com/login',
+        fields:[['Policy details','ildpiocs1.protective.com/LadOcs/PolicyDetails.aspx']] },
+      // school & kids
+      { id:'id-bush', category:'School & kids', service:'Bush School (FamilyID)',
+        username:'amamccul921', password:'Amanda Ose McCullum' },
+      { id:'id-bush-lunch', category:'School & kids', service:'Bush lunch (MyKidsSpending)', url:'https://www.mykidsspending.com/',
+        username:'amandamccullum', password:'Jumanda0828' },
+      { id:'id-sps', category:'School & kids', service:'Seattle Public Schools', fields:[['Bennett student ID','8212932']] },
+      // legal & professional
+      { id:'id-wsba', category:'Legal & professional', service:'WSBA (Amanda)', url:'https://www.mywsba.org',
+        fields:[['ID','53393']], password:'St*rbucks11' },
+      { id:'id-cabar', category:'Legal & professional', service:'California Bar (Amanda)', url:'https://admissions.calbar.ca.gov',
+        fields:[['ID','251757']], password:'St*rbucks0828' },
+      { id:'id-stanford', category:'Legal & professional', service:'Stanford Alumni Association', url:'https://alumni.stanford.edu',
+        username:'aose', password:'Jumanda0828' },
+      // home & property
+      { id:'id-firstam', category:'Home & property', service:'First American Home Warranty', url:'https://homewarranty.firstam.com/',
+        username:'jmccullum@gmail.com', password:'b6d3f5b0' },
+      { id:'id-cinfin', category:'Home & property', service:'Cincinnati Insurance (home/auto/umbrella)', url:'https://onlineservice.cinfin.com/' },
+      { id:'id-elkhorn', category:'Home & property', service:'Elkhorn SVEA (Sun Valley HOA)',
+        username:'amanda.mccullum', password:'Jumanda0828' },
+      { id:'id-alpine', category:'Home & property', service:'Alpine Owners Portal (Escapia)', url:'https://owner.escapia.com/dist/index.html#/dashboard',
+        username:'amandamccullum@gmail.com', password:'Jumanda0828' },
+      { id:'id-zurich', category:'Home & property', service:'Zurich vehicle service contracts',
+        fields:[['Claims / review','vsc.review@zurichna.com'],['Tesla VIN','5YJYGDEE7LF008709'],['Volvo VIN','YV4102PK3L1553423']] },
+      // identity
+      { id:'id-ssn', category:'Identity', service:'Social Security Numbers',
+        fields:[['Justin','531-96-1674'],['Amanda','535-23-5342'],['Cameron','154-69-7886'],['Bennett','797-96-0928']] },
+    ];
+
+    const IDS_CATEGORIES = ['Travel','Financial','Medical','School & kids','Legal & professional','Home & property','Identity'];
+
+    const IdCopy = ({ text }) => {
+      const ctx = useContext(Ctx);
+      return (
+        <button onClick={() => { try { navigator.clipboard.writeText(text); ctx.showToast('Copied'); } catch {} }}
+          className="text-ink-500 hover:text-gold-300 transition p-0.5" aria-label="Copy"><Icon name="copy" size={11}/></button>
+      );
+    };
+
+    const IdsView = () => {
+      const ctx = useContext(Ctx);
+      const list = ctx.state.ids || [];
+      const [reveal, setReveal] = useState(false);
+      return (
+        <div className="space-y-6 max-w-5xl">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-ink-300 text-sm max-w-2xl">
+              Every family ID, membership and login in one place — from the <a href={IDS_SHEET_URL} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 underline">master sheet</a>.
+            </p>
+            <button onClick={()=>setReveal(v=>!v)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-[12px] transition">
+              {reveal ? 'Hide' : 'Show'} secrets
+            </button>
+          </div>
+          <div className="rounded-xl border border-ember-500/30 bg-ember-500/8 px-4 py-3 text-[12px] text-ink-200 leading-relaxed">
+            Heads up: these values live in this page's source, which anyone with the site URL can fetch — the password screen doesn't protect them. You asked for them here anyway; if you change your mind, ask Claude to strip the secrets back out.
+          </div>
+          {IDS_CATEGORIES.map(cat => {
+            const items = list.filter(x => x.category === cat);
+            if (!items.length) return null;
+            return (
+              <section key={cat}>
+                <SectionHeader title={cat} count={items.length} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {items.map(x => (
+                    <div key={x.id} className="card p-4 md:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="font-display text-base leading-tight">{x.service}</div>
+                        {x.url && <a href={x.url} target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1 shrink-0"><Icon name="link" size={12}/> Log in</a>}
+                      </div>
+                      <div className="mt-2.5 space-y-1 text-xs">
+                        {(x.fields||[]).map(([k,v],i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-ink-400 w-24 shrink-0">{k}</span>
+                            <span className="text-ink-100 font-mono truncate">{v}</span>
+                            <IdCopy text={v}/>
+                          </div>
+                        ))}
+                        {x.username && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-ink-400 w-24 shrink-0">Username</span>
+                            <span className="text-ink-100 font-mono truncate">{x.username}</span>
+                            <IdCopy text={x.username}/>
+                          </div>
+                        )}
+                        {x.password && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-ink-400 w-24 shrink-0">Password</span>
+                            <span className="text-ink-100 font-mono truncate">{reveal ? x.password : '••••••••'}</span>
+                            <IdCopy text={x.password}/>
+                          </div>
+                        )}
+                      </div>
+                      {x.notes && <div className="text-ink-400 text-[11px] mt-2.5">{x.notes}</div>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      );
+    };
+
     /* DAF balance log — append a new entry whenever you check the fund; the dashboard charts the change. */
     const seedDafValues = [
       { id:'daf-2026-08-14', date:'2026-08-14', value:53770.98, note:'Starting point' },
@@ -513,6 +678,7 @@
       files: seedFiles,
       suggestions: seedSuggestions,
       dafValues: seedDafValues,
+      ids: seedIds,
     };
 
     /* ---------- derived helpers ---------- */
@@ -573,7 +739,7 @@
         // (wine, portfolio, future modules) is auto-backfilled — a stale save can
         // never crash the app by missing a top-level key.
         const migrated = { ...initialState, ...saved };
-        const ENTITY_KEYS = ['vendors','maintenance','appliances','wine','insurance','vehicles','utilities','property','subscriptions','benefits','files','suggestions','dafValues'];
+        const ENTITY_KEYS = ['vendors','maintenance','appliances','wine','insurance','vehicles','utilities','property','subscriptions','benefits','files','suggestions','dafValues','ids'];
         ENTITY_KEYS.forEach(k => {
           if (!Array.isArray(migrated[k])) migrated[k] = initialState[k];
         });
@@ -608,7 +774,7 @@
         if (Array.isArray(migrated.property))   migrated.property   = migrated.property.filter(p   => p.id !== 'p-ph-mortgage-sv');
         if (Array.isArray(migrated.appliances)) migrated.appliances = migrated.appliances.filter(a => a.id !== 'a-ph-sv-hot-tub');
         // Merge in NEW seed entries (e.g. placeholders) by id — preserves user edits to existing items
-        ['vendors','maintenance','appliances','insurance','vehicles','property','benefits','utilities','subscriptions','files','suggestions','dafValues'].forEach(k => {
+        ['vendors','maintenance','appliances','insurance','vehicles','property','benefits','utilities','subscriptions','files','suggestions','dafValues','ids'].forEach(k => {
           const baseList = initialState[k] || [];
           if (!baseList.length) return;
           const have = new Set((migrated[k]||[]).map(x => x.id));
@@ -907,6 +1073,7 @@
               {view === 'subscriptions'&& <SubscriptionsView />}
               {view === 'vehicles'     && <VehiclesView />}
               {view === 'benefits'     && <BenefitsView />}
+              {view === 'ids'          && <IdsView />}
               {view === 'files'        && <FilesView />}
               {view === 'portfolio'    && <PortfolioView />}
               {view === 'done'         && <DoneView />}
@@ -936,6 +1103,7 @@
       { id:'subscriptions', label:'Subscriptions', icon:'receipt' },
       { id:'vehicles',      label:'Vehicles',      icon:'car' },
       { id:'benefits',      label:'Benefits',      icon:'heart' },
+      { id:'ids',           label:'IDs & Logins',  icon:'idcard' },
       { id:'portfolio',     label:'Portfolio',     icon:'chart' },
       { id:'files',         label:'Files',         icon:'folder' },
       { id:'done',          label:'Done',          icon:'check' },
@@ -1303,6 +1471,7 @@
         (s.files||[]).forEach(x => hit(x.name, x.notes, x.folder) && push('files', 'folder', x.name, 'File'));
         (s.wine||[]).forEach(x => hit(x.name, x.producer, x.region, x.notes) && push('wine', 'wine', x.name, `Wine · ${x.producer || ''}`));
         (s.suggestions||[]).forEach(x => hit(x.title, x.body) && push('suggestions', 'bulb', x.title, `Suggestion · ${x.priority || ''}${x.done ? ' · done' : ''}`));
+        (s.ids||[]).forEach(x => hit(x.service, x.username, x.category, ...(x.fields||[]).flat()) && push('ids', 'idcard', x.service, `IDs & Logins · ${x.category}`));
         (s.dafValues||[]).length && hit('daf', 'charitable', 'gift fund', 'donor') && push('portfolio', 'chart', 'Charitable DAF', 'Portfolio · Charitable DAF tab');
         // portfolio: accounts + holdings + outside items
         PORTFOLIO_DATA.accounts.forEach(a => hit(a.name, a.accountNum, a.taxType) && push('portfolio', 'chart', a.name, `Portfolio · ${fmtMoneyK(a.value)}`));
@@ -2200,7 +2369,7 @@ const PortfolioView = () => {
   const [showSettings, setShowSettings] = useState(false);
   const priceState = usePriceQuotes();
   const d = PORTFOLIO_DATA;
-  const OUTSIDE_SCOPES = ['Cash & Banking', 'Bennett 529', 'Cameron 529', 'Anthropic Equity', 'Charitable DAF'];
+  const OUTSIDE_SCOPES = ['Cash & Banking', 'Bennett 529', 'Cameron 529', 'Anthropic Equity', 'Amanda — Other', 'Charitable DAF'];
   const accounts = ['__all__', ...d.accounts.map(a => a.name), ...OUTSIDE_SCOPES];
   const isOutside = OUTSIDE_SCOPES.includes(scope);
 
@@ -2792,6 +2961,31 @@ const DafPanel = () => {
 /* Focused views for the outside-Merrill scope tabs (banking, 529s, equity, DAF). */
 const OutsideMerrillPanel = ({ scope }) => {
   if (scope === 'Charitable DAF') return <DafPanel />;
+  if (scope === 'Amanda — Other') {
+    const rows = [
+      { name:'E*Trade brokerage', sub:'From the family IDs sheet — login under IDs & Logins', url:'https://us.etrade.com/e/t/user/login' },
+      { name:'Fidelity NetBenefits — 401(k)', sub:'Amanda’s 401(k) (Stripe/Mercury employer plan)', url:'https://nb.fidelity.com' },
+      { name:'ShareWorks — Palantir equity', sub:'Account DS-585985-07', url:'https://shareworks.solium.com' },
+      { name:'ShareWorks — Stripe equity', sub:'Account CS74383933', url:'https://shareworks.solium.com' },
+    ];
+    return (
+      <div className="card p-4 md:p-5">
+        <SectionHeader title="Amanda — other accounts" hint="Found on the family IDs sheet but not yet valued. Drop statements in Box (Spending docs) or tell Claude the balances and they'll join the household total." />
+        <div className="space-y-2.5">
+          {rows.map(r => (
+            <a key={r.name} href={r.url} target="_blank" rel="noreferrer"
+               className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-ink-600 px-3.5 py-3 hover:border-gold-400/40 transition">
+              <div>
+                <div className="text-sm font-medium text-ink-200">{r.name}</div>
+                <div className="text-[11px] text-ink-400 mt-0.5">{r.sub}</div>
+              </div>
+              <div className="text-ink-500 text-xs shrink-0">balance needed · log in ↗</div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (scope === 'Cash & Banking') {
     return (
       <div className="space-y-4">
@@ -2891,7 +3085,7 @@ const OutsideMerrillPanel = ({ scope }) => {
       </div>
       <div className="card p-4 md:p-5">
         <SectionHeader title={`${a.child} — 529 College Savings`} hint={`Account #${a.acct} · 100% ${a.fund}.`}
-          action={<a href="https://www.readysave529.com" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> 529 login</a>} />
+          action={<a href="https://www.nysaves.org" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> NY529 login</a>} />
         <div className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
           <div>
             <div className="text-sm font-medium text-ink-100">{a.fund}</div>
