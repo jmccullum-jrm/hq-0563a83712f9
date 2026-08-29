@@ -1479,6 +1479,7 @@
         BANKING.accounts.forEach(a => hit(a.name, a.acct, 'bank of america', 'savings', 'checking', 'money market') && push('portfolio', 'chart', a.name, 'Portfolio · Cash & Banking tab'));
         EDUCATION_529.accounts.forEach(a => hit(a.child, a.fund, '529', 'college') && push('portfolio', 'chart', `${a.child} 529 — ${a.fund}`, 'Portfolio · 529 tab'));
         EQUITY_COMP.grants.forEach(g => hit('anthropic', g.id, g.type, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Anthropic ${g.type} · ${g.id}`, 'Portfolio · Anthropic Equity tab'));
+        MERCURY_EQUITY.grants.forEach(g => hit('mercury', 'amanda', 'carta', g.id, g.type, g.subtype, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Mercury ${g.type} · ${g.id}`, 'Portfolio · Amanda — Mercury Equity tab'));
         // dedupe by view+title
         const seen = new Set();
         return out.filter(r => { const k = r.view + '|' + r.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 20);
@@ -1966,6 +1967,101 @@ const equityVesting = () => {
   };
 };
 
+/* ---------- Amanda — Mercury Technologies equity (Carta) ---------- */
+/* Share counts only. No 409A / preferred price on hand for Mercury, so nothing
+   here is valued in dollars and nothing rolls into householdTotal() — unlike the
+   Anthropic block above, which has a per-share valuation to price against.
+   Add a `MERCURY_FMV` here the day Carta shows one. */
+const MERCURY_EQUITY = {
+  holder: 'Amanda',
+  company: 'Mercury Technologies',
+  source: 'Carta',
+  asOf: '2026-08-29',
+  grants: [
+    { id:'ES-1881', kind:'option', type:'Options', subtype:'ISO/NSO split', issued:'2025-01-31',
+      granted:120000, vested:47500, exercised:0, exercisable:120000, strike:3.51, status:'outstanding',
+      vesting: { years:4, cliffDate:'2026-01-31', cliffShares:30000, monthlyShares:2500, fullyVestedDate:'2029-01-31' },
+      detail:'$3.51 strike · issued 1/31/25 · 1-yr cliff of 30,000 then 2,500/mo through 1/31/29 · early exercise permitted, so all 120,000 are exercisable today' },
+    { id:'ES-4093', kind:'rsu', type:'RSUs', issued:null,
+      granted:5644, vested:705, settled:0, vesting:null,
+      detail:'Vesting schedule not in the Carta export — the vested count is Carta’s reported figure, not computed here. Nothing settled yet.' },
+  ],
+  notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet. Exercise cost is real money out of pocket; the shares it buys have no price attached here, so this section stays out of the household total.',
+};
+
+/* Month arithmetic that clamps to the end of short months — a Jan-31 vesting
+   anchor lands on Feb 28, not Mar 3 the way a bare setMonth() rolls it. */
+const addMonthsClamped = (iso, n) => {
+  const d = parseDate(iso);
+  if (!d) return null;
+  const x = new Date(d.getFullYear(), d.getMonth() + n, 1);
+  const lastDay = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
+  x.setDate(Math.min(d.getDate(), lastDay));
+  return toISO(x);
+};
+
+/* Every tranche a cliff-then-monthly schedule produces: [{date, shares, cumulative}]. */
+const vestingTranches = (vs, granted) => {
+  if (!vs || !vs.cliffDate) return [];
+  const out = [];
+  let cum = 0;
+  if (vs.cliffShares) {
+    cum = Math.min(granted, vs.cliffShares);
+    out.push({ date: vs.cliffDate, shares: cum, cumulative: cum });
+  }
+  const end = parseDate(vs.fullyVestedDate);
+  const monthly = vs.monthlyShares || 0;
+  for (let i = 1; monthly > 0 && cum < granted; i++) {
+    const date = addMonthsClamped(vs.cliffDate, i);
+    if (end && parseDate(date) > end) break;
+    const shares = Math.min(monthly, granted - cum);
+    cum += shares;
+    out.push({ date, shares, cumulative: cum });
+  }
+  // Remainder from an uneven schedule lands on the stated fully-vested date.
+  if (cum < granted && vs.fullyVestedDate) out.push({ date: vs.fullyVestedDate, shares: granted - cum, cumulative: granted });
+  return out;
+};
+
+/* Vested/unvested split computed live from the schedule. Carta's own `vested`
+   figure rides along as `reportedVested` for cross-checking, never as the source
+   of truth. Grants with no schedule fall back to it, marked `computedVested: null`. */
+const mercuryVesting = (asOfISO) => {
+  const on = asOfISO || toISO(today());
+  const grants = MERCURY_EQUITY.grants.map(g => {
+    const tranches = vestingTranches(g.vesting, g.granted);
+    const passed = tranches.filter(t => t.date <= on);
+    const computed = tranches.length ? (passed.length ? passed[passed.length - 1].cumulative : 0) : null;
+    const nextT = tranches.find(t => t.date > on) || null;
+    const vested = computed != null ? computed : (g.vested || 0);
+    const reported = g.vested != null ? g.vested : null;
+    return {
+      ...g,
+      tranches,
+      computedVested: computed,
+      reportedVested: reported,
+      vested,
+      unvested: Math.max(0, g.granted - vested),
+      delta: (computed != null && reported != null) ? reported - computed : 0,
+      pct: g.granted ? vested / g.granted * 100 : 0,
+      next: nextT ? { ...nextT, grantId: g.id } : null,
+      exerciseCost: g.strike != null ? g.granted * g.strike : null,
+      vestedExerciseCost: g.strike != null ? vested * g.strike : null,
+    };
+  });
+  const sum = (f) => grants.reduce((s, g) => s + (f(g) || 0), 0);
+  return {
+    grants,
+    granted: sum(g => g.granted),
+    vested: sum(g => g.vested),
+    unvested: sum(g => g.unvested),
+    exerciseCost: sum(g => g.exerciseCost),
+    vestedExerciseCost: sum(g => g.vestedExerciseCost),
+    nextVest: grants.map(g => g.next).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date))[0] || null,
+    discrepancies: grants.filter(g => g.delta !== 0),
+  };
+};
+
 const PORTFOLIO_AC_COLORS = {
   'Equity':              '#d4a96a',  // gold-400
   'Cash & Equivalents':  '#5a554c',  // ink-400
@@ -2369,7 +2465,7 @@ const PortfolioView = () => {
   const [showSettings, setShowSettings] = useState(false);
   const priceState = usePriceQuotes();
   const d = PORTFOLIO_DATA;
-  const OUTSIDE_SCOPES = ['Cash & Banking', 'Bennett 529', 'Cameron 529', 'Anthropic Equity', 'Amanda — Other', 'Charitable DAF'];
+  const OUTSIDE_SCOPES = ['Cash & Banking', 'Bennett 529', 'Cameron 529', 'Anthropic Equity', 'Amanda — Mercury Equity', 'Amanda — Other', 'Charitable DAF'];
   const accounts = ['__all__', ...d.accounts.map(a => a.name), ...OUTSIDE_SCOPES];
   const isOutside = OUTSIDE_SCOPES.includes(scope);
 
@@ -2461,6 +2557,7 @@ const PortfolioView = () => {
     ];
   }, []);
   const acctTotal = acctRows.reduce((s,a) => s + a.value, 0);
+  const mercury = mercuryVesting();
 
   const pillsRow = (
     <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
@@ -2879,6 +2976,38 @@ const PortfolioView = () => {
           </div>
           <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{EQUITY_COMP.notes}</div>
         </div>
+
+        {/* Amanda — Mercury equity comp (Carta) */}
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Amanda — Mercury Equity"
+            hint={`${mercury.vested.toLocaleString()} of ${mercury.granted.toLocaleString()} sh vested — share counts only, no valuation on hand, so it isn’t in the totals above. Detail under the Amanda — Mercury Equity tab.`} />
+          <div className="space-y-2.5">
+            {mercury.grants.map(g => (
+              <div key={g.id} className="rounded-xl border border-dashed border-ink-600 px-3.5 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-[11px]">· {g.id}</span></div>
+                    <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">
+                      Vested {g.vested.toLocaleString()} · unvested {g.unvested.toLocaleString()}
+                      {g.next ? ` · next ${g.next.shares.toLocaleString()} sh on ${fmtDate(g.next.date)}` : ''}
+                    </div>
+                    <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
+                      <div style={{width: g.pct + '%'}} className="bg-sage-400"/>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-ink-100 tabular-nums font-medium">{g.granted.toLocaleString()}</div>
+                    <div className="text-[10px] text-ink-500">{g.pct.toFixed(0)}% vested</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+            {MERCURY_EQUITY.company} via {MERCURY_EQUITY.source}, {fmtDate(MERCURY_EQUITY.asOf)}. Vested counts are computed from each grant’s schedule.
+            {mercury.discrepancies.length > 0 && ' Carta’s stored figure disagrees on ' + mercury.discrepancies.map(g => g.id).join(', ') + ' — see the tab.'}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -3015,6 +3144,146 @@ const OutsideMerrillPanel = ({ scope }) => {
             The $883K money market savings earns 0.05% APY (~$440/yr). At a ~3.7% money-market-fund rate it would earn ~$32K/yr — see Suggestions.
           </div>
         </div>
+      </div>
+    );
+  }
+  if (scope === 'Amanda — Mercury Equity') {
+    const v = mercuryVesting();
+    const opt = v.grants.find(g => g.vesting) || null;
+    const nowISO = toISO(today());
+    const upcoming = opt ? opt.tranches.filter(t => t.date > nowISO).slice(0, 6) : [];
+    const vestRel = (d) => !d ? '—' : (d <= nowISO ? 'vested' : fmtRelative(d));
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <PortfolioStat label="Granted" value={v.granted.toLocaleString() + ' sh'} />
+          <PortfolioStat label="Vested · computed" value={v.vested.toLocaleString() + ' sh'} tone="ok" />
+          <PortfolioStat label="Unvested" value={v.unvested.toLocaleString() + ' sh'} />
+          <PortfolioStat label="Cost to exercise all" value={fmtMoney(v.exerciseCost)} />
+        </div>
+        <div className="text-[11px] text-ink-400 -mt-1">
+          Share counts only — no 409A or preferred price on hand for {MERCURY_EQUITY.company}, so nothing here is valued in dollars or counted in the household total.
+          {' '}{MERCURY_EQUITY.holder} · {MERCURY_EQUITY.source} export as of {fmtDate(MERCURY_EQUITY.asOf)}.
+          {v.vestedExerciseCost ? ` Exercising just the vested portion costs ${fmtMoney(v.vestedExerciseCost)}.` : ''}
+        </div>
+
+        {v.discrepancies.length > 0 && (
+          <div className="card p-4 md:p-5">
+            <SectionHeader title="Vesting cross-check" hint="Vested-to-date is computed from the grant’s schedule, then compared with the figure Carta stores." />
+            <div className="space-y-2.5">
+              {v.discrepancies.map(g => {
+                const step = g.vesting && g.vesting.monthlyShares;
+                const n = step ? Math.abs(g.delta) / step : 0;
+                const tranche = step && Number.isInteger(n) ? ` · ${n} monthly tranche${n === 1 ? '' : 's'}` : '';
+                return (
+                  <div key={g.id} className="flex items-start justify-between gap-3 rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
+                    <div className="min-w-0 text-sm">
+                      <div className="text-ink-100 font-medium">{g.id}</div>
+                      <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">
+                        Schedule gives {g.computedVested.toLocaleString()} vested as of {fmtDate(nowISO)} · Carta reports {g.reportedVested.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <Pill tone="soon">{g.delta > 0 ? '+' : ''}{g.delta.toLocaleString()} sh{tranche}</Pill>
+                      <div className="text-[10px] text-ink-500 mt-1">{g.delta > 0 ? 'Carta ahead' : 'Carta behind'}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+              The computed figure is what this dashboard uses. Carta <em>ahead</em> by whole tranches means its export is counting a vest date that hasn’t arrived yet
+              {v.nextVest ? ` — the next one is ${v.nextVest.shares.toLocaleString()} sh on ${fmtDate(v.nextVest.date)} (${fmtRelative(v.nextVest.date)})` : ''};
+              Carta <em>behind</em> means the {fmtDate(MERCURY_EQUITY.asOf)} export has simply gone stale and the tranches since then have vested.
+              A gap that isn’t a clean multiple of a tranche is the one to worry about — it means the schedule recorded here doesn’t match the grant, so check the docs in Carta.
+            </div>
+          </div>
+        )}
+
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Grants" hint={`${MERCURY_EQUITY.company} — held by ${MERCURY_EQUITY.holder}, tracked in ${MERCURY_EQUITY.source}.`} />
+          <div className="space-y-2.5">
+            {v.grants.map(g => (
+              <div key={g.id} className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-ink-100">
+                      {g.type}
+                      <span className="text-ink-400 font-normal text-[11px]">
+                        {g.subtype ? ` · ${g.subtype}` : ''} · {g.id} · {g.granted.toLocaleString()} total
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
+                    <div className="text-[11px] mt-1.5">
+                      <span className="text-sage-400">Vested {g.vested.toLocaleString()}</span>
+                      <span className="text-ink-500"> — </span>
+                      <span className="text-ink-300">Unvested {g.unvested.toLocaleString()}</span>
+                      {g.strike != null && <span className="text-ink-500"> · ${g.strike.toFixed(2)}/sh strike · {fmtMoney(g.vestedExerciseCost)} to exercise what’s vested</span>}
+                    </div>
+                    <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
+                      <div style={{width: g.pct + '%'}} className="bg-sage-400"/>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {g.computedVested == null
+                        ? <Pill tone="muted">no schedule on file — Carta figure as-is</Pill>
+                        : <Pill tone="ok" dot>computed from schedule</Pill>}
+                      {g.next && <Pill tone="muted">next {g.next.shares.toLocaleString()} sh {fmtRelative(g.next.date)}</Pill>}
+                      {g.exercisable ? <Pill tone="info">{g.exercisable.toLocaleString()} exercisable — early exercise</Pill> : null}
+                      {g.exercised === 0 && g.kind === 'option' && <Pill tone="muted">none exercised</Pill>}
+                      {g.settled === 0 && g.kind === 'rsu' && <Pill tone="muted">none settled</Pill>}
+                      {g.delta !== 0 && <Pill tone="soon">Carta says {g.reportedVested.toLocaleString()}</Pill>}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-ink-100 tabular-nums font-medium">{g.vested.toLocaleString()}</div>
+                    <div className="text-[10px] text-ink-500">vested · {g.pct.toFixed(0)}%</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{MERCURY_EQUITY.notes}</div>
+        </div>
+
+        {opt && (
+          <div className="card p-4 md:p-5">
+            <SectionHeader title="Key dates" hint={`${opt.id} — every date below is derived from the grant’s schedule, not typed in.`} />
+            <div className="space-y-2 text-sm text-ink-200">
+              <div className="flex justify-between border-b border-ink-700 pb-2"><span>Issued</span><span className="tabular-nums text-ink-300">{fmtDate(opt.issued)}</span></div>
+              <div className="flex justify-between border-b border-ink-700 pb-2">
+                <span>1-year cliff ({opt.vesting.cliffShares.toLocaleString()} sh)</span>
+                <span className="tabular-nums text-ink-300">{fmtDate(opt.vesting.cliffDate)} · {vestRel(opt.vesting.cliffDate)}</span>
+              </div>
+              <div className="flex justify-between border-b border-ink-700 pb-2">
+                <span>Monthly thereafter ({opt.vesting.monthlyShares.toLocaleString()} sh/mo)</span>
+                <span className="tabular-nums text-ink-300">{opt.next ? `next ${fmtDate(opt.next.date)}` : 'complete'}</span>
+              </div>
+              <div className="flex justify-between"><span>Fully vested ({opt.vesting.years}-yr schedule)</span>
+                <span className="tabular-nums text-ink-300">{fmtDate(opt.vesting.fullyVestedDate)} · {vestRel(opt.vesting.fullyVestedDate)}</span></div>
+            </div>
+            {upcoming.length > 0 && (
+              <>
+                <div className="divider my-4"/>
+                <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400 mb-2">Next vests</div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {upcoming.map(t => (
+                    <div key={t.date} className="rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2.5">
+                      <div className="text-[11px] text-ink-400">{fmtDate(t.date)}</div>
+                      <div className="text-ink-100 tabular-nums text-sm font-medium mt-0.5">+{t.shares.toLocaleString()} sh</div>
+                      <div className="text-[10px] text-ink-500 tabular-nums mt-0.5">{t.cumulative.toLocaleString()} cumulative</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {v.grants.some(g => !g.vesting) && (
+              <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+                {v.grants.filter(g => !g.vesting).map(g => g.id).join(', ')} — no vesting schedule in the Carta export, so there are no dates to derive.
+                Pull the grant detail from Carta and add a `vesting` block to MERCURY_EQUITY and it will compute the same way.
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
