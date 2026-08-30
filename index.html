@@ -818,6 +818,11 @@
         const n = daysUntil(p.nextDue);
         if (n !== null && n < 0) items.push({ kind:'property', id:p.id, title:p.label, when:p.nextDue, n, sub:p.cadence ? `${p.cadence}${p.amount?` · $${p.amount}`:''}` : '' });
       });
+      (state.insurance||[]).forEach(x => {
+        if (!inS(x)) return;
+        const n = daysUntil(x.renewalDate);
+        if (n !== null && n < 0) items.push({ kind:'insurance', id:x.id, title:`${x.carrier} — ${x.type}`, when:x.renewalDate, n, sub:x.policyNumber || '' });
+      });
       // Only subscriptions that can't roll themselves forward — those genuinely need a look.
       (state.subscriptions||[]).forEach(sb => {
         const when = subscriptionNextRenewal(sb);
@@ -843,6 +848,10 @@
       (state.property||[]).forEach(p => {
         if (!inS(p)) return;
         if (within(daysUntil(p.nextDue))) items.push({ kind:'property', id:p.id, title:p.label, when:p.nextDue, n:daysUntil(p.nextDue), sub:p.cadence ? `${p.cadence}${p.amount?` · $${p.amount}`:''}` : '' });
+      });
+      (state.insurance||[]).forEach(x => {
+        if (!inS(x)) return;
+        if (within(daysUntil(x.renewalDate))) items.push({ kind:'insurance', id:x.id, title:`${x.carrier} — ${x.type}`, when:x.renewalDate, n:daysUntil(x.renewalDate), sub:x.premium?`$${x.premium} ${x.premiumCadence||''}`.trim():'' });
       });
       // Subscriptions are personal, not property-bound — never scoped out.
       (state.subscriptions||[]).forEach(s => {
@@ -1093,6 +1102,8 @@
             next.maintenance = (s.maintenance||[]).map(t => t.id === entry.refId ? { ...t, lastCompleted: entry.prevValue } : t);
           } else if (entry.kind === 'property' && entry.originalDue) {
             next.property = (s.property||[]).map(p => p.id === entry.refId ? { ...p, nextDue: entry.originalDue } : p);
+          } else if (entry.kind === 'insurance' && entry.originalDue) {
+            next.insurance = (s.insurance||[]).map(x => x.id === entry.refId ? { ...x, renewalDate: entry.originalDue } : x);
           } else if (entry.kind === 'sub' && entry.originalDue) {
             next.subscriptions = (s.subscriptions||[]).map(x => x.id === entry.refId ? { ...x, renewalDate: entry.originalDue } : x);
           }
@@ -1207,6 +1218,7 @@
       const subOps  = mk('subscriptions');
       const benOps  = mk('benefits');
       const sugOps  = mk('suggestions');
+      const filOps  = mk('files');
       const dafOps  = mk('dafValues');
 
       const ctx = {
@@ -1277,6 +1289,7 @@
         addSubscription: subOps.add, updateSubscription: subOps.update, deleteSubscription: subOps.delete,
         addBenefit: benOps.add, updateBenefit: benOps.update, deleteBenefit: benOps.delete,
         addSuggestion: sugOps.add, updateSuggestion: sugOps.update, deleteSuggestion: sugOps.delete,
+        addFile: filOps.add, updateFile: filOps.update, deleteFile: filOps.delete,
         addDafValue: dafOps.add, deleteDafValue: dafOps.delete,
         // mark a dashboard item done — applies kind-specific side effect + appends to completedLog
         markDone: (item) => {
@@ -1288,10 +1301,14 @@
             cadence === 'monthly'   ? {count:1, unit:'months'} :
             cadence === 'quarterly' ? {count:3, unit:'months'} :
             (cadence === 'annual' || cadence === 'yearly') ? {count:1, unit:'years'} : null;
-          // Advance by whole cadences until the date is in the future.
+          // Marking something done means "this occurrence is handled", so always
+          // advance at least one cadence — then keep going until the date is in the
+          // future, so an item several cycles stale actually clears instead of
+          // creeping forward one cycle at a time.
           const rollForwardPast = (iso, freq) => {
-            let d = iso;
-            for (let i = 0; i < 600 && d && d <= nowISO; i++) {
+            let d = addInterval(iso, freq);
+            if (!d) return iso;
+            for (let i = 0; i < 600 && d <= nowISO; i++) {
               const next = addInterval(d, freq);
               if (!next || next <= d) break;
               d = next;
@@ -1333,6 +1350,14 @@
                 if (p.id !== item.id) return p;
                 const f = cadenceFreq(p.cadence);
                 return { ...p, nextDue: (f && p.nextDue) ? rollForwardPast(p.nextDue, f) : '' };
+              });
+            } else if (item.kind === 'insurance') {
+              // Roll the policy forward by its premium cadence, the same way a
+              // property due rolls — otherwise ticking it just hides a live renewal.
+              next.insurance = (s.insurance||[]).map(x => {
+                if (x.id !== item.id) return x;
+                const f = cadenceFreq(x.premiumCadence === 'semiannual' ? 'quarterly' : x.premiumCadence);
+                return { ...x, renewalDate: (f && x.renewalDate) ? rollForwardPast(x.renewalDate, f) : '' };
               });
             } else if (item.kind === 'sub') {
               next.subscriptions = (s.subscriptions||[]).map(x => {
@@ -1437,13 +1462,25 @@
     const NAV_ALL = [...NAV_PRIMARY, ...NAV_RECORDS, ...NAV_OTHER];
     // Mobile bottom nav: four most-used + "More". Six tabs made "Maintenance" and
     // "Appliances" collide at 390px, so Suggestions moves into the sheet.
-    const NAV_MOBILE_IDS = ['dashboard','vendors','maintenance','appliances'];
+    /* Pointed at the lists that actually hold data. Vendors, maintenance and
+       appliances are all empty in practice, while subscriptions (23 rows) and the
+       ID sheet (~30) are what you reach for standing at a counter. */
+    const NAV_MOBILE_IDS = ['dashboard','subscriptions','ids','portfolio'];
     const NAV_MOBILE = [
-      ...NAV_PRIMARY.filter(n => NAV_MOBILE_IDS.includes(n.id)),
+      ...NAV_ALL.filter(n => NAV_MOBILE_IDS.includes(n.id)),
       { id:'_more', label:'More', icon:'more' },
     ];
     // Anything not on the bottom bar has to be reachable from the sheet.
     const NAV_SHEET_PRIMARY = NAV_PRIMARY.filter(n => !NAV_MOBILE_IDS.includes(n.id));
+
+    /* How many records a section holds, so an empty shelf is visible without a tap. */
+    const navCount = (s, id) => {
+      if (!s) return null;
+      if (id === 'done') return (s.completedLog || []).length;
+      if (id === 'suggestions') return (s.suggestions || []).filter(x => !x.done).length;
+      const arr = s[id];
+      return Array.isArray(arr) ? arr.length : null;
+    };
 
     /* Property scope segmented control */
     /* The scope filter matches these strings exactly, so anything that writes the
@@ -1724,7 +1761,7 @@
                   ))}
                   <div className="col-span-2 text-[10px] uppercase tracking-[0.18em] text-ink-400 px-1">Records</div>
                   {NAV_RECORDS.map(n => {
-                    const badge = n.id === 'done' ? (ctx.state.completedLog||[]).length : null;
+                    const badge = navCount(ctx.state, n.id);
                     return (
                     <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
                       className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
@@ -1732,7 +1769,7 @@
                         <Icon name={n.icon} size={18} />
                       </div>
                       <div className="text-sm font-medium flex-1">{n.label}</div>
-                      {badge > 0 && <span className="text-[10px] text-ink-400 tabular-nums">{badge}</span>}
+                      {badge != null && <span className={`text-[10px] tabular-nums ${badge ? 'text-ink-300' : 'text-ink-400'}`}>{badge}</span>}
                     </button>
                   );})}
                   <div className="col-span-2 text-[10px] uppercase tracking-[0.18em] text-ink-400 px-1 pt-2">Pleasure</div>
@@ -1884,7 +1921,7 @@
       (s.subscriptions||[]).forEach(x => hit(x.name, x.category, x.url, x.notes) && push('subscriptions', 'receipt', x.name, `Subscription · $${x.cost || 0} ${x.cadence || ''}`, x.id));
       (s.vehicles||[]).forEach(x => hit(x.make, x.model, x.year, x.trim, x.vin, x.primaryDriver, x.warrantyProvider, x.notes) && push('vehicles', 'car', `${x.year || ''} ${x.make || ''} ${x.model || ''}`.trim(), `Vehicle · ${x.vin || x.primaryDriver || ''}`, x.id));
       (s.benefits||[]).forEach(x => hit(x.provider, x.type, x.memberID, x.groupID, x.notes) && push('benefits', 'heart', x.provider, `Benefit · ${[x.type, x.memberID].filter(Boolean).join(' · ')}`, x.id));
-      (s.files||[]).forEach(x => hit(x.name, x.notes, x.folder) && push('files', 'folder', x.name, 'File', x.id));
+      (s.files||[]).forEach(x => hit(x.label, x.name, x.notes, x.category, x.folder) && push('files', 'folder', x.label || x.name, `File · ${x.category || x.folder || ''}`, x.id));
       (s.wine||[]).forEach(x => hit(x.producer, x.label, x.region, x.varietal, x.location, x.vintage, x.notes) && push('wine', 'wine', `${x.producer || ''} ${x.label || ''}`.trim(), `Wine · ${[x.vintage, x.region, x.location].filter(Boolean).join(' · ')}`, x.id));
       (s.suggestions||[]).forEach(x => hit(x.title, x.body, x.source) && push('suggestions', 'bulb', x.title, `Suggestion · ${x.priority || ''}${x.done ? ' · done' : ''}`, x.id));
       (s.ids||[]).forEach(x => hit(x.service, x.username, x.category, ...(x.fields||[]).flat()) && push('ids', 'idcard', x.service, `IDs & Logins · ${x.category}`, x.id));
@@ -2247,6 +2284,7 @@
                   i.kind==='vendor'?'vendors':
                   i.kind==='property'?'property':
                   i.kind==='sub'?'subscriptions':
+                  i.kind==='insurance'?'insurance':
                   'appliances'
                 )} />)}
             </div>
@@ -2274,6 +2312,7 @@
                     i.kind==='maint'?'maintenance':
                     i.kind==='vendor'?'vendors':
                     i.kind==='property'?'property':
+                    i.kind==='insurance'?'insurance':
                     'appliances'
                   )} />)}
               </div>
@@ -4434,8 +4473,8 @@ const PortfolioWidget = ({ onOpen }) => {
         return out;
       }, [filtered]);
 
-      const KIND_LABELS = { maint:'Maintenance', vendor:'Vendor', warranty:'Warranty', property:'Property', sub:'Subscription' };
-      const KIND_ICONS  = { maint:'wrench', vendor:'users', warranty:'cube', property:'key', sub:'receipt' };
+      const KIND_LABELS = { maint:'Maintenance', vendor:'Vendor', warranty:'Warranty', property:'Property', sub:'Subscription', insurance:'Insurance' };
+      const KIND_ICONS  = { maint:'wrench', vendor:'users', warranty:'cube', property:'key', sub:'receipt', insurance:'shield' };
 
       const counts = useMemo(() => {
         const c = { all: log.length };
@@ -4571,6 +4610,7 @@ const PortfolioWidget = ({ onOpen }) => {
               item.kind==='vendor'?'users':
               item.kind==='property'?'key':
               item.kind==='sub'?'receipt':
+              item.kind==='insurance'?'shield':
               'cube'
             } size={18} />
           </div>
@@ -5354,10 +5394,15 @@ const PortfolioWidget = ({ onOpen }) => {
           </div>
           {p.policyNumber && <div className="text-ink-200 text-xs mt-2 font-mono">Policy {p.policyNumber}</div>}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {p.renewalDate && (
+            {p.renewalDate ? (
               <Pill tone={n<0?'overdue':n<=60?'soon':'info'} dot>
                 {n<0?`Renewal passed ${fmtDate(p.renewalDate)} — confirm`:`Renews ${fmtDate(p.renewalDate)}`}
               </Pill>
+            ) : (
+              /* Rendering nothing here meant a policy with no end date was
+                 indistinguishable from one that never expires — and a lapse would
+                 have reached no surface in the app. */
+              <Pill tone="soon">no renewal date — a lapse would be invisible</Pill>
             )}
             {p.premium ? <Pill tone="muted">${p.premium.toLocaleString()} {p.premiumCadence||''}</Pill> : null}
           </div>
@@ -6529,6 +6574,9 @@ const PortfolioWidget = ({ onOpen }) => {
           const { token } = loadBoxToken();
           const folders = loadBoxFolders();
           const result = await uploadFileToBox(file, folders.inbox, token);
+          // Record it: without this the upload existed only in Box and the Files
+          // view stayed empty no matter how many photos were captured.
+          ctx.addFile?.({ label: result.name, url: result.sharedUrl, category: 'Inbox', capturedAt: new Date().toISOString() });
           ctx.showToast?.('Photo uploaded to Box Inbox');
           // Open the result inline so the user knows it landed
           ctx.setPreviewFile?.({ label: result.name, url: result.sharedUrl });
