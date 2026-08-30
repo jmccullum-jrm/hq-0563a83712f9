@@ -755,6 +755,7 @@
       suggestions: seedSuggestions,
       dafValues: seedDafValues,
       ids: seedIds,
+      dismissedEnds: [],   // loose-end keys the household has said no to
     };
 
     /* ---------- derived helpers ---------- */
@@ -937,6 +938,130 @@
       return out.sort((a, b) => a.n - b.n);
     };
 
+    /* Four modules sit permanently empty while the records to fill them are already
+       typed into other modules: both VINs live in insurance policy numbers and in the
+       Zurich ID entry, every member and group number lives in IDs & Logins, and the
+       internet line is a subscription whose own note says it is "also tracked under
+       Utilities". These rules read what is there and offer to promote it — the data
+       is never copied silently, only proposed with its source named. */
+    const VIN_RE = /\b([A-HJ-NPR-Z0-9]{17})\b/;
+    const norm = (x) => String(x == null ? '' : x).toLowerCase();
+
+    const deriveLooseEnds = (s) => {
+      if (!s) return [];
+      const out = [];
+      const seen = (kind, pred) => (s[kind] || []).some(pred);
+
+      // Vehicles from the VINs recorded against their service contracts.
+      const vinSources = [];
+      (s.insurance || []).forEach(x => {
+        const m = VIN_RE.exec(`${x.policyNumber || ''} ${x.notes || ''}`);
+        if (m) vinSources.push({ vin: m[1], label: x.coverageSummary || x.carrier, from: `Insurance · ${x.carrier} ${x.type}`,
+                                 warrantyProvider: x.carrier, notes: x.notes || '' });
+      });
+      (s.ids || []).forEach(x => (x.fields || []).forEach(([k, v]) => {
+        const m = VIN_RE.exec(String(v || ''));
+        if (m) vinSources.push({ vin: m[1], label: k, from: `IDs & Logins · ${x.service}`, warrantyProvider: '', notes: '' });
+      }));
+      const vinSeen = new Set();
+      vinSources.forEach(src => {
+        if (vinSeen.has(src.vin)) return;
+        vinSeen.add(src.vin);
+        if (seen('vehicles', v => norm(v.vin) === norm(src.vin))) return;
+        // "Vehicle service contract — Tesla Model Y" / "Tesla VIN"
+        const after = (src.label || '').split('—').pop().replace(/\bVIN\b/i, '').trim();
+        const [make, ...rest] = after.split(/\s+/).filter(Boolean);
+        out.push({
+          key: `veh:${src.vin}`, module: 'vehicles', icon: 'car',
+          title: `${after || 'Vehicle'} — VIN on file, no vehicle record`,
+          why: `The VIN is recorded in ${src.from}, but Vehicles is empty.`,
+          record: { make: make || '', model: rest.join(' '), vin: src.vin,
+                    warrantyProvider: src.warrantyProvider || '', notes: src.notes },
+        });
+      });
+
+      // Benefits from the member and group numbers already in IDs & Logins.
+      const BENEFIT_HINT = [
+        [/dental/i, 'dental'], [/vision|vsp/i, 'vision'], [/\bhsa\b/i, 'hsa'], [/\bfsa\b/i, 'fsa'],
+        [/life insurance|protective/i, 'life'], [/health|medical|healthcare|blue cross|kaiser|aetna|cigna/i, 'medical'],
+      ];
+      (s.ids || []).forEach(x => {
+        if (x.category !== 'Medical') return;
+        const fields = x.fields || [];
+        const pick = (re) => (fields.find(([k]) => re.test(k)) || [])[1] || '';
+        const memberID = pick(/member id|^id$|subscriber/i);
+        const groupID = pick(/group/i);
+        if (!memberID && !groupID) return;
+        const provider = (x.service || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+        if (!provider || seen('benefits', b => norm(b.provider) === norm(provider))) return;
+        const hit = BENEFIT_HINT.find(([re]) => re.test(x.service || ''));
+        out.push({
+          key: `ben:${x.id}`, module: 'benefits', icon: 'heart',
+          title: `${provider} — member ID on file, no benefit record`,
+          why: `Member and group numbers are in IDs & Logins, but Benefits is empty — so they never reach a card you can hand over at an appointment.`,
+          record: { provider, type: hit ? hit[1] : 'other', memberID, groupID, loginUrl: x.url || '', notes: x.notes || '' },
+        });
+      });
+
+      // Utilities hiding in the subscription ledger.
+      const UTIL_HINT = [
+        [/internet|fiber|broadband|cable|wifi/i, 'internet'], [/electric|power|energy/i, 'electric'],
+        [/\bgas\b|natural gas/i, 'gas'], [/water|sewer/i, 'water'], [/trash|waste|recycl/i, 'trash'],
+      ];
+      (s.subscriptions || []).forEach(x => {
+        const hay = `${x.name || ''} ${x.notes || ''}`;
+        const hit = UTIL_HINT.find(([re]) => re.test(hay));
+        if (!hit) return;
+        const provider = (x.name || '').replace(/\s+(internet|service)$/i, '').trim();
+        if (!provider || seen('utilities', u => norm(u.provider) === norm(provider))) return;
+        out.push({
+          key: `uti:${x.id}`, module: 'utilities', icon: 'zap',
+          title: `${x.name} is filed as a subscription, not a utility`,
+          why: /tracked under utilities/i.test(x.notes || '')
+            ? 'Its own note says it is also tracked under Utilities — that module is empty.'
+            : 'It reads as a utility, and Utilities is empty.',
+          record: { provider, kind: hit[1], monthlyEstimate: x.cost || 0, loginUrl: x.url || '',
+                    accountNumber: '', property: x.property || '', notes: x.notes || '' },
+        });
+      });
+
+      // Property records hiding in the ID sheet and the subscription ledger.
+      // Word-bounded and negatively guarded: a bare /security/ matched the Social
+      // Security Numbers record, which is the last thing that belongs in Property.
+      const PROP_SKIP = /social security|\bssn\b/i;
+      const PROP_HINT = [
+        [/\bhoa\b|homeowners assoc|\bsvea\b/i, 'hoa'],
+        [/home warranty/i, 'home_warranty'],
+        [/\bmortgage\b/i, 'mortgage'],
+        [/property tax/i, 'property_tax'],
+        [/\balarm\b|security system|\badt\b|simplisafe|\bring\b(?! ?doorbell app)/i, 'security'],
+      ];
+      const propCandidates = [
+        ...(s.ids || []).map(x => ({ label: x.service, url: x.url, from: 'IDs & Logins', amount: 0, cadence: '', key: `pro:id:${x.id}` })),
+        ...(s.subscriptions || []).map(x => ({ label: x.name, url: x.url, from: 'Subscriptions', amount: x.cost || 0, cadence: x.cadence || '', key: `pro:sub:${x.id}` })),
+      ];
+      const propSeen = new Set();
+      propCandidates.forEach(c => {
+        if (PROP_SKIP.test(c.label || '')) return;
+        const hit = PROP_HINT.find(([re]) => re.test(c.label || ''));
+        if (!hit) return;
+        if (seen('property', x => norm(x.label) === norm(c.label))) return;
+        // The same real-world thing is often filed in two modules at once.
+        if (propSeen.has(norm(c.label))) return;
+        propSeen.add(norm(c.label));
+        out.push({
+          key: c.key, module: 'property', icon: 'key',
+          title: `${c.label} belongs in Property`,
+          why: `Filed under ${c.from}. Property is where dues, warranties and HOAs surface on the dashboard.`,
+          record: { kind: hit[1], label: c.label, loginUrl: c.url || '', amount: c.amount, cadence: c.cadence,
+                    property: /svea|sun valley|elkhorn/i.test(c.label || '') ? '4322 Sun Valley' : '' },
+        });
+      });
+
+      const dismissed = new Set(s.dismissedEnds || []);
+      return out.filter(x => !dismissed.has(x.key));
+    };
+
     const maintenanceStatus = (m) => {
       const due = maintenanceNextDue(m);
       const n = daysUntil(due);
@@ -1012,6 +1137,7 @@
         });
         if (!Array.isArray(migrated.wineLog)) migrated.wineLog = [];
         if (!Array.isArray(migrated.completedLog)) migrated.completedLog = [];
+        if (!Array.isArray(migrated.dismissedEnds)) migrated.dismissedEnds = [];
         // One-time: remove deleted placeholders (SV mortgage + SV hot tub) — confirmed N/A by user
         if (Array.isArray(migrated.property))   migrated.property   = migrated.property.filter(p   => p.id !== 'p-ph-mortgage-sv');
         if (Array.isArray(migrated.appliances)) migrated.appliances = migrated.appliances.filter(a => a.id !== 'a-ph-sv-hot-tub');
@@ -1290,6 +1416,15 @@
         addBenefit: benOps.add, updateBenefit: benOps.update, deleteBenefit: benOps.delete,
         addSuggestion: sugOps.add, updateSuggestion: sugOps.update, deleteSuggestion: sugOps.delete,
         addFile: filOps.add, updateFile: filOps.update, deleteFile: filOps.delete,
+        // Promote a derived loose end into a real record, or say no to it for good.
+        adoptLooseEnd: (end) => {
+          const add = { vehicles: vehOps.add, benefits: benOps.add, utilities: utiOps.add, property: proOps.add }[end.module];
+          if (!add) return;
+          add(end.record);
+          setState(s => ({ ...s, dismissedEnds: [...(s.dismissedEnds || []), end.key] }));
+          showToast(`Added to ${end.module}`, { label: 'Open', fn: () => setView(end.module) });
+        },
+        dismissLooseEnd: (end) => setState(s => ({ ...s, dismissedEnds: [...(s.dismissedEnds || []), end.key] })),
         addDafValue: dafOps.add, deleteDafValue: dafOps.delete,
         // mark a dashboard item done — applies kind-specific side effect + appends to completedLog
         markDone: (item) => {
@@ -2070,6 +2205,7 @@
 
       const [showAllOverdue, setShowAllOverdue] = useState(false);
       const [gapsOpen, setGapsOpen] = useState(false);
+      const [showAllEnds, setShowAllEnds] = useState(false);
       const overdue  = useMemo(() => collectOverdue(state, scope), [state, scope]);
       const upcoming = useMemo(() => collectUpcoming(state, scope), [state, scope]);
       // Subscriptions charge themselves — they're money to expect, not work to do.
@@ -2078,6 +2214,7 @@
       const upcomingCharges = useMemo(() => upcoming.filter(i => i.kind === 'sub'), [upcoming]);
       const chargeTotal     = useMemo(() => upcomingCharges.reduce((s,i) => s + (i.amount||0), 0), [upcomingCharges]);
       const moneyDates      = useMemo(() => collectMoneyDates(state), [state]);
+      const looseEnds       = useMemo(() => deriveLooseEnds(state), [state]);
       const warranties = useMemo(() => {
         return state.appliances
           .filter(a => inS(a) && !a.warrantyDismissed && (() => { const n = daysUntil(a.warrantyExpires); return n !== null && n >= 0 && n <= 90; })())
@@ -2388,6 +2525,38 @@
               </div>
             )}
           </section>
+          )}
+
+          {/* Loose ends — records the app can already build from data it holds */}
+          {looseEnds.length > 0 && (
+            <section>
+              <SectionHeader title="Loose ends" count={looseEnds.length}
+                hint="Already in the app, filed in the wrong place. Adding one copies what's known and names the source." />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(showAllEnds ? looseEnds : looseEnds.slice(0, 4)).map(e => (
+                  <div key={e.key} className="card p-4 flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                      <Icon name={e.icon} size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-ink-100">{e.title}</div>
+                      <div className="text-ink-300 text-xs mt-1 leading-relaxed">{e.why}</div>
+                      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                        <Btn variant="soft" icon="plus" onClick={()=>ctx.adoptLooseEnd(e)}>Add to {e.module}</Btn>
+                        <button onClick={()=>ctx.dismissLooseEnd(e)}
+                          className="text-xs text-ink-400 hover:text-ink-200 px-2 py-1.5 rounded-lg">Not needed</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {looseEnds.length > 4 && (
+                <button onClick={()=>setShowAllEnds(v=>!v)}
+                  className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-ink-500 text-ink-300 hover:text-gold-300 hover:border-gold-500/50 text-sm transition">
+                  {showAllEnds ? 'Show fewer' : `Show all ${looseEnds.length} loose ends`}
+                </button>
+              )}
+            </section>
           )}
 
           {/* Gaps & opportunities — collapsed by default so Today stays calm */}
