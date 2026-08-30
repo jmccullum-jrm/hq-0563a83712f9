@@ -2690,6 +2690,22 @@ const cashAtRest = (targetApy = 3.7) => {
 const mercuryHousehold = () => mercuryValueRange(mercuryVesting()).ref;
 const mercuryVestedValue = () => mercuryHousehold().value.vestedValue;
 
+/* What the household total is made of, and how old each input is. The figure blends
+   five sources whose as-of dates span three weeks and used to render undated, so a
+   month-old bank balance looked exactly as current as everything else.
+   Staleness thresholds differ by kind: a brokerage statement is monthly by nature,
+   a private-company mark moves rarely, a bank balance should be fresher. */
+const HOUSEHOLD_SOURCES = () => [
+  { label: 'Merrill snapshot', value: PORTFOLIO_DATA.totalValue, asOf: PORTFOLIO_DATA.asOf, stale: 35 },
+  { label: 'Bank cash',        value: BANKING.total,             asOf: BANKING.asOf,        stale: 35 },
+  { label: '529 college savings', value: EDUCATION_529.total,    asOf: EDUCATION_529.asOf,  stale: 45 },
+  { label: 'Vested Anthropic equity', value: equityVesting().vestedValue, asOf: EQUITY_FMV.asOf, stale: 60 },
+  { label: 'Vested Mercury equity',   value: mercuryVestedValue(),        asOf: mercuryHousehold().asOf, stale: 60, indicative: true },
+];
+const householdOldest = () => HOUSEHOLD_SOURCES()
+  .slice()
+  .sort((a, b) => (a.asOf || '').localeCompare(b.asOf || ''))[0];
+
 /* Merrill snapshot + bank cash + 529s + vested equity comp — Anthropic options at
    intrinsic spread, Mercury at the indicative secondary mark. */
 const householdTotal = () => PORTFOLIO_DATA.totalValue + BANKING.total + EDUCATION_529.total + equityVesting().vestedValue + mercuryVestedValue();
@@ -2738,8 +2754,8 @@ const EQUITY_FMV = { price: 589.01, asOf: '2026-08-14' };  // current per-share 
 const EQUITY_COMP = {
   issuer: 'Anthropic, PBC · A&R 2021 Stock Plan',
   grants: [
-    { id:'O-5818',      kind:'option', type:'ISO options', qty:1130, strike:176.57, vc:'2026-02-10', vestedFrac:0.5, detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36 · 50% vested (per Justin, 8/14/26)', boxId:'2406462393467' },
-    { id:'O-5818Split', kind:'option', type:'NQ options',  qty:2255, strike:176.57, vc:'2026-02-10', vestedFrac:0.5, detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36 · 50% vested (per Justin, 8/14/26)', boxId:'2406457348367' },
+    { id:'O-5818',      kind:'option', type:'ISO options', qty:1130, strike:176.57, vc:'2026-02-10', vestedFrac:0.5, statedOn:'2026-08-14', detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36 · 50% vested (per Justin, 8/14/26)', boxId:'2406462393467' },
+    { id:'O-5818Split', kind:'option', type:'NQ options',  qty:2255, strike:176.57, vc:'2026-02-10', vestedFrac:0.5, statedOn:'2026-08-14', detail:'$176.57 strike · granted 2/20/26 · expires 2/19/36 · 50% vested (per Justin, 8/14/26)', boxId:'2406457348367' },
     { id:'RSU-6132',    kind:'rsu',    type:'RSUs',        qty:5613, vc:'2026-02-20', detail:'15-mo cliff then quarterly (~4 yr) from 2/20/26 · double-trigger: needs IPO/CoC by 2033 or forfeits', boxId:'2406466295226' },
   ],
   notes: 'Valued at the $589.01/sh current valuation: options at intrinsic spread ($412.44/sh net of the $176.57 strike), RSUs at full value. Options are 50% vested (per Justin, 8/14/26 — the agreement’s “manual vesting schedule” isn’t spelled out, so this is set explicitly; update when the next tranche vests). RSUs hit their 15-month cliff 5/20/27, and even then are double-trigger (no settlement until IPO/CoC). Only the vested spread is counted in the household total. Vested options stay exercisable to expiry after leaving; unvested lapse 3 mo post-termination; 180-day IPO lock-up.',
@@ -2766,12 +2782,19 @@ const equityVesting = () => {
     }
     const perShare = g.kind === 'option' ? Math.max(0, EQUITY_FMV.price - g.strike) : EQUITY_FMV.price;
     return { ...g, vestedQty, unvestedQty: g.qty - vestedQty,
-             vestedValue: vestedQty * perShare, unvestedValue: (g.qty - vestedQty) * perShare };
+             vestedValue: vestedQty * perShare, unvestedValue: (g.qty - vestedQty) * perShare,
+             // A hand-entered fraction is a claim someone made on a date, not a
+             // computation — carry the date so the UI can show its age.
+             stated: g.vestedFrac != null ? (g.statedOn || null) : null };
   });
+  const statedDates = perGrant.map(g => g.stated).filter(Boolean).sort();
   return {
     perGrant,
     vestedValue:   perGrant.reduce((s,g) => s + g.vestedValue, 0),
     unvestedValue: perGrant.reduce((s,g) => s + g.unvestedValue, 0),
+    // Oldest hand-entered figure feeding this total, if any.
+    statedOn: statedDates[0] || null,
+    statedFraction: perGrant.reduce((s,g) => s + (g.stated ? g.vestedValue : 0), 0),
   };
 };
 
@@ -3483,8 +3506,9 @@ const PortfolioView = () => {
         </p>
         <p className="text-ink-200 text-sm mt-1.5 max-w-2xl">
           Household total <span className="font-medium text-gold-300 tabular-nums">{fmtMoney(householdTotal())}</span>
-          <span className="text-ink-400"> — Merrill {fmtMoneyK(d.totalValue)} + bank cash {fmtMoneyK(BANKING.total)} + 529s {fmtMoneyK(EDUCATION_529.total)} + vested Anthropic equity {fmtMoneyK(equityVesting().vestedValue)} (net of exercise cost) + vested Mercury equity {fmtMoneyK(mercuryVestedValue())} (indicative — secondary mark, not a 409A). DAF tracked separately.</span>
+          <span className="text-ink-400"> — blended from five inputs dated {fmtDate(householdOldest().asOf, {month:'short', day:'numeric'})} onward. Anthropic options net of exercise cost; Mercury at an indicative secondary mark, not a 409A. DAF tracked separately.</span>
         </p>
+        <ProvenanceStrip />
         {isLive && (
           <div className="mt-2 flex items-baseline gap-3 flex-wrap">
             <span className="font-display text-2xl text-ink-100 tabular-nums">{fmtMoney(total)}</span>
@@ -4341,6 +4365,15 @@ const OutsideMerrillPanel = ({ scope }) => {
           <PortfolioStat label="Unvested · net" value={fmtMoney(v.unvestedValue)} />
           <PortfolioStat label="Valuation / share" value={'$' + EQUITY_FMV.price.toFixed(2)} />
         </div>
+        {v.statedOn && (
+          <div className={`rounded-xl border px-3.5 py-3 text-[11px] leading-relaxed ${
+            Math.max(0, -(daysUntil(v.statedOn) || 0)) > 90 ? 'border-gold-400/30 bg-gold-400/5 text-ink-200' : 'border-ink-700 bg-ink-800/40 text-ink-300'}`}>
+            {fmtMoney(v.statedFraction)} of the figure above rests on a vested fraction that was typed in, not computed —
+            stated {fmtDate(v.statedOn)}, {Math.max(0, -(daysUntil(v.statedOn) || 0))} days ago. The agreement's monthly
+            schedule isn't spelled out in the grant docs, so there is nothing to compute it against; it stays right only
+            for as long as nobody vests. Mercury next door is computed from its schedule and cross-checked against Carta.
+          </div>
+        )}
         <div className="text-[11px] text-ink-400 -mt-1">
           {(() => {
             const o = EQUITY_COMP.grants.find(g => g.strike != null);
@@ -4414,6 +4447,37 @@ const OutsideMerrillPanel = ({ scope }) => {
           {sibling ? `Both kids' 529s total ${fmtMoney(EDUCATION_529.total)} (${sibling.child}: ${fmtMoney(sibling.value)}). ` : ''}
           Source: app screenshots saved in Box (Spending docs, 8/13/26).
         </div>
+      </div>
+    </div>
+  );
+};
+
+/* One row per input behind the household total, with its own age and tolerance. */
+const ProvenanceStrip = () => {
+  const rows = HOUSEHOLD_SOURCES();
+  const oldest = householdOldest();
+  const age = (d) => Math.max(0, -(daysUntil(d) || 0));
+  return (
+    <div className="card-soft p-3 mt-2">
+      <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">What the household total is made of</div>
+        <div className="text-[11px] text-ink-400">oldest input {age(oldest.asOf)} days old ({oldest.label}, {fmtDate(oldest.asOf, {month:'short', day:'numeric'})})</div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        {rows.map(r => {
+          const n = age(r.asOf);
+          const tone = n > r.stale ? 'soon' : 'muted';
+          return (
+            <div key={r.label} className="rounded-lg border border-ink-700 bg-ink-800/40 px-3 py-2">
+              <div className="text-[10px] text-ink-400 truncate">{r.label}</div>
+              <div className="text-sm text-ink-100 tabular-nums mt-0.5">{fmtMoneyK(r.value)}</div>
+              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                <Pill tone={tone}>{fmtDate(r.asOf, {month:'short', day:'numeric'})} · {n}d</Pill>
+                {r.indicative && <span className="text-[10px] text-ink-400">indicative</span>}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
