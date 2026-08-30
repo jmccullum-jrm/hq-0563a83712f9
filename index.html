@@ -21,9 +21,11 @@
               800: '#181612',
               750: '#1d1b16',
               700: '#211f1a',
+              650: '#232019',
               600: '#2a2723',
               500: '#3a3631',
-              400: '#878072',
+              450: '#6b6558',
+              400: '#948c7e',
               300: '#a49c8c',
               200: '#bcb5a6',
               100: '#e8e2d4',
@@ -37,36 +39,61 @@
             },
             sage:   { 400: '#8aa78b', 500: '#6f8c70' },
             ember:  { 400: '#e07856', 500: '#c9603f' },
-            amber2: { 400: '#d4a96a' },
           },
           fontFamily: {
             display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
             sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          /* Six visible steps — 11 · 12 · 14 · 18 · 24 · 30/38 — with line-height and
+             tracking baked in, so neither is chosen by hand at a call site again.
+             Before this the file held sixteen sizes, six of them inside a 4px band,
+             which is why every piece of secondary text read as one grey mass. */
+          fontSize: {
+            '2xs':  ['11px', { lineHeight: '1.35', letterSpacing: '.02em' }],
+            'xs':   ['12px', { lineHeight: '1.45' }],
+            'sm':   ['14px', { lineHeight: '1.5' }],
+            'base': ['16px', { lineHeight: '1.5' }],
+            'lg':   ['18px', { lineHeight: '1.25', letterSpacing: '-.01em' }],
+            'xl':   ['24px', { lineHeight: '1.12', letterSpacing: '-.015em' }],
+            '2xl':  ['24px', { lineHeight: '1.12', letterSpacing: '-.015em' }],
+            '3xl':  ['30px', { lineHeight: '1.05', letterSpacing: '-.02em' }],
+            '4xl':  ['clamp(28px, 2.4vw + 18px, 38px)', { lineHeight: '1.02', letterSpacing: '-.02em' }],
+            '5xl':  ['clamp(28px, 2.4vw + 18px, 38px)', { lineHeight: '1.02', letterSpacing: '-.02em' }],
           },
         }
       }
     }
   </script>
   <style>
-    html, body { background: #0e0d0b; color: #e8e2d4; -webkit-font-smoothing: antialiased; }
+    html, body { color: #e8e2d4; -webkit-font-smoothing: antialiased; }
+    /* A single warm wash in the app's own accent, so the page has a direction of light.
+       This replaces .grain, whose 0.012 alpha at 0.35 opacity worked out to one 8-bit
+       level on one pixel in nine — invisible, in exchange for a full-viewport layer. */
+    html, body {
+      background: radial-gradient(120% 55% at 50% -8%, rgba(212,169,106,.05), transparent 62%), #0e0d0b;
+      background-attachment: fixed;
+    }
     body { font-family: 'Inter', system-ui, sans-serif; font-feature-settings: "ss01","cv11"; }
-    .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
+    .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; font-weight: 500; font-variant-numeric: tabular-nums; }
     /* Scrollbar */
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #2a2723; border-radius: 999px; }
     ::-webkit-scrollbar-thumb:hover { background: #3a3631; }
-    /* Subtle texture */
-    .grain::before {
-      content: ""; position: fixed; inset: 0; pointer-events: none;
-      background-image: radial-gradient(rgba(255,255,255,0.012) 1px, transparent 1px);
-      background-size: 3px 3px; opacity: .35; z-index: 0;
-    }
     /* Card */
     .card {
-      background: linear-gradient(180deg, #1a1814 0%, #181612 100%);
+      background: linear-gradient(180deg, #1e1b17 0%, #1a1814 100%);
       border: 1px solid #2a2723;
       border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 1px 2px rgba(0,0,0,.35);
+    }
+    /* A raised tap target, for the tiles that were using .card-soft — a recessed well —
+       to mean the opposite of what it means everywhere else. */
+    .card-raised {
+      background: #201e19;
+      border: 1px solid #2e2a24;
+      border-radius: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
     .card-soft {
       background: #161410;
@@ -85,11 +112,11 @@
     .btn-primary:hover { filter: brightness(1.06); }
     .btn-ghost { background: transparent; color: #e8e2d4; }
     .btn-ghost:hover { background: #211f1a; }
-    .pill { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 500; line-height: 1; }
+    .pill { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .55rem; border-radius: 999px; font-size: 11px; font-weight: 500; line-height: 1; }
     .pill-overdue { background: rgba(224,120,86,0.12); color: #e9886a; border: 1px solid rgba(224,120,86,0.28); }
     .pill-soon    { background: rgba(212,169,106,0.12); color: #e6c895; border: 1px solid rgba(212,169,106,0.25); }
     .pill-ok      { background: rgba(138,167,139,0.12); color: #a6c1a7; border: 1px solid rgba(138,167,139,0.25); }
-    .pill-info    { background: rgba(140,160,200,0.10); color: #b5c2dc; border: 1px solid rgba(140,160,200,0.22); }
+    .pill-info    { background: #211f1a; color: #a49c8c; border: 1px solid #2a2723; }
     .pill-muted   { background: #211f1a; color: #8b8478; border: 1px solid #2a2723; }
     .divider { height: 1px; background: linear-gradient(90deg, transparent, #2a2723, transparent); }
     input, select, textarea {
@@ -125,7 +152,12 @@
     }
     label { font-size: .75rem; color: #8b8478; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
     .modal-backdrop { background: rgba(8,7,5,0.7); backdrop-filter: blur(8px); }
-    .modal-shell { background: #161410; border: 1px solid #2a2723; border-radius: 22px; }
+    .modal-shell {
+      background: #232019;
+      border: 1px solid #322e27;
+      border-radius: 22px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 64px -16px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5);
+    }
     /* Anim */
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: translateY(0);} }
     .anim-in { animation: fadeUp .25s ease-out both; }
@@ -137,7 +169,7 @@
     .pt-safe { padding-top: calc(.5rem + env(safe-area-inset-top)); }
   </style>
 </head>
-<body class="grain">
+<body>
   <div id="root"></div>
 
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -678,18 +710,18 @@
       const list = ctx.state.ids || [];
       const [reveal, setReveal] = useState(false);
       return (
-        <div className="space-y-6 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-ink-300 text-sm max-w-2xl">
               Every family ID, membership and login in one place — from the <a href={IDS_SHEET_URL} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 underline">master sheet</a>.
             </p>
             <button onClick={()=>setReveal(v=>!v)} aria-pressed={reveal}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-[12px] transition ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs transition ${
                 reveal ? 'border-gold-400/50 text-gold-300 bg-gold-400/10' : 'border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40'}`}>
               <Icon name={reveal ? 'x' : 'key'} size={13}/> {reveal ? 'Hide' : 'Show'} secrets
             </button>
           </div>
-          <div className="rounded-xl border border-ember-500/30 bg-ember-500/8 px-4 py-3 text-[12px] text-ink-200 leading-relaxed">
+          <div className="rounded-xl border border-ember-500/30 bg-ember-500/8 px-4 py-3 text-xs text-ink-200 leading-relaxed">
             Heads up: these values live in this page's source, which anyone with the site URL can fetch — the password screen doesn't protect them. You asked for them here anyway; if you change your mind, ask Claude to strip the secrets back out.
           </div>
           {IDS_CATEGORIES.map(cat => {
@@ -698,7 +730,7 @@
             return (
               <section key={cat}>
                 <SectionHeader title={cat} count={items.length} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                   {items.map(x => (
                     <div key={x.id} className="card p-4 md:p-5">
                       <div className="flex items-start justify-between gap-3">
@@ -731,7 +763,7 @@
                           </div>
                         )}
                       </div>
-                      {x.notes && <div className="text-ink-400 text-[11px] mt-2.5">{x.notes}</div>}
+                      {x.notes && <div className="text-ink-400 text-xs mt-2.5">{x.notes}</div>}
                     </div>
                   ))}
                 </div>
@@ -1109,7 +1141,7 @@
                   The app hit an error while rendering. Reloading usually fixes it. If it keeps happening,
                   reset the saved data on this device — the built-in entries come back, but edits made on this device are cleared.
                 </div>
-                <div className="text-ember-400 text-[11px] font-mono mb-5 break-all">{String((this.state.error && this.state.error.message) || this.state.error)}</div>
+                <div className="text-ember-400 text-xs font-mono mb-5 break-all">{String((this.state.error && this.state.error.message) || this.state.error)}</div>
                 <div className="flex gap-2">
                   <button onClick={()=>window.location.reload()} className="btn-primary px-3.5 py-2 rounded-xl text-sm font-medium">Reload</button>
                   <button onClick={()=>{ if (window.confirm('Reset saved data on this device? Edits made on this device will be lost.')) { try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(APPLIED_UPDATES_KEY); localStorage.removeItem(TOMBSTONE_KEY); } catch {} window.location.reload(); } }}
@@ -1685,7 +1717,7 @@
                 key={p.id}
                 onClick={() => setScope(p.id)}
                 title={dim ? 'Scope filter is paused on this view' : `${counts[p.id]} items`}
-                className={`relative px-3 md:px-3.5 py-1.5 rounded-full text-xs md:text-[13px] font-medium transition whitespace-nowrap ${
+                className={`relative px-3 md:px-3.5 py-1.5 rounded-full text-xs md:text-sm font-medium transition whitespace-nowrap ${
                   isOn
                     ? 'bg-gradient-to-b from-gold-400 to-gold-500 text-ink-900 shadow-sm'
                     : 'text-ink-300 hover:text-ink-100'
@@ -1729,7 +1761,7 @@
           </div>
           <div>
             <div className="text-sm font-medium">{t.label}</div>
-            <div className="text-ink-400 text-[11px] mt-0.5">{t.sub}</div>
+            <div className="text-ink-400 text-xs mt-0.5">{t.sub}</div>
           </div>
         </button>
       );
@@ -1739,14 +1771,14 @@
           <div className="p-4 space-y-3">
             {here.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400 px-1 pb-2">In this section</div>
+                <div className="text-2xs uppercase text-ink-400 px-1 pb-2">In this section</div>
                 <div className="grid grid-cols-2 gap-2.5">
                   {here.map(t => <Tile key={t.view} t={t} highlight />)}
                 </div>
               </div>
             )}
             <div>
-              {here.length > 0 && <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400 px-1 pb-2">Everything else</div>}
+              {here.length > 0 && <div className="text-2xs uppercase text-ink-400 px-1 pb-2">Everything else</div>}
               <div className="grid grid-cols-2 gap-2.5">
                 {rest.map(t => <Tile key={t.view} t={t} />)}
               </div>
@@ -1815,12 +1847,12 @@
             </div>
             <nav className="px-3 mt-2 flex-1 overflow-y-auto">
               {NAV_PRIMARY.map(n => <NavLink key={n.id} n={n} />)}
-              <div className="px-3 pt-4 pb-1.5 text-[10px] uppercase tracking-[0.18em] text-ink-400">Records</div>
+              <div className="px-3 pt-4 pb-1.5 text-2xs uppercase text-ink-400">Records</div>
               {NAV_RECORDS.map(n => <NavLink key={n.id} n={n} />)}
-              <div className="px-3 pt-4 pb-1.5 text-[10px] uppercase tracking-[0.18em] text-ink-400">Pleasure</div>
+              <div className="px-3 pt-4 pb-1.5 text-2xs uppercase text-ink-400">Pleasure</div>
               {NAV_OTHER.map(n => <NavLink key={n.id} n={n} />)}
             </nav>
-            <div className="px-6 py-5 text-[11px] text-ink-400 leading-relaxed">
+            <div className="px-6 py-5 text-xs text-ink-400 leading-relaxed">
               <div className="font-display text-ink-200 text-sm mb-1">The McCullum house</div>
               <div>v0.2 · local data</div>
             </div>
@@ -1829,18 +1861,18 @@
           {/* Main */}
           <main className="flex-1 min-w-0 pb-36 md:pb-12">
             {/* Top bar */}
-            <header className="px-5 md:px-10 pt-safe md:pt-10"><div className="max-w-6xl mx-auto">
+            <header className="px-5 md:px-6 lg:px-10 pt-safe md:pt-10"><div className="max-w-[1160px] mx-auto">
               <div className="md:hidden flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold">H</div>
                   <div className="font-display text-base tracking-tight">Home HQ</div>
                 </div>
-                <div className="text-[11px] uppercase tracking-wider text-ink-400">{nice}</div>
+                <div className="text-xs uppercase tracking-wider text-ink-400">{nice}</div>
               </div>
               <div className="md:flex md:items-end md:justify-between md:gap-6">
                 <div>
-                  <div className="hidden md:block text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-2">{nice}</div>
-                  <h1 className="font-display text-3xl md:text-[2.4rem] tracking-tight leading-tight">
+                  <div className="hidden md:block text-xs uppercase text-ink-400 mb-2">{nice}</div>
+                  <h1 className="font-display text-4xl">
                     {view === 'dashboard' ? <>{greeting}, <span className="text-gold-400">Justin.</span></> : title}
                   </h1>
                   {view === 'dashboard' && (
@@ -1856,26 +1888,26 @@
                 <div className="mt-4 md:mt-0 md:pb-1.5 flex items-center gap-2.5">
                   <PropertyScopeBar />
                   <button onClick={ctx.openPalette} title="Search everything (⌘K)" aria-label="Search everything"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-[13px] transition">
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-sm transition">
                     <Icon name="search" size={14}/>
                     <span className="hidden md:inline">Search</span>
-                    <kbd className="hidden md:inline text-[10px] text-ink-400 border border-ink-600 rounded px-1 ml-0.5">⌘K</kbd>
+                    <kbd className="hidden md:inline text-2xs text-ink-400 border border-ink-600 rounded px-1 ml-0.5">⌘K</kbd>
                   </button>
                   <button onClick={()=>ctx.refreshCloud(true)} title="Pull the latest scan of email, Box & calendar"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-[13px] transition">
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-sm transition">
                     <Icon name="refresh" size={14} className={ctx.refreshing ? 'animate-spin' : ''}/>
                     <span className="hidden md:inline">{ctx.refreshing ? 'Checking…' : 'Refresh'}</span>
                   </button>
                   <button onClick={()=>ctx.setModal(<QuickAdd onClose={()=>ctx.setModal(null)} />)}
-                    className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full btn-primary text-[13px] font-medium">
+                    className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full btn-primary text-sm font-medium">
                     <Icon name="plus" size={14}/> Add
                   </button>
                 </div>
               </div>
             </div></header>
 
-            <section className="px-5 md:px-10 mt-6 md:mt-8">
-              <div className="max-w-6xl mx-auto">
+            <section className="px-5 md:px-6 lg:px-10 mt-8 md:mt-12">
+              <div className="max-w-[1160px] mx-auto">
                 {children}
               </div>
             </section>
@@ -1891,7 +1923,7 @@
                   <button key={n.id} onClick={()=> n.id==='_more' ? setMoreOpen(true) : setView(n.id)}
                     className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 ${active?'text-gold-400':'text-ink-300'}`}>
                     <Icon name={n.icon} size={20} />
-                    <span className="text-[10px] tracking-wide">{n.label}</span>
+                    <span className="text-2xs tracking-wide">{n.label}</span>
                   </button>
                 );
               })}
@@ -1915,30 +1947,30 @@
                   {NAV_SHEET_PRIMARY.map(n => (
                     <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
                       className={`card-soft p-4 flex items-center gap-3 text-left col-span-2 ${view===n.id?'border-gold-400/40':''}`}>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
                         <Icon name={n.icon} size={18} />
                       </div>
                       <div className="text-sm font-medium flex-1">{n.label}</div>
                     </button>
                   ))}
-                  <div className="col-span-2 text-[10px] uppercase tracking-[0.18em] text-ink-400 px-1">Records</div>
+                  <div className="col-span-2 text-2xs uppercase text-ink-400 px-1">Records</div>
                   {NAV_RECORDS.map(n => {
                     const badge = navCount(ctx.state, n.id);
                     return (
                     <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
                       className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
                         <Icon name={n.icon} size={18} />
                       </div>
                       <div className="text-sm font-medium flex-1">{n.label}</div>
-                      {badge != null && <span className={`text-[10px] tabular-nums ${badge ? 'text-ink-300' : 'text-ink-400'}`}>{badge}</span>}
+                      {badge != null && <span className={`text-2xs tabular-nums ${badge ? 'text-ink-300' : 'text-ink-400'}`}>{badge}</span>}
                     </button>
                   );})}
-                  <div className="col-span-2 text-[10px] uppercase tracking-[0.18em] text-ink-400 px-1 pt-2">Pleasure</div>
+                  <div className="col-span-2 text-2xs uppercase text-ink-400 px-1 pt-2">Pleasure</div>
                   {NAV_OTHER.map(n => (
                     <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
                       className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
                         <Icon name={n.icon} size={18} />
                       </div>
                       <div className="text-sm font-medium flex-1">{n.label}</div>
@@ -1955,10 +1987,10 @@
 
     /* ---------- shared UI ---------- */
     const SectionHeader = ({ title, count, action, hint }) => (
-      <div className="flex items-end justify-between gap-3 mb-3">
+      <div className="flex items-end justify-between gap-3 mb-4">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
-            <h2 className="font-display text-xl md:text-2xl tracking-tight">{title}</h2>
+            <h2 className="font-display text-xl md:text-2xl">{title}</h2>
             {typeof count === 'number' && <span className="text-ink-400 text-sm tabular-nums">{count}</span>}
           </div>
           {hint && <div className="text-ink-400 text-xs mt-0.5">{hint}</div>}
@@ -2019,7 +2051,7 @@
     };
 
     const ModalHeader = ({ title, subtitle, onClose }) => (
-      <div className="flex items-start justify-between p-5 md:p-6 border-b border-ink-600 sticky top-0 bg-ink-850/95 backdrop-blur">
+      <div className="flex items-start justify-between p-5 md:p-6 border-b border-ink-600 sticky top-0 bg-ink-650/92 backdrop-blur">
         <div>
           <div className="font-display text-xl tracking-tight">{title}</div>
           {subtitle && <div className="text-ink-300 text-sm mt-0.5">{subtitle}</div>}
@@ -2186,7 +2218,7 @@
               <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} onKeyDown={onKey}
                 placeholder="Search everything, or jump to a section…"
                 aria-label="Search Home HQ"
-                className="bare-input flex-1 outline-none text-[15px] text-ink-100 placeholder-ink-400" />
+                className="bare-input flex-1 outline-none text-base text-ink-100 placeholder-ink-400" />
               {q && <button onClick={()=>{ setQ(''); inputRef.current && inputRef.current.focus(); }} aria-label="Clear search"
                 className="text-ink-400 hover:text-ink-200 shrink-0"><Icon name="x" size={15}/></button>}
             </div>
@@ -2195,7 +2227,7 @@
                 <div className="text-ink-400 text-sm px-3 py-6 text-center">No matches for “{q}”.</div>
               ) : groups.map(g => (
                 <div key={g.label} className="mb-1">
-                  <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">{g.label}</div>
+                  <div className="px-3 pt-2 pb-1 text-2xs uppercase text-ink-400">{g.label}</div>
                   {g.items.map(it => {
                     idx += 1;
                     const on = idx === Math.min(sel, flat.length - 1);
@@ -2205,14 +2237,14 @@
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${on ? 'bg-ink-700' : 'hover:bg-ink-800'}`}>
                         <Icon name={it.icon} size={15} className={`shrink-0 ${on ? 'text-gold-400' : 'text-ink-400'}`} />
                         <span className="text-sm text-ink-100 truncate">{it.title}</span>
-                        <span className="text-[11px] text-ink-400 ml-auto shrink-0 truncate max-w-[45%]">{it.sub}</span>
+                        <span className="text-xs text-ink-400 ml-auto shrink-0 truncate max-w-[45%]">{it.sub}</span>
                       </button>
                     );
                   })}
                 </div>
               ))}
             </div>
-            <div className="px-4 py-2.5 border-t border-ink-600 text-[10px] text-ink-400 flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2.5 border-t border-ink-600 text-2xs text-ink-400 flex items-center gap-3 shrink-0">
               <span><kbd className="text-ink-300">↑↓</kbd> navigate</span>
               <span><kbd className="text-ink-300">↵</kbd> open</span>
               <span><kbd className="text-ink-300">esc</kbd> close</span>
@@ -2220,20 +2252,6 @@
             </div>
           </div>
         </div>
-      );
-    };
-
-    /* Dashboard's search bar — a trigger for the palette, so there is exactly one
-       search implementation rather than two that drift apart. */
-    const GlobalSearch = () => {
-      const ctx = useContext(Ctx);
-      return (
-        <button onClick={ctx.openPalette}
-          className="w-full flex items-center gap-2.5 card px-4 py-3 text-left hover:border-gold-400/40 transition group">
-          <Icon name="search" size={16} className="text-ink-400 shrink-0 group-hover:text-gold-400 transition" />
-          <span className="flex-1 text-sm text-ink-400 truncate">Search everything — vendors, policies, holdings, subscriptions, wine…</span>
-          <kbd className="hidden md:inline text-[10px] text-ink-400 border border-ink-600 rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
-        </button>
       );
     };
 
@@ -2383,85 +2401,34 @@
       };
 
       return (
-        <div className="space-y-8 max-w-5xl">
-
-          {/* Global search */}
-          <GlobalSearch />
+        <div className="space-y-8">
 
           {/* Tile row: stats */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatTile label="Overdue"      value={overdue.length}         tone="overdue" hint="now" />
-            <StatTile label="To do"        value={upcomingTasks.length}   tone="soon"    hint="30d" />
-            <StatTile label="Charges"      value={fmtMoneyK(chargeTotal)} tone="info"    hint="30d" onClick={()=>setView('subscriptions')} />
-            <StatTile label="Renewals"     value={renewals.length}        tone="info"    hint="60d" onClick={()=>setView('insurance')} />
-            <StatTile label="Warranties"   value={warranties.length}      tone="info"    hint="90d" onClick={()=>setView('appliances')} />
-            <StatTile label="Drink now"    value={drinkNow.length}        tone="ok"      hint="ready" onClick={()=>setView('wine')} />
-          </div>
-
-          {/* Money summary + digest */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <PortfolioWidget onOpen={()=>setView('portfolio')} />
-            <div className="card p-5 md:p-6 flex flex-col justify-between gap-4">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-1">Digest</div>
-                <div className="font-display text-lg tracking-tight">This week's digest</div>
-                <div className="text-ink-300 text-sm mt-1.5 leading-relaxed">
-                  A clean, forwardable summary of everything that needs attention — overdue items, the next 30 days, renewals and warranties.
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Btn icon="sparkles" onClick={generateDigest}>Generate</Btn>
-                <span className="text-[11px] text-ink-400">
-                  {digestCount} item{digestCount === 1 ? '' : 's'} would be included
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Dated money events — the things that happen whether or not anyone acts */}
-          {moneyDates.length > 0 && (
-            <section>
-              <SectionHeader title="Money dates" count={moneyDates.length}
-                hint="Equity vesting, annual renewals and dated decisions in the next four months."
-                action={<span className="text-[11px] text-ink-400">next {fmtRelative(moneyDates[0].when)}</span>} />
-              <div className="card p-2">
-                {moneyDates.slice(0, 8).map((m, i) => (
-                  <button key={i} onClick={()=>setView(m.jumpTo)}
-                    className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-ink-800 text-left transition">
-                    <div className={`w-9 h-9 rounded-lg grid place-items-center shrink-0 ${
-                      m.kind === 'vest' ? 'bg-sage-400/12 text-sage-400' :
-                      m.kind === 'decision' ? 'bg-gold-400/12 text-gold-400' : 'bg-ink-700 text-ink-300'}`}>
-                      <Icon name={m.kind === 'vest' ? 'chart' : m.kind === 'policy' ? 'shield' : m.kind === 'decision' ? 'bulb' : 'receipt'} size={16}/>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm text-ink-100 truncate">{m.title}</div>
-                      <div className="text-[11px] text-ink-400 truncate">{m.why}</div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      {m.amount > 0 && <div className="text-sm text-ink-100 tabular-nums">{fmtMoneyK(m.amount)}</div>}
-                      <div className="text-[11px] text-ink-400 tabular-nums">{fmtRelative(m.when)}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {moneyDates.length > 8 && (
-                <div className="text-[11px] text-ink-400 mt-2 px-1">{moneyDates.length - 8} more in the next four months.</div>
-              )}
-            </section>
-          )}
-
+          {/* The work comes first: the h1 above says "N things need attention — right
+              below", and what used to be right below was a search bar, six tiles and
+              two hero cards — roughly 1,600px on a phone before the first task. */}
+          <div className="space-y-4">
           {/* Nothing at all to do — one calm card instead of two empty sections */}
-          {overdue.length === 0 && upcomingTasks.length === 0 && moneyDates.length === 0 && (
-            <Empty icon="check" title="Nothing needs you"
-              body="No overdue items, and the next 30 days are clear. Work surfaces here as it comes due."
-              cta={<Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>} />
+          {overdue.length === 0 && upcomingTasks.length === 0 && (
+            /* The work block leads the page, so when there is none it still needs to
+               say so — otherwise Today opens on a lone counter. Money dates and
+               charges have their own sections below and are not work. */
+            <div className="card px-5 py-4 flex items-center gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-sage-400/12 grid place-items-center text-sage-400 shrink-0">
+                <Icon name="check" size={17} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm text-ink-100">Nothing needs you</div>
+                <div className="text-xs text-ink-400">No overdue items and the next 30 days are clear.</div>
+              </div>
+              <Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>
+            </div>
           )}
-
           {/* Overdue */}
           {overdue.length > 0 && (
           <section>
             <SectionHeader title="Overdue" count={overdue.length} hint="Roll these forward when they're done." />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {(showAllOverdue ? overdue : overdue.slice(0, 5)).map(i => <DashboardItem key={i.kind+i.id} item={i} kind="overdue"
                 onComplete={() => ctx.markDone(i)}
                 onJump={() => setView(
@@ -2481,7 +2448,6 @@
             )}
           </section>
           )}
-
           {/* Coming up — work that needs a person */}
           {(upcomingTasks.length > 0 || overdue.length > 0) && (
           <section>
@@ -2490,7 +2456,7 @@
               <Empty icon="calendar" title="The next 30 days are clear" body="Nothing to prep. Add a task or schedule a vendor and it'll show up here."
                 cta={<Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>} />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {upcomingTasks.map(i => <DashboardItem key={i.kind+i.id} item={i} kind="soon"
                   onComplete={() => ctx.markDone(i)}
                   onJump={()=> setView(
@@ -2504,6 +2470,99 @@
             )}
           </section>
           )}
+          </div>
+
+          {/* A tile that is structurally zero — four of these six are, because their
+              collections are empty — is a third of the first screen saying nothing.
+              The counts that have something behind them get a tile; the rest get one
+              muted line. The sections below already hid themselves when empty; the
+              tiles just never got the same rule. */}
+          {(() => {
+            const tiles = [
+              { label:'Overdue',    value:overdue.length,         tone:'overdue', hint:'now'   },
+              { label:'To do',      value:upcomingTasks.length,   tone:'soon',    hint:'30d'   },
+              { label:'Charges',    value:chargeTotal,            tone:'info',    hint:'30d',   fmt:fmtMoneyK, view:'subscriptions' },
+              { label:'Renewals',   value:renewals.length,        tone:'info',    hint:'60d',   view:'insurance' },
+              { label:'Warranties', value:warranties.length,      tone:'info',    hint:'90d',   view:'appliances' },
+              { label:'Drink now',  value:drinkNow.length,        tone:'ok',      hint:'ready', view:'wine' },
+            ];
+            const live = tiles.filter(t => t.value);
+            const quiet = tiles.filter(t => !t.value);
+            return (
+              <div className="space-y-2">
+                {live.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {live.map(t => (
+                      <div key={t.label} className={live.length > 2 ? 'min-w-[7.5rem] flex-1' : 'min-w-[9rem]'}>
+                        <StatTile label={t.label} value={t.fmt ? t.fmt(t.value) : t.value} tone={t.tone} hint={t.hint}
+                          onClick={t.view ? ()=>setView(t.view) : undefined} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {quiet.length > 0 && (
+                  <div className="text-xs text-ink-400">
+                    {quiet.map(t => `no ${t.label.toLowerCase()}`).join(' · ')}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Money summary + digest */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <PortfolioWidget onOpen={()=>setView('portfolio')} />
+            <div className="card p-5 md:p-6 flex flex-col justify-between gap-4">
+              <div>
+                <div className="text-xs uppercase text-ink-400 mb-1">Digest</div>
+                <div className="font-display text-lg tracking-tight">This week's digest</div>
+                <div className="text-ink-300 text-sm mt-1.5 leading-relaxed">
+                  A clean, forwardable summary of everything that needs attention — overdue items, the next 30 days, renewals and warranties.
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Btn icon="sparkles" onClick={generateDigest}>Generate</Btn>
+                <span className="text-xs text-ink-400">
+                  {digestCount} item{digestCount === 1 ? '' : 's'} would be included
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Dated money events — the things that happen whether or not anyone acts */}
+          {moneyDates.length > 0 && (
+            <section>
+              <SectionHeader title="Money dates" count={moneyDates.length}
+                hint="Equity vesting, annual renewals and dated decisions in the next four months."
+                action={<span className="text-xs text-ink-400">next {fmtRelative(moneyDates[0].when)}</span>} />
+              <div className="card p-2">
+                {moneyDates.slice(0, 8).map((m, i) => (
+                  <button key={i} onClick={()=>setView(m.jumpTo)}
+                    className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-ink-800 text-left transition">
+                    <div className={`w-9 h-9 rounded-lg grid place-items-center shrink-0 ${
+                      m.kind === 'vest' ? 'bg-sage-400/12 text-sage-400' :
+                      m.kind === 'decision' ? 'bg-gold-400/12 text-gold-400' : 'bg-ink-700 text-ink-300'}`}>
+                      <Icon name={m.kind === 'vest' ? 'chart' : m.kind === 'policy' ? 'shield' : m.kind === 'decision' ? 'bulb' : 'receipt'} size={16}/>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-ink-100 truncate">{m.title}</div>
+                      <div className="text-xs text-ink-400 truncate">{m.why}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {m.amount > 0 && <div className="text-sm text-ink-100 tabular-nums">{fmtMoneyK(m.amount)}</div>}
+                      <div className="text-xs text-ink-400 tabular-nums">{fmtRelative(m.when)}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {moneyDates.length > 8 && (
+                <div className="text-xs text-ink-400 mt-2 px-1">{moneyDates.length - 8} more in the next four months.</div>
+              )}
+            </section>
+          )}
+
+
+
 
           {/* Recurring charges — money that moves on its own, so a compact ledger
               rather than 18 cards with checkboxes nobody should tick. */}
@@ -2518,7 +2577,7 @@
                     <button key={c.id} onClick={()=>setView('subscriptions')}
                       className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-ink-800 text-left transition">
                       <span className="text-sm text-ink-200 truncate flex-1">{c.title}</span>
-                      <span className="text-[11px] text-ink-400 tabular-nums shrink-0">{fmtDate(c.when, {month:'short', day:'numeric'})}</span>
+                      <span className="text-xs text-ink-400 tabular-nums shrink-0">{fmtDate(c.when, {month:'short', day:'numeric'})}</span>
                       <span className="text-xs text-ink-100 tabular-nums shrink-0 w-16 text-right">{c.amount ? fmtMoney(c.amount) : '—'}</span>
                     </button>
                   ))}
@@ -2532,10 +2591,10 @@
           <section>
             <SectionHeader title="Insurance renewals" count={renewals.length} hint="Within 60 days — review coverage + premium." />
             {(
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {renewals.map(p => (
                   <button key={p.id} onClick={()=>setView('insurance')} className="card p-4 text-left flex items-start gap-3 hover:border-gold-400/40 transition">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0"><Icon name="shield" size={18}/></div>
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0"><Icon name="shield" size={18}/></div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{p.carrier} <span className="text-ink-300 font-normal">· {p.type}</span></div>
                       <div className="text-ink-300 text-xs mt-0.5 truncate">{p.coverageSummary || p.policyNumber || '—'}</div>
@@ -2556,10 +2615,10 @@
           <section>
             <SectionHeader title="Warranties expiring" count={warranties.length} hint="Within 90 days — time to evaluate or extend." />
             {(
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {warranties.map(a => (
                   <div key={a.id} className="card p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0"><Icon name="cube" size={18}/></div>
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0"><Icon name="cube" size={18}/></div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{a.name}</div>
                       <div className="text-ink-300 text-xs mt-0.5 truncate">{a.brand} {a.model} · {a.room}</div>
@@ -2580,10 +2639,10 @@
             <section>
               <SectionHeader title="Loose ends" count={looseEnds.length}
                 hint="Already in the app, filed in the wrong place. Adding one copies what's known and names the source." />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {(showAllEnds ? looseEnds : looseEnds.slice(0, 4)).map(e => (
                   <div key={e.key} className="card p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
                       <Icon name={e.icon} size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -2621,17 +2680,17 @@
                 <Icon name="chevR" size={16} className={`text-ink-400 transition-transform ${gapsOpen ? 'rotate-90' : ''}`} />
               </button>
               {gapsOpen && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {gaps.map((g, i) => (
                   <div key={i} className="card p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
                       <Icon name={g.icon} size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="text-sm font-medium text-ink-100">{g.title}</div>
                         {g.property && (
-                          <span className="text-[10px] uppercase tracking-wider text-ink-400 px-1.5 py-0.5 rounded border border-ink-600">
+                          <span className="text-2xs uppercase tracking-wider text-ink-400 px-1.5 py-0.5 rounded border border-ink-600">
                             {g.property === '1619 Seattle' ? 'Seattle' : 'Sun Valley'}
                           </span>
                         )}
@@ -2649,7 +2708,7 @@
               )}
               {(state.dismissedGaps || []).length > 0 && gapsOpen && (
                 <button onClick={ctx.restoreGaps}
-                  className="mt-3 text-[11px] text-ink-400 hover:text-gold-300 transition">
+                  className="mt-3 text-xs text-ink-400 hover:text-gold-300 transition">
                   {state.dismissedGaps.length} marked not applicable — bring them back
                 </button>
               )}
@@ -2664,7 +2723,7 @@
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {drinkNow.slice(0, 3).map(w => (
                   <button key={w.id} onClick={()=>setView('wine')} className="card p-4 text-left hover:border-gold-400/40 transition">
-                    <div className="text-[11px] uppercase tracking-wider text-ink-400 mb-1">{w.region}</div>
+                    <div className="text-xs uppercase tracking-wider text-ink-400 mb-1">{w.region}</div>
                     <div className="font-display text-base leading-snug">{w.producer}</div>
                     <div className="text-ink-200 text-sm">{w.label}</div>
                     <div className="text-ink-300 text-xs mt-1">{w.vintage} · {w.varietal}</div>
@@ -3036,12 +3095,16 @@ const PORTFOLIO_GRADES = [
 
 /* Sign goes outside the currency symbol: -$1,234, not $-1,234. */
 const fmtMoney  = (n) => n == null ? '—' : (n < 0 ? '-$' : '$') + Math.round(Math.abs(n)).toLocaleString();
+/* Three significant figures at every tier. The old version was precise to 0.15% above
+   $1M and 12% below it, so $4,168.97 printed as "$4K". Use fmtMoney wherever a figure
+   is reconciled against a statement, fmtMoneyK in tiles, pills and prose. */
+const sig3 = (x) => x >= 100 ? String(Math.round(x)) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
 const fmtMoneyK = (n) => {
   if (n == null) return '—';
   const a = Math.abs(n);
   const sign = n < 0 ? '-' : '';
-  if (a >= 1e6) return sign + '$' + (a/1e6).toFixed(2) + 'M';
-  if (a >= 1e3) return sign + '$' + (a/1e3).toFixed(0) + 'K';
+  if (a >= 1e6) return sign + '$' + sig3(a/1e6) + 'M';
+  if (a >= 1e3) return sign + '$' + sig3(a/1e3) + 'K';
   return sign + '$' + Math.round(a);
 };
 const fmtPct = (n) => n == null ? '—' : n.toFixed(1) + '%';
@@ -3171,7 +3234,7 @@ const PortfolioPriceBar = ({ priceState, fetchableSymbols, onOpenSettings }) => 
          }`}>
         {loading ? 'Refreshing…' : apiKey ? (quotedCount > 0 ? 'Refresh' : 'Get live prices') : 'Set up live prices'}
       </button>
-      {error && <div className="w-full text-[11px] text-ember-400">{error}</div>}
+      {error && <div className="w-full text-xs text-ember-400">{error}</div>}
     </div>
   );
 };
@@ -3188,7 +3251,7 @@ const PriceSettingsModal = ({ priceState, onClose }) => {
         <p className="text-ink-300 text-sm leading-relaxed mb-4">
           Fetches real-time stock + ETF prices from <a href="https://finnhub.io/register" target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 underline">Finnhub</a> (free tier — 60 calls/min, no credit card). Mutual funds and money-market funds stay at the snapshot value. The API key only ever lives in your browser's localStorage — nothing is sent anywhere except Finnhub.
         </p>
-        <label htmlFor="hq-f1" className="text-[11px] uppercase tracking-wider text-ink-400">Finnhub API key</label>
+        <label htmlFor="hq-f1" className="text-xs uppercase tracking-wider text-ink-400">Finnhub API key</label>
         <input id="hq-f1"
           type="text"
           autoFocus
@@ -3197,7 +3260,7 @@ const PriceSettingsModal = ({ priceState, onClose }) => {
           placeholder="paste your key here"
           className="w-full mt-1 px-3 py-2 rounded-xl bg-ink-800 border border-ink-600 text-ink-100 text-sm font-mono focus:outline-none focus:border-gold-500/50"
         />
-        <div className="text-[11px] text-ink-400 mt-2">
+        <div className="text-xs text-ink-400 mt-2">
           Sign up at <a href="https://finnhub.io/register" target="_blank" rel="noreferrer" className="text-gold-400 underline">finnhub.io/register</a> → confirm email → API key on the dashboard. Takes ~60 seconds.
         </div>
         <div className="mt-5 flex items-center justify-between gap-2">
@@ -3238,7 +3301,7 @@ const BoxSettingsModal = ({ onClose, onSaved, kindHighlight }) => {
   const expired = initial.token && initial.expired;
   const folderRow = (key, label, hint) => (
     <div className={`flex items-center gap-2 ${kindHighlight === key ? 'p-2 -mx-2 rounded-lg bg-gold-400/8' : ''}`}>
-      <label htmlFor={`hq-box-${key}`} className="w-28 text-[11px] uppercase tracking-wider text-ink-400">{label}</label>
+      <label htmlFor={`hq-box-${key}`} className="w-28 text-xs uppercase tracking-wider text-ink-400">{label}</label>
       <input id={`hq-box-${key}`} type="text" value={folders[key] || ''}
         onChange={e => update(key, e.target.value)}
         placeholder={hint || '(falls back to Inbox)'}
@@ -3260,38 +3323,38 @@ const BoxSettingsModal = ({ onClose, onSaved, kindHighlight }) => {
           Lets you snap a photo on mobile (or upload from desktop) and post it straight into Box. The token only ever lives in this browser's localStorage — it's sent only to Box.
         </p>
 
-        <label htmlFor="hq-f2" className="text-[11px] uppercase tracking-wider text-ink-400">
+        <label htmlFor="hq-f2" className="text-xs uppercase tracking-wider text-ink-400">
           Box developer token
           {expired && <span className="ml-2 text-ember-400 normal-case tracking-normal">(expired — paste a fresh one)</span>}
         </label>
         <input id="hq-f2" type="text" autoFocus value={token} onChange={e => setToken(e.target.value)}
           placeholder="paste 60-min dev token"
           className="w-full mt-1 px-3 py-2 rounded-xl bg-ink-800 border border-ink-600 text-ink-100 text-sm font-mono focus:outline-none focus:border-gold-500/50"/>
-        <div className="text-[11px] text-ink-400 mt-2">
+        <div className="text-xs text-ink-400 mt-2">
           Get one at <a href="https://app.box.com/developers/console" target="_blank" rel="noreferrer" className="text-gold-400 underline">app.box.com/developers/console</a> → your app → "Generate Developer Token". Lasts 60 minutes.
         </div>
 
         <div className="mt-5 border-t border-ink-700 pt-4">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-[11px] uppercase tracking-wider text-ink-400">Inbox folder ID <span className="text-ember-400 normal-case tracking-normal">(required)</span></label>
+            <label className="text-xs uppercase tracking-wider text-ink-400">Inbox folder ID <span className="text-ember-400 normal-case tracking-normal">(required)</span></label>
           </div>
           <input type="text" value={folders.inbox || ''} onChange={e => update('inbox', e.target.value)}
             placeholder="e.g. 308912345678"
             className={`w-full px-3 py-2 rounded-xl bg-ink-800 border text-ink-100 text-sm font-mono focus:outline-none focus:border-gold-500/50 ${kindHighlight === 'inbox' ? 'border-gold-400/50' : 'border-ink-600'}`}/>
-          <div className="text-[11px] text-ink-400 mt-2">
+          <div className="text-xs text-ink-400 mt-2">
             Catchall destination for photos when no per-section folder is set. Open the folder in Box → the ID is the trailing number in the URL (<code className="text-ink-300">/folder/<b>308912345678</b></code>).
           </div>
         </div>
 
         <div className="mt-4">
           <button type="button" onClick={() => setShowAdv(s => !s)}
-            className="text-[11px] uppercase tracking-wider text-ink-400 hover:text-gold-300 inline-flex items-center gap-1">
+            className="text-xs uppercase tracking-wider text-ink-400 hover:text-gold-300 inline-flex items-center gap-1">
             <Icon name="chevR" size={11} className={`transition ${showAdv ? 'rotate-90' : ''}`}/>
             Per-section folders (optional)
           </button>
           {showAdv && (
             <div className="mt-3 space-y-2">
-              <div className="text-[11px] text-ink-400 mb-1">Photos for each section route to its folder; otherwise fall back to Inbox.</div>
+              <div className="text-xs text-ink-400 mb-1">Photos for each section route to its folder; otherwise fall back to Inbox.</div>
               {folderRow('vendors', 'Vendors')}
               {folderRow('maintenance', 'Maintenance')}
               {folderRow('appliances', 'Appliances')}
@@ -3402,7 +3465,7 @@ const PhotoUploadButton = ({ entityKind, entityId, label = 'Photo' }) => {
       <input ref={inputRef} type="file" accept="image/*"
         onChange={onFileChange} className="hidden" />
       {err && !showSettings && (
-        <span className="text-ember-400 text-[10px] ml-1">{err.slice(0, 60)}</span>
+        <span className="text-ember-400 text-2xs ml-1">{err.slice(0, 60)}</span>
       )}
       {showSettings && (
         <BoxSettingsModal
@@ -3525,6 +3588,7 @@ const PortfolioView = () => {
     ];
   }, [liveHoldings]);
   const acctTotal = acctRows.reduce((s,a) => s + a.value, 0);
+  const acctMax = acctRows.reduce((m,a) => Math.max(m, a.value || 0), 0) || 1;
   const mercury = mercuryVesting();
   const mercuryRange = mercuryValueRange(mercury);
 
@@ -3547,18 +3611,18 @@ const PortfolioView = () => {
     <div className="space-y-2">
       <div className="flex gap-2 flex-wrap items-center">
         {scopePill('__all__', 'All Accounts')}
-        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-400 pl-1 pr-0.5">Merrill</span>
+        <span className="text-2xs uppercase text-ink-400 pl-1 pr-0.5">Merrill</span>
         {d.accounts.map(a => scopePill(a.name, a.name))}
       </div>
       <div className="flex gap-2 flex-wrap items-center">
-        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-400 pr-0.5">Held elsewhere</span>
+        <span className="text-2xs uppercase text-ink-400 pr-0.5">Held elsewhere</span>
         {OUTSIDE_SCOPES.map(a => scopePill(a, a))}
       </div>
     </div>
   );
 
   if (isOutside) return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-8">
       <p className="text-ink-300 text-sm max-w-2xl">
         Held outside Merrill — part of the household picture, but not counted in the Merrill snapshot totals.
       </p>
@@ -3568,34 +3632,36 @@ const PortfolioView = () => {
   );
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-8">
       {showSettings && <PriceSettingsModal priceState={priceState} onClose={() => setShowSettings(false)} />}
 
       <div>
-        <p className="text-ink-300 text-sm max-w-2xl">
-          Merrill Lynch — snapshot total {fmtMoney(d.totalValue)} across {d.numAccounts} accounts · {d.holdings.length} positions · as of {d.asOf}.
+        {/* The most consequential figure in the app used to be 14px, mid-sentence,
+            wrapped in caveats — while "Positions" got a serif tile, and the only large
+            number on the view sat behind an isLive guard that could simply not render.
+            The household total is the masthead now, and it never collapses. */}
+        <div className="text-2xs uppercase text-ink-400">Household total</div>
+        <div className="flex items-baseline gap-3 flex-wrap mt-1">
+          <div className="font-display text-4xl text-ink-100 tabular-nums">{fmtMoney(householdTotal())}</div>
+          {isLive && Math.abs(liveDelta) >= 1 ? (
+            <span className={`text-xs tabular-nums ${liveDelta >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>
+              {liveDelta >= 0 ? '+' : ''}{fmtMoneyK(liveDelta)} vs snapshot
+              {baselineTotal ? ` (${(liveDelta / baselineTotal * 100).toFixed(2)}%)` : ''}
+            </span>
+          ) : (
+            <Pill tone="muted">snapshot {fmtDate(d.asOf, {month:'short', day:'numeric'})}</Pill>
+          )}
+        </div>
+        <p className="text-ink-400 text-xs mt-2 max-w-[64ch]">
+          Merrill {fmtMoneyK(d.totalValue)} across {d.numAccounts} accounts and {d.holdings.length} positions, plus bank cash,
+          the 529s and vested equity comp — five inputs dated {fmtDate(householdOldest().asOf, {month:'short', day:'numeric'})} onward.
+          Anthropic options are net of exercise cost; Mercury sits at an indicative secondary mark, not a 409A. The DAF is tracked separately.
         </p>
-        <p className="text-ink-200 text-sm mt-1.5 max-w-2xl">
-          Household total <span className="font-medium text-gold-300 tabular-nums">{fmtMoney(householdTotal())}</span>
-          <span className="text-ink-400"> — blended from five inputs dated {fmtDate(householdOldest().asOf, {month:'short', day:'numeric'})} onward. Anthropic options net of exercise cost; Mercury at an indicative secondary mark, not a 409A. DAF tracked separately.</span>
-        </p>
-        <ProvenanceStrip />
-        {isLive && (
-          <div className="mt-2 flex items-baseline gap-3 flex-wrap">
-            <span className="font-display text-2xl text-ink-100 tabular-nums">{fmtMoney(total)}</span>
-            <span className="text-xs text-ink-400">live total{scope === '__all__' ? '' : ` · ${scope}`}</span>
-            {Math.abs(liveDelta) >= 1 && (
-              <span className={`text-xs tabular-nums ${liveDelta >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>
-                {liveDelta >= 0 ? '+' : ''}{fmtMoneyK(liveDelta)} vs snapshot
-                {baselineTotal ? ` (${(liveDelta / baselineTotal * 100).toFixed(2)}%)` : ''}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Live pricing controls */}
       <PortfolioPriceBar priceState={priceState} fetchableSymbols={fetchableSymbols} onOpenSettings={() => setShowSettings(true)} />
+      <ProvenanceStrip />
 
       {/* Account scope pills */}
       {pillsRow}
@@ -3603,7 +3669,6 @@ const PortfolioView = () => {
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <PortfolioStat label="Scope value" value={fmtMoneyK(total)} />
-        <PortfolioStat label="Positions" value={rows.length.toLocaleString()} />
         <PortfolioStat label="Cash & MMF" value={fmtMoneyK(cashVal) + ' · ' + ((total ? cashVal/total*100 : 0)).toFixed(0) + '%'} tone={cashVal/total > 0.15 ? 'soon' : 'muted'} />
         <PortfolioStat label="PLTR + AMZN" value={fmtPct(concDen ? (pltrVal+amznVal)/concDen*100 : null)}
           tone={concDen && (pltrVal+amznVal)/concDen > 0.25 ? 'overdue' : 'muted'} />
@@ -3619,13 +3684,13 @@ const PortfolioView = () => {
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-ink-400">
+                <tr className="text-xs uppercase tracking-wider text-ink-400">
                   <th className="text-left font-medium pb-2 px-1">Account</th>
                   <th className="text-left font-medium pb-2 px-1">Tax</th>
                   <th className="text-right font-medium pb-2 px-1">Value</th>
                   <th className="text-right font-medium pb-2 px-1">% Port</th>
                   <th className="text-right font-medium pb-2 px-1">Pos</th>
-                  <th className="text-left font-medium pb-2 px-1 min-w-[140px]">Mix</th>
+                  <th className="text-left font-medium pb-2 px-1 min-w-[140px]">Size &amp; mix</th>
                 </tr>
               </thead>
               <tbody>
@@ -3638,20 +3703,26 @@ const PortfolioView = () => {
                     <tr key={a.accountNum} className="border-t border-ink-700">
                       <td className="py-2 px-1">
                         <div className="font-medium text-ink-100">{a.name}</div>
-                        <div className="text-[11px] text-ink-400">{a.accountNum}</div>
+                        <div className="text-xs text-ink-400">{a.accountNum}</div>
                       </td>
                       <td className="py-2 px-1 text-ink-300">{a.taxType}</td>
                       <td className="py-2 px-1 text-right tabular-nums text-ink-100">{fmtMoneyK(a.value)}</td>
                       <td className="py-2 px-1 text-right tabular-nums text-ink-300">{(a.value/acctTotal*100).toFixed(1)}%</td>
                       <td className="py-2 px-1 text-right tabular-nums text-ink-300">{a.positions}</td>
                       <td className="py-2 px-1">
-                        <div className="flex h-2.5 rounded overflow-hidden bg-ink-700/50">
-                          {PORTFOLIO_AC_ORDER.filter(k => a.assetClass[k]).map(k => {
-                            const p = (a.assetClass[k]||0)/a.value*100;
-                            return <div key={k} style={{width: p+'%', background: PORTFOLIO_AC_COLORS[k]}} title={`${k} ${p.toFixed(0)}%`} />;
-                          })}
+                        {/* Bar length encodes the account's size, segments encode its mix.
+                            Normalising every row to its own total made a $3.5M account and a
+                            $27K account draw identical bars, so length carried nothing. */}
+                        <div className="h-2.5 rounded overflow-hidden bg-ink-800"
+                          style={{ width: Math.max(6, (a.value / acctMax) * 100) + '%' }}>
+                          <div className="flex h-full">
+                            {PORTFOLIO_AC_ORDER.filter(k => a.assetClass[k]).map(k => {
+                              const p = (a.assetClass[k]||0)/a.value*100;
+                              return <div key={k} style={{width: p+'%', background: PORTFOLIO_AC_COLORS[k]}} title={`${k} ${p.toFixed(0)}%`} />;
+                            })}
+                          </div>
                         </div>
-                        <div className="text-[10px] mt-1 text-ink-400">
+                        <div className="text-2xs mt-1 text-ink-400">
                           <span className={flagEq?'text-ember-400':''}>Eq {eqP.toFixed(0)}%</span>
                           {' · '}
                           <span className={flagCa?'text-ember-400':''}>Cash {caP.toFixed(0)}%</span>
@@ -3669,7 +3740,7 @@ const PortfolioView = () => {
         <div className="card p-4 md:p-5 lg:col-span-2">
           <SectionHeader title="Suggestions" hint="Prepopulated from the 7/31/26 statement — check off as done, or add your own. Also lives in the top bar under Suggestions." />
           <SuggestionsPanel />
-          <div className="text-[10px] text-ink-400 mt-4 pt-3 border-t border-ink-700 leading-relaxed">
+          <div className="text-2xs text-ink-400 mt-4 pt-3 border-t border-ink-700 leading-relaxed">
             Not tax or investment advice. Run high-priority items past your Merrill advisor / CPA before executing. Estimates based on the July 31, 2026 statement.
           </div>
         </div>
@@ -3678,7 +3749,7 @@ const PortfolioView = () => {
         {(d.keyPositions && (d.keyPositions.PLTR || d.keyPositions.AMZN)) && (
           <div className="card p-4 md:p-5 lg:col-span-2 border-ember-500/20 bg-ember-500/5">
             <SectionHeader title="Key Concentrations" hint="Single-position risk." />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {['PLTR','AMZN'].map(sym => {
                 const positions = (d.keyPositions||{})[sym] || [];
                 if (!positions.length) return null;
@@ -3691,7 +3762,7 @@ const PortfolioView = () => {
                       <div className="font-display text-lg font-semibold">{sym}</div>
                       <div className="text-ink-300 text-xs">{(tv/d.totalValue*100).toFixed(1)}% of portfolio</div>
                     </div>
-                    <div className="text-[11px] text-ink-400 mt-2 space-y-0.5">
+                    <div className="text-xs text-ink-400 mt-2 space-y-0.5">
                       {positions.map((r,i) => <div key={i}>{r.account} ({r.taxType}) — {fmtMoneyK(r.value)}</div>)}
                     </div>
                     <div className="mt-3 flex items-center justify-between text-sm">
@@ -3716,13 +3787,13 @@ const PortfolioView = () => {
             {ac.map(x => {
               const p = x.pct*100;
               return <div key={x.key} style={{width: p+'%', background: PORTFOLIO_AC_COLORS[x.key]||'#5a554c'}}
-                className="text-[10px] text-ink-900 px-1.5 flex items-center font-medium overflow-hidden whitespace-nowrap"
+                className="text-2xs text-ink-900 px-1.5 flex items-center font-medium overflow-hidden whitespace-nowrap"
                 title={`${x.key} ${p.toFixed(1)}%`}>
                 {p > 8 ? `${x.key} ${p.toFixed(0)}%` : ''}
               </div>;
             })}
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-300">
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-300">
             {ac.map(x => (
               <span key={x.key} className="inline-flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-sm" style={{background: PORTFOLIO_AC_COLORS[x.key]||'#5a554c'}}/>
@@ -3782,7 +3853,7 @@ const PortfolioView = () => {
           <SectionHeader title="Stock Sectors" hint={`Across ${stocks.length} individual stocks.`} />
           <div className="overflow-x-auto -mx-1">
           <table className="w-full text-xs">
-            <thead className="text-ink-400 text-[10px] uppercase tracking-wider">
+            <thead className="text-ink-400 text-2xs uppercase tracking-wider">
               <tr><th className="text-left pb-1.5">Sector</th><th className="text-right pb-1.5">Value</th><th className="text-right pb-1.5">% Stocks</th></tr>
             </thead>
             <tbody>
@@ -3804,13 +3875,13 @@ const PortfolioView = () => {
              hint={`Taxable accounts only · ${fmtMoneyK((d.taxableLosers||[]).reduce((s,x) => s + (x.unrealizedGL||0), 0))} harvestable.`} />
           <div className="overflow-x-auto -mx-1">
           <table className="w-full text-xs">
-            <thead className="text-ink-400 text-[10px] uppercase tracking-wider">
+            <thead className="text-ink-400 text-2xs uppercase tracking-wider">
               <tr><th className="text-left pb-1.5">Account</th><th className="text-left pb-1.5">Sym</th><th className="text-right pb-1.5">Value</th><th className="text-right pb-1.5">Loss</th><th className="text-right pb-1.5">%</th></tr>
             </thead>
             <tbody>
               {(d.taxableLosers||[]).slice(0,16).map((x,i) => (
                 <tr key={i} className="border-t border-ink-700">
-                  <td className="py-1.5 text-ink-400 text-[11px]">{x.account}</td>
+                  <td className="py-1.5 text-ink-400 text-xs">{x.account}</td>
                   <td className="py-1.5 font-medium">{x.symbol}</td>
                   <td className="py-1.5 text-right tabular-nums text-ink-300">{fmtMoneyK(x.value)}</td>
                   <td className="py-1.5 text-right tabular-nums text-ember-400">{fmtMoney(x.unrealizedGL)}</td>
@@ -3827,9 +3898,9 @@ const PortfolioView = () => {
           <SectionHeader title="Portfolio Grade" hint="A heuristic snapshot — not advice." />
           <div className="flex flex-col md:flex-row gap-5 items-stretch">
             <div className="rounded-xl border border-gold-400/40 bg-gold-400/5 px-6 py-4 grid place-items-center text-center md:w-40 shrink-0">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400">Overall</div>
+              <div className="text-2xs uppercase text-ink-400">Overall</div>
               <div className="font-display text-5xl text-gold-400 leading-none my-1">{d.grade?.overall || 'B−'}</div>
-              <div className="text-[11px] text-ink-300 leading-tight">Cash deployed, hedge on —<br/>still concentrated</div>
+              <div className="text-xs text-ink-300 leading-tight">Cash deployed, hedge on —<br/>still concentrated</div>
             </div>
             <div className="flex-1 overflow-x-auto -mx-1 md:mx-0">
             <table className="w-full text-xs">
@@ -3843,7 +3914,7 @@ const PortfolioView = () => {
                       <td className="py-2 w-12">
                         <span className={`inline-block w-9 text-center rounded ${bgClass} ${toneClass} font-bold text-xs py-0.5`}>{g}</span>
                       </td>
-                      <td className="py-2 text-ink-400 text-[11px] leading-relaxed">{note}</td>
+                      <td className="py-2 text-ink-400 text-xs leading-relaxed">{note}</td>
                     </tr>
                   );
                 })}
@@ -3851,7 +3922,7 @@ const PortfolioView = () => {
             </table>
             </div>
           </div>
-          {d.grade?.notes && <div className="text-[11px] text-ink-400 mt-3">{d.grade.notes}</div>}
+          {d.grade?.notes && <div className="text-xs text-ink-400 mt-3">{d.grade.notes}</div>}
         </div>
 
         {/* All Holdings table */}
@@ -3859,7 +3930,7 @@ const PortfolioView = () => {
           <SectionHeader title={isAll ? 'All Holdings' : `Holdings — ${scope}`} hint={`${rows.length} positions.`} />
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-xs min-w-[640px]">
-              <thead className="text-ink-400 text-[10px] uppercase tracking-wider">
+              <thead className="text-ink-400 text-2xs uppercase tracking-wider">
                 <tr>
                   {isAll && <th className="text-left pb-1.5 px-1">Account</th>}
                   <th className="text-left pb-1.5 px-1">Sym</th>
@@ -3874,13 +3945,13 @@ const PortfolioView = () => {
               <tbody>
                 {sortedHoldings.map((h,i) => (
                   <tr key={i} className="border-t border-ink-700/60">
-                    {isAll && <td className="py-1 px-1 text-ink-400 text-[11px]">{h.account}</td>}
+                    {isAll && <td className="py-1 px-1 text-ink-400 text-xs">{h.account}</td>}
                     <td className="py-1 px-1 font-medium">
                       <span className="inline-flex items-center gap-1.5">
                         {h.symbol}
                         {h.live && (
                           <span title={`Live · ${(h.livePctChange||0).toFixed(2)}% today`}
-                             className={`text-[9px] px-1 rounded tabular-nums ${
+                             className={`text-2xs px-1 rounded tabular-nums ${
                                h.livePctChange > 0 ? 'text-sage-400 bg-sage-400/10' :
                                h.livePctChange < 0 ? 'text-ember-400 bg-ember-500/10' :
                                'text-ink-400 bg-ink-700'
@@ -3890,7 +3961,7 @@ const PortfolioView = () => {
                         )}
                       </span>
                     </td>
-                    <td className="py-1 px-1 text-ink-400 text-[11px]">{h.securityType}</td>
+                    <td className="py-1 px-1 text-ink-400 text-xs">{h.securityType}</td>
                     <td className="py-1 px-1 text-right tabular-nums text-ink-300">{h.quantity != null ? h.quantity.toLocaleString(undefined,{maximumFractionDigits:2}) : '—'}</td>
                     <td className="py-1 px-1 text-right tabular-nums text-ink-100">{fmtMoney(h.value)}</td>
                     <td className="py-1 px-1 text-right tabular-nums text-ink-400">{((h.value||0)/total*100).toFixed(2)}%</td>
@@ -3910,13 +3981,13 @@ const PortfolioView = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {BANKING.accounts.filter(a => a.value != null).map(a => (
               <div key={a.acct} className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
-                <div className="text-[11px] text-ink-400">{a.name}</div>
+                <div className="text-xs text-ink-400">{a.name}</div>
                 <div className="text-ink-100 tabular-nums font-medium mt-1">{fmtMoney(a.value)}</div>
               </div>
             ))}
-            <div className="rounded-xl border border-gold-400/30 bg-gold-400/5 px-3.5 py-3">
-              <div className="text-[11px] text-ink-400">Total bank cash</div>
-              <div className="font-display text-lg text-gold-400 tabular-nums mt-0.5">{fmtMoney(BANKING.total)}</div>
+            <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
+              <div className="text-xs text-ink-400">Total bank cash</div>
+              <div className="font-display text-lg text-ink-100 tabular-nums mt-0.5">{fmtMoney(BANKING.total)}</div>
             </div>
           </div>
         </div>
@@ -3929,7 +4000,7 @@ const PortfolioView = () => {
               <div key={a.acct} className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
                 <div>
                   <div className="text-sm font-medium text-ink-100">{a.child}</div>
-                  <div className="text-[11px] text-ink-400 mt-0.5">{a.fund} · {a.units.toLocaleString(undefined,{maximumFractionDigits:2})} units @ ${a.price.toFixed(2)} · #{a.acct}</div>
+                  <div className="text-xs text-ink-400 mt-0.5">{a.fund} · {a.units.toLocaleString(undefined,{maximumFractionDigits:2})} units @ ${a.price.toFixed(2)} · #{a.acct}</div>
                 </div>
                 <div className="text-ink-100 tabular-nums font-medium">{fmtMoney(a.value)}</div>
               </div>
@@ -3937,7 +4008,7 @@ const PortfolioView = () => {
           </div>
           <div className="mt-3 pt-3 border-t border-ink-700 flex items-center justify-between text-sm">
             <span className="text-ink-300">Total</span>
-            <span className="font-display text-lg text-gold-400 tabular-nums">{fmtMoney(EDUCATION_529.total)}</span>
+            <span className="font-display text-lg text-ink-100 tabular-nums">{fmtMoney(EDUCATION_529.total)}</span>
           </div>
         </div>
 
@@ -3949,17 +4020,17 @@ const PortfolioView = () => {
               <a key={g.id} href={`https://app.box.com/file/${g.boxId}`} target="_blank" rel="noreferrer"
                  className="flex items-start justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3 hover:border-gold-400/40 transition group/eq">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-[11px]">· {g.id}</span></div>
-                  <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
+                  <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-xs">· {g.id}</span></div>
+                  <div className="text-xs text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-ink-100 tabular-nums font-medium">{g.qty.toLocaleString()}</div>
-                  <div className="text-[10px] text-ink-400 group-hover/eq:text-gold-300 transition">doc ↗</div>
+                  <div className="text-2xs text-ink-400 group-hover/eq:text-gold-300 transition">doc ↗</div>
                 </div>
               </a>
             ))}
           </div>
-          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{EQUITY_COMP.notes}</div>
+          <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{EQUITY_COMP.notes}</div>
         </div>
 
         {/* Amanda — Mercury equity comp (Carta) */}
@@ -3972,8 +4043,8 @@ const PortfolioView = () => {
               <div key={g.id} className="rounded-xl border border-dashed border-ink-600 px-3.5 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-[11px]">· {g.id}</span></div>
-                    <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">
+                    <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-xs">· {g.id}</span></div>
+                    <div className="text-xs text-ink-400 mt-0.5 leading-relaxed">
                       Vested {g.vested.toLocaleString()} · unvested {g.unvested.toLocaleString()}
                       {g.next ? ` · next ${g.next.shares.toLocaleString()} sh on ${fmtDate(g.next.date)}` : ''}
                       {mercuryRange.ref.value.byId[g.id] ? ` · ~${fmtMoneyK(mercuryRange.ref.value.byId[g.id].vestedValue)} vested (indicative)` : ''}
@@ -3984,13 +4055,13 @@ const PortfolioView = () => {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-ink-100 tabular-nums font-medium">{g.granted.toLocaleString()}</div>
-                    <div className="text-[10px] text-ink-400">{g.pct.toFixed(0)}% vested</div>
+                    <div className="text-2xs text-ink-400">{g.pct.toFixed(0)}% vested</div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+          <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
             {MERCURY_EQUITY.company} via {MERCURY_EQUITY.source}, {fmtDate(MERCURY_EQUITY.asOf)}. Vested counts are computed from each grant’s schedule; dollars are priced off
             the {mercuryRange.ref.source} secondary mark (${mercuryRange.ref.price.toFixed(2)}/sh, {fmtDate(mercuryRange.ref.asOf)}) — an upper bound, not a 409A, and the household total inherits that caveat.
             {mercury.discrepancies.length > 0 && ' Carta’s stored vested figure disagrees on ' + mercury.discrepancies.map(g => g.id).join(', ') + ' — see the tab.'}
@@ -4016,35 +4087,35 @@ const CashAtRestCard = () => {
         action={<Pill tone={c.gap > 10000 ? 'overdue' : 'muted'}>{fmtMoney(c.gap)}/yr forgone</Pill>} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">At rest</div>
+          <div className="text-2xs uppercase text-ink-400">At rest</div>
           <div className="font-display text-xl text-gold-400 tabular-nums mt-0.5">{fmtMoney(c.total)}</div>
-          <div className="text-[11px] text-ink-400 mt-1">{c.rows.length} accounts</div>
+          <div className="text-xs text-ink-400 mt-1">{c.rows.length} accounts</div>
         </div>
         <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Earning now</div>
+          <div className="text-2xs uppercase text-ink-400">Earning now</div>
           <div className="font-display text-xl text-ink-100 tabular-nums mt-0.5">{fmtMoney(c.currentInterest)}<span className="text-ink-400 text-sm">/yr</span></div>
-          <div className="text-[11px] text-ink-400 mt-1">at the posted rates</div>
+          <div className="text-xs text-ink-400 mt-1">at the posted rates</div>
         </div>
         <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">At {targetApy}%</div>
+          <div className="text-2xs uppercase text-ink-400">At {targetApy}%</div>
           <div className="font-display text-xl text-sage-400 tabular-nums mt-0.5">{fmtMoney(c.targetInterest)}<span className="text-ink-400 text-sm">/yr</span></div>
-          <div className="text-[11px] text-ink-400 mt-1">
-            <label htmlFor="hq-target-apy" className="!inline !mb-0 !normal-case !tracking-normal !text-[11px]">target </label>
+          <div className="text-xs text-ink-400 mt-1">
+            <label htmlFor="hq-target-apy" className="!inline !mb-0 !normal-case !tracking-normal !text-xs">target </label>
             <input id="hq-target-apy" type="number" step="0.1" min="0" max="10" value={targetApy}
               onChange={e => setTargetApy(Math.max(0, Math.min(10, +e.target.value || 0)))}
-              className="!inline-block !w-16 !min-h-0 !py-0.5 !px-1.5 !text-[11px] ml-1" />
+              className="!inline-block !w-16 !min-h-0 !py-0.5 !px-1.5 !text-xs ml-1" />
           </div>
         </div>
         <div className="rounded-xl border border-ember-500/25 bg-ember-500/5 px-3.5 py-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Cost of waiting</div>
+          <div className="text-2xs uppercase text-ink-400">Cost of waiting</div>
           <div className="font-display text-xl text-ember-400 tabular-nums mt-0.5">{fmtMoney(c.perDay)}<span className="text-ink-400 text-sm">/day</span></div>
-          <div className="text-[11px] text-ink-400 mt-1">{fmtMoney(c.gap / 12)}/mo</div>
+          <div className="text-xs text-ink-400 mt-1">{fmtMoney(c.gap / 12)}/mo</div>
         </div>
       </div>
       <div className="overflow-x-auto mt-3">
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-ink-400 text-[10px] uppercase tracking-[0.12em] border-b border-ink-700">
+            <tr className="text-ink-400 text-2xs uppercase tracking-[0.12em] border-b border-ink-700">
               <th className="text-left font-medium py-2">Account</th>
               <th className="text-left font-medium py-2 hidden md:table-cell">Where</th>
               <th className="text-right font-medium py-2">Balance</th>
@@ -4065,7 +4136,7 @@ const CashAtRestCard = () => {
           </tbody>
         </table>
       </div>
-      <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+      <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
         {(() => {
           const mms = BANKING.accounts.find(a => /Money Market Savings/i.test(a.name));
           if (!mms || mms.intYtd == null) return null;
@@ -4121,16 +4192,16 @@ const DafPanel = () => {
           action={<a href="https://bofa.donorfirst.org" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> DAF login</a>} />
         <div className="flex flex-wrap items-end gap-2 mb-4">
           <div>
-            <label htmlFor="hq-f3" className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">New balance</label>
+            <label htmlFor="hq-f3" className="block text-2xs uppercase tracking-wider text-ink-400 mb-1">New balance</label>
             <input id="hq-f3" value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter') submit(); }} placeholder="$54,000"
               className="w-32 bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none" />
           </div>
           <div>
-            <label htmlFor="hq-f4" className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">Date</label>
+            <label htmlFor="hq-f4" className="block text-2xs uppercase tracking-wider text-ink-400 mb-1">Date</label>
             <input id="hq-f4" type="date" value={date} onChange={e=>setDate(e.target.value)}
               className="bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 focus:border-gold-400/50 outline-none" />
           </div>
-          <button onClick={submit} className="px-3.5 py-2 rounded-full btn-primary text-[12px] font-medium">Log balance</button>
+          <button onClick={submit} className="px-3.5 py-2 rounded-full btn-primary text-xs font-medium">Log balance</button>
         </div>
         <div className="space-y-1.5">
           {[...log].reverse().map((e, i, arr) => {
@@ -4138,17 +4209,17 @@ const DafPanel = () => {
             const d = older ? e.value - older.value : null;
             return (
               <div key={e.id} className="flex items-center gap-3 text-sm border-t border-ink-700/60 pt-1.5 first:border-t-0 group/daf">
-                <span className="text-ink-400 text-[11px] w-24 shrink-0 tabular-nums">{e.date}</span>
+                <span className="text-ink-400 text-xs w-24 shrink-0 tabular-nums">{e.date}</span>
                 <span className="text-ink-100 tabular-nums">{fmtMoney(e.value)}</span>
-                {d != null && <span className={`text-[11px] tabular-nums ${d >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>{d >= 0 ? '+' : ''}{fmtMoneyK(d)}</span>}
-                <span className="text-ink-400 text-[11px] flex-1 truncate">{e.note || ''}</span>
+                {d != null && <span className={`text-xs tabular-nums ${d >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>{d >= 0 ? '+' : ''}{fmtMoneyK(d)}</span>}
+                <span className="text-ink-400 text-xs flex-1 truncate">{e.note || ''}</span>
                 <button onClick={() => { if (window.confirm('Delete this entry?')) ctx.deleteDafValue(e.id); }}
                   className="md:opacity-0 md:group-hover/daf:opacity-100 transition text-ink-400 hover:text-ember-400 p-2 -m-1"><Icon name="x" size={12}/></button>
               </div>
             );
           })}
         </div>
-        <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+        <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
           Log the balance whenever you check the fund — the deltas above track growth/decline between checks. Pairs with the “gift high-gain PLTR lots to the DAF” suggestion: gifted shares land here.
         </div>
       </div>
@@ -4175,7 +4246,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-ink-600 px-3.5 py-3 hover:border-gold-400/40 transition">
               <div>
                 <div className="text-sm font-medium text-ink-200">{r.name}</div>
-                <div className="text-[11px] text-ink-400 mt-0.5">{r.sub}</div>
+                <div className="text-xs text-ink-400 mt-0.5">{r.sub}</div>
               </div>
               <div className="text-ink-400 text-xs shrink-0">balance needed · log in ↗</div>
             </a>
@@ -4202,13 +4273,13 @@ const OutsideMerrillPanel = ({ scope }) => {
                  className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3 transition ${a.value == null ? 'border-dashed border-ink-600 bg-transparent' : 'border-ink-700 bg-ink-800/40 hover:border-gold-400/40'}`}>
                 <div>
                   <div className={`text-sm font-medium ${a.value == null ? 'text-ink-300' : 'text-ink-100'}`}>{a.name}</div>
-                  <div className="text-[11px] text-ink-400 mt-0.5">#{a.acct}{a.apy != null ? ` · ${a.apy.toFixed(2)}% APY · $${a.intYtd.toFixed(2)} interest YTD` : ''}</div>
+                  <div className="text-xs text-ink-400 mt-0.5">#{a.acct}{a.apy != null ? ` · ${a.apy.toFixed(2)}% APY · $${a.intYtd.toFixed(2)} interest YTD` : ''}</div>
                 </div>
                 <div className={`tabular-nums font-medium ${a.value == null ? 'text-ink-400 text-xs' : 'text-ink-100'}`}>{a.value == null ? 'statement needed' : fmtMoney(a.value)}</div>
               </a>
             ))}
           </div>
-          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{BANKING.missingNote}</div>
+          <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{BANKING.missingNote}</div>
         </div>
         <CashAtRestCard />
       </div>
@@ -4233,7 +4304,7 @@ const OutsideMerrillPanel = ({ scope }) => {
           <PortfolioStat label="Unvested" value={v.unvested.toLocaleString() + ' sh'} />
           <PortfolioStat label="Cost to exercise all" value={fmtMoney(v.exerciseCost)} />
         </div>
-        <div className="text-[11px] text-ink-400 -mt-1">
+        <div className="text-xs text-ink-400 -mt-1">
           {MERCURY_EQUITY.holder} · {MERCURY_EQUITY.source} export as of {fmtDate(MERCURY_EQUITY.asOf)}. Share counts are computed from the vesting schedules;
           dollar figures below are indicative — priced off secondary-market marks, not a 409A, so they read high.
           The vested figure at the {ref.source} mark ({fmtMoney(range.ref.value.vestedValue)}) is what feeds the household total.
@@ -4245,22 +4316,22 @@ const OutsideMerrillPanel = ({ scope }) => {
           <SectionHeader title="Indicative value"
             hint={`No 409A on hand, so this is priced off public secondary-market marks.${opt ? ` Options at the spread over the $${opt.strike.toFixed(2)} strike,` : ''} RSUs at the full mark.`}
             action={<Pill tone="soon">indicative</Pill>} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
             <div className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Vested · indicative range</div>
+              <div className="text-2xs uppercase text-ink-400">Vested · indicative range</div>
               <div className="font-display text-xl md:text-2xl text-gold-400 tabular-nums mt-0.5">
                 {fmtMoneyK(range.vested.lo)} – {fmtMoneyK(range.vested.hi)}
               </div>
-              <div className="text-[11px] text-ink-400 mt-1">
+              <div className="text-xs text-ink-400 mt-1">
                 {v.vested.toLocaleString()} sh · {fmtMoney(range.ref.value.vestedValue)} at the {ref.source} mark
               </div>
             </div>
             <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Unvested · indicative range</div>
+              <div className="text-2xs uppercase text-ink-400">Unvested · indicative range</div>
               <div className="font-display text-xl md:text-2xl text-ink-100 tabular-nums mt-0.5">
                 {fmtMoneyK(range.unvested.lo)} – {fmtMoneyK(range.unvested.hi)}
               </div>
-              <div className="text-[11px] text-ink-400 mt-1">
+              <div className="text-xs text-ink-400 mt-1">
                 {v.unvested.toLocaleString()} sh · {fmtMoney(range.ref.value.unvestedValue)} at the {ref.source} mark
               </div>
             </div>
@@ -4268,7 +4339,7 @@ const OutsideMerrillPanel = ({ scope }) => {
           <div className="overflow-x-auto mt-3">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-ink-400 text-[10px] uppercase tracking-[0.12em] border-b border-ink-700">
+                <tr className="text-ink-400 text-2xs uppercase tracking-[0.12em] border-b border-ink-700">
                   <th className="text-left font-medium py-2">Mark</th>
                   <th className="text-left font-medium py-2 hidden md:table-cell">As of</th>
                   <th className="text-right font-medium py-2">$/share</th>
@@ -4281,8 +4352,8 @@ const OutsideMerrillPanel = ({ scope }) => {
                   <tr key={m.source} className={`border-b border-ink-700/60 ${m.source === ref.source ? 'text-ink-100' : 'text-ink-300'}`}>
                     <td className="py-2 pr-2">
                       {m.source}
-                      {m.kind === 'preferred' && <span className="text-ink-400 text-[10px]"> · preferred</span>}
-                      {m.source === ref.source && <span className="text-gold-400 text-[10px]"> · reference</span>}
+                      {m.kind === 'preferred' && <span className="text-ink-400 text-2xs"> · preferred</span>}
+                      {m.source === ref.source && <span className="text-gold-400 text-2xs"> · reference</span>}
                     </td>
                     <td className="py-2 pr-2 tabular-nums text-ink-400 hidden md:table-cell">{fmtDate(m.asOf)}</td>
                     <td className="py-2 text-right tabular-nums">${m.price.toFixed(2)}</td>
@@ -4293,13 +4364,13 @@ const OutsideMerrillPanel = ({ scope }) => {
               </tbody>
             </table>
           </div>
-          <div className="text-[11px] text-ember-400/90 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+          <div className="text-xs text-ember-400/90 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
             These are preferred and secondary prices, not a 409A. A 409A values <em>common</em> stock and sits materially below them, because preferred
             carries liquidation preferences and protections common doesn’t — so treat every figure here as an upper bound, not a valuation.
             The per-share numbers come from secondary marketplaces working back from headline valuation and an estimated share count, not from a filing.
             The vested figure at the {ref.source} mark is included in the household total, so that total carries the same upper-bound caveat until a real 409A replaces it.
           </div>
-          <div className="text-[11px] text-ink-400 mt-2 leading-relaxed">
+          <div className="text-xs text-ink-400 mt-2 leading-relaxed">
             For the real number: Carta shows the current common FMV on the holdings page and in the exercise flow. Drop it in and this section prices properly.
             {opt && <>The {opt.id} strike of ${opt.strike.toFixed(2)} was itself the 409A in force at the {fmtDate(opt.issued)} grant date — the company has since gone from a $3.5B Series C to $5.2B.</>}
           </div>
@@ -4317,19 +4388,19 @@ const OutsideMerrillPanel = ({ scope }) => {
                   <div key={g.id} className="flex items-start justify-between gap-3 rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
                     <div className="min-w-0 text-sm">
                       <div className="text-ink-100 font-medium">{g.id}</div>
-                      <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">
+                      <div className="text-xs text-ink-400 mt-0.5 leading-relaxed">
                         Schedule gives {g.computedVested.toLocaleString()} vested as of {fmtDate(nowISO)} · Carta reports {g.reportedVested.toLocaleString()}
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
                       <Pill tone="soon">{g.delta > 0 ? '+' : ''}{g.delta.toLocaleString()} sh{tranche}</Pill>
-                      <div className="text-[10px] text-ink-400 mt-1">{g.delta > 0 ? 'Carta ahead' : 'Carta behind'}</div>
+                      <div className="text-2xs text-ink-400 mt-1">{g.delta > 0 ? 'Carta ahead' : 'Carta behind'}</div>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+            <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
               The computed figure is what this dashboard uses. Carta <em>ahead</em> by whole tranches means its export is counting a vest date that hasn’t arrived yet
               {v.nextVest ? ` — the next one is ${v.nextVest.shares.toLocaleString()} sh on ${fmtDate(v.nextVest.date)} (${fmtRelative(v.nextVest.date)})` : ''};
               Carta <em>behind</em> means the {fmtDate(MERCURY_EQUITY.asOf)} export has simply gone stale and the tranches since then have vested.
@@ -4347,12 +4418,12 @@ const OutsideMerrillPanel = ({ scope }) => {
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-ink-100">
                       {g.type}
-                      <span className="text-ink-400 font-normal text-[11px]">
+                      <span className="text-ink-400 font-normal text-xs">
                         {g.subtype ? ` · ${g.subtype}` : ''} · {g.id} · {g.granted.toLocaleString()} total
                       </span>
                     </div>
-                    <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
-                    <div className="text-[11px] mt-1.5">
+                    <div className="text-xs text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
+                    <div className="text-xs mt-1.5">
                       <span className="text-sage-400">Vested {g.vested.toLocaleString()}</span>
                       <span className="text-ink-400"> — </span>
                       <span className="text-ink-300">Unvested {g.unvested.toLocaleString()}</span>
@@ -4375,13 +4446,13 @@ const OutsideMerrillPanel = ({ scope }) => {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-ink-100 tabular-nums font-medium">{g.vested.toLocaleString()}</div>
-                    <div className="text-[10px] text-ink-400">vested · {g.pct.toFixed(0)}%</div>
+                    <div className="text-2xs text-ink-400">vested · {g.pct.toFixed(0)}%</div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{MERCURY_EQUITY.notes}</div>
+          <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{MERCURY_EQUITY.notes}</div>
         </div>
 
         {opt && (
@@ -4403,20 +4474,20 @@ const OutsideMerrillPanel = ({ scope }) => {
             {upcoming.length > 0 && (
               <>
                 <div className="divider my-4"/>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400 mb-2">Next vests</div>
+                <div className="text-2xs uppercase text-ink-400 mb-2">Next vests</div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {upcoming.map(t => (
                     <div key={t.date} className="rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2.5">
-                      <div className="text-[11px] text-ink-400">{fmtDate(t.date)}</div>
+                      <div className="text-xs text-ink-400">{fmtDate(t.date)}</div>
                       <div className="text-ink-100 tabular-nums text-sm font-medium mt-0.5">+{t.shares.toLocaleString()} sh</div>
-                      <div className="text-[10px] text-ink-400 tabular-nums mt-0.5">{t.cumulative.toLocaleString()} cumulative</div>
+                      <div className="text-2xs text-ink-400 tabular-nums mt-0.5">{t.cumulative.toLocaleString()} cumulative</div>
                     </div>
                   ))}
                 </div>
               </>
             )}
             {v.grants.some(g => !g.vesting) && (
-              <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+              <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
                 {v.grants.filter(g => !g.vesting).map(g => g.id).join(', ')} — no vesting schedule in the Carta export, so there are no dates to derive.
                 Pull the grant detail from Carta and add a `vesting` block to MERCURY_EQUITY and it will compute the same way.
               </div>
@@ -4437,7 +4508,7 @@ const OutsideMerrillPanel = ({ scope }) => {
           <PortfolioStat label="Valuation / share" value={'$' + EQUITY_FMV.price.toFixed(2)} />
         </div>
         {v.statedOn && (
-          <div className={`rounded-xl border px-3.5 py-3 text-[11px] leading-relaxed ${
+          <div className={`rounded-xl border px-3.5 py-3 text-xs leading-relaxed ${
             Math.max(0, -(daysUntil(v.statedOn) || 0)) > 90 ? 'border-gold-400/30 bg-gold-400/5 text-ink-200' : 'border-ink-700 bg-ink-800/40 text-ink-300'}`}>
             {fmtMoney(v.statedFraction)} of the figure above rests on a vested fraction that was typed in, not computed —
             stated {fmtDate(v.statedOn)}, {Math.max(0, -(daysUntil(v.statedOn) || 0))} days ago. The agreement's monthly
@@ -4445,7 +4516,7 @@ const OutsideMerrillPanel = ({ scope }) => {
             for as long as nobody vests. Mercury next door is computed from its schedule and cross-checked against Carta.
           </div>
         )}
-        <div className="text-[11px] text-ink-400 -mt-1">
+        <div className="text-xs text-ink-400 -mt-1">
           {(() => {
             const o = EQUITY_COMP.grants.find(g => g.strike != null);
             if (!o) return 'RSUs at full value (no exercise cost).';
@@ -4459,9 +4530,9 @@ const OutsideMerrillPanel = ({ scope }) => {
               <a key={g.id} href={`https://app.box.com/file/${g.boxId}`} target="_blank" rel="noreferrer"
                  className="flex items-start justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3 hover:border-gold-400/40 transition group/eq">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-[11px]">· {g.id} · {g.qty.toLocaleString()} total</span></div>
-                  <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
-                  <div className="text-[11px] mt-1.5">
+                  <div className="text-sm font-medium text-ink-100">{g.type} <span className="text-ink-400 font-normal text-xs">· {g.id} · {g.qty.toLocaleString()} total</span></div>
+                  <div className="text-xs text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
+                  <div className="text-xs mt-1.5">
                     <span className="text-sage-400">Vested {g.vestedQty.toLocaleString()} · {fmtMoneyK(g.vestedValue)}</span>
                     <span className="text-ink-400"> — </span>
                     <span className="text-ink-300">Unvested {g.unvestedQty.toLocaleString()} · {fmtMoneyK(g.unvestedValue)}</span>
@@ -4473,12 +4544,12 @@ const OutsideMerrillPanel = ({ scope }) => {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-ink-100 tabular-nums font-medium">{fmtMoneyK(g.vestedValue + g.unvestedValue)}</div>
-                  <div className="text-[10px] text-ink-400 group-hover/eq:text-gold-300 transition">doc ↗</div>
+                  <div className="text-2xs text-ink-400 group-hover/eq:text-gold-300 transition">doc ↗</div>
                 </div>
               </a>
             ))}
           </div>
-          <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{EQUITY_COMP.notes}</div>
+          <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{EQUITY_COMP.notes}</div>
         </div>
         <div className="card p-4 md:p-5">
           <SectionHeader title="Key dates" />
@@ -4510,11 +4581,11 @@ const OutsideMerrillPanel = ({ scope }) => {
         <div className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
           <div>
             <div className="text-sm font-medium text-ink-100">{a.fund}</div>
-            <div className="text-[11px] text-ink-400 mt-0.5">{a.units.toLocaleString(undefined,{maximumFractionDigits:2})} units @ ${a.price.toFixed(2)} · age-based glide path, de-risks toward enrollment</div>
+            <div className="text-xs text-ink-400 mt-0.5">{a.units.toLocaleString(undefined,{maximumFractionDigits:2})} units @ ${a.price.toFixed(2)} · age-based glide path, de-risks toward enrollment</div>
           </div>
           <div className="text-ink-100 tabular-nums font-medium">{fmtMoney(a.value)}</div>
         </div>
-        <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+        <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
           {sibling ? `Both kids' 529s total ${fmtMoney(EDUCATION_529.total)} (${sibling.child}: ${fmtMoney(sibling.value)}). ` : ''}
           Source: app screenshots saved in Box (Spending docs, 8/13/26).
         </div>
@@ -4531,8 +4602,8 @@ const ProvenanceStrip = () => {
   return (
     <div className="card-soft p-3 mt-2">
       <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">What the household total is made of</div>
-        <div className="text-[11px] text-ink-400">oldest input {age(oldest.asOf)} days old ({oldest.label}, {fmtDate(oldest.asOf, {month:'short', day:'numeric'})})</div>
+        <div className="text-2xs uppercase text-ink-400">What the household total is made of</div>
+        <div className="text-xs text-ink-400">oldest input {age(oldest.asOf)} days old ({oldest.label}, {fmtDate(oldest.asOf, {month:'short', day:'numeric'})})</div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
         {rows.map(r => {
@@ -4540,11 +4611,11 @@ const ProvenanceStrip = () => {
           const tone = n > r.stale ? 'soon' : 'muted';
           return (
             <div key={r.label} className="rounded-lg border border-ink-700 bg-ink-800/40 px-3 py-2">
-              <div className="text-[10px] text-ink-400 truncate">{r.label}</div>
+              <div className="text-2xs text-ink-400 truncate">{r.label}</div>
               <div className="text-sm text-ink-100 tabular-nums mt-0.5">{fmtMoneyK(r.value)}</div>
               <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                 <Pill tone={tone}>{fmtDate(r.asOf, {month:'short', day:'numeric'})} · {n}d</Pill>
-                {r.indicative && <span className="text-[10px] text-ink-400">indicative</span>}
+                {r.indicative && <span className="text-2xs text-ink-400">indicative</span>}
               </div>
             </div>
           );
@@ -4556,7 +4627,7 @@ const ProvenanceStrip = () => {
 
 const PortfolioStat = ({ label, value, tone }) => (
   <div className="card p-3 md:p-4">
-    <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">{label}</div>
+    <div className="text-2xs uppercase text-ink-400">{label}</div>
     <div className={`font-display text-xl md:text-2xl tabular-nums mt-0.5 ${
       tone === 'overdue' ? 'text-ember-400' :
       tone === 'soon'    ? 'text-gold-400'  :
@@ -4590,7 +4661,7 @@ const SuggestionEvidence = ({ id }) => {
     return (
       <EvidenceBlock title={`${rows.length} taxable positions at a loss · ${fmtMoney(total)} harvestable`}
         note="Counted from the snapshot's own rows, taxable accounts only. The suggestion's prose says ~$8K.">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-xs">
           <tbody>
             {rows.slice(0, 8).map((r, i) => (
               <tr key={i} className="border-b border-ink-700/50">
@@ -4602,7 +4673,7 @@ const SuggestionEvidence = ({ id }) => {
             ))}
           </tbody>
         </table>
-        {rows.length > 8 && <div className="text-[10px] text-ink-400 mt-1.5">and {rows.length - 8} smaller positions.</div>}
+        {rows.length > 8 && <div className="text-2xs text-ink-400 mt-1.5">and {rows.length - 8} smaller positions.</div>}
       </EvidenceBlock>
     );
   }
@@ -4665,16 +4736,16 @@ const SuggestionEvidence = ({ id }) => {
 
 const Line = ({ k, v }) => (
   <div className="flex items-baseline justify-between gap-3 py-1 border-b border-ink-700/50 last:border-0">
-    <span className="text-[11px] text-ink-400">{k}</span>
-    <span className="text-[11px] text-ink-100 tabular-nums text-right">{v}</span>
+    <span className="text-xs text-ink-400">{k}</span>
+    <span className="text-xs text-ink-100 tabular-nums text-right">{v}</span>
   </div>
 );
 
 const EvidenceBlock = ({ title, note, children }) => (
   <div className="mt-2.5 rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2.5">
-    <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400 mb-1.5">{title}</div>
+    <div className="text-2xs uppercase text-ink-400 mb-1.5">{title}</div>
     {children}
-    {note && <div className="text-[10px] text-ink-400 mt-2 leading-relaxed">{note}</div>}
+    {note && <div className="text-2xs text-ink-400 mt-2 leading-relaxed">{note}</div>}
   </div>
 );
 
@@ -4693,9 +4764,9 @@ const SuggestionRow = ({ s, accent }) => {
         </button>
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-medium ${s.done ? 'text-ink-400 line-through' : 'text-ink-100'}`}>{s.title}</div>
-          {s.body && <div className={`text-[12px] mt-1 leading-relaxed ${s.done ? 'text-ink-400' : 'text-ink-300'}`}>{s.body}</div>}
+          {s.body && <div className={`text-xs mt-1 leading-relaxed ${s.done ? 'text-ink-400' : 'text-ink-300'}`}>{s.body}</div>}
           {!s.done && <SuggestionEvidence id={s.id} />}
-          {s.source && <div className="text-[10px] text-ink-400 mt-1.5">{s.source}</div>}
+          {s.source && <div className="text-2xs text-ink-400 mt-1.5">{s.source}</div>}
         </div>
         <button onClick={() => { if (window.confirm('Delete this suggestion?')) ctx.deleteSuggestion(s.id); }}
           aria-label="Delete suggestion"
@@ -4726,20 +4797,20 @@ const SuggestionAddForm = ({ onClose }) => {
         className="w-full bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none" />
       <textarea value={body} onChange={e=>setBody(e.target.value)} rows={2}
         placeholder="Details (optional)"
-        className="w-full bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-[13px] text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none resize-none" />
+        className="w-full bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none resize-none" />
       <div className="flex items-center justify-between gap-2">
         <div className="inline-flex p-0.5 rounded-full bg-ink-900 border border-ink-600">
           {SUGGESTION_TIERS.map(t => (
             <button key={t.key} onClick={()=>setPriority(t.key)}
-              className={`px-3 py-1 rounded-full text-[11px] capitalize transition ${priority===t.key ? 'bg-ink-700 text-gold-300' : 'text-ink-400 hover:text-ink-200'}`}>
+              className={`px-3 py-1 rounded-full text-xs capitalize transition ${priority===t.key ? 'bg-ink-700 text-gold-300' : 'text-ink-400 hover:text-ink-200'}`}>
               {t.key}
             </button>
           ))}
         </div>
         <div className="flex gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 rounded-full text-[12px] text-ink-300 hover:text-ink-100">Cancel</button>
+          <button onClick={onClose} className="px-3 py-1.5 rounded-full text-xs text-ink-300 hover:text-ink-100">Cancel</button>
           <button onClick={submit} disabled={!title.trim()}
-            className="px-3.5 py-1.5 rounded-full btn-primary text-[12px] font-medium disabled:opacity-40">Add</button>
+            className="px-3.5 py-1.5 rounded-full btn-primary text-xs font-medium disabled:opacity-40">Add</button>
         </div>
       </div>
     </div>
@@ -4759,7 +4830,7 @@ const SuggestionsPanel = () => {
         if (!items.length) return null;
         return (
           <div key={t.key}>
-            <div className={`inline-block px-2.5 py-0.5 rounded-md border text-[11px] uppercase tracking-wider font-semibold mb-2 ${t.chip}`}>{t.label}</div>
+            <div className={`inline-block px-2.5 py-0.5 rounded-md border text-xs uppercase tracking-wider font-semibold mb-2 ${t.chip}`}>{t.label}</div>
             <div className="space-y-2.5">
               {items.map(s => <SuggestionRow key={s.id} s={s} accent={t.accent} />)}
             </div>
@@ -4774,11 +4845,11 @@ const SuggestionsPanel = () => {
         : (
           <div className="flex items-center gap-3">
             <button onClick={()=>setAdding(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-[12px] transition">
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-xs transition">
               <Icon name="plus" size={13}/> Add suggestion
             </button>
             {doneCount > 0 && (
-              <button onClick={()=>setShowDone(v=>!v)} className="text-[11px] text-ink-400 hover:text-ink-200 transition">
+              <button onClick={()=>setShowDone(v=>!v)} className="text-xs text-ink-400 hover:text-ink-200 transition">
                 {showDone ? 'Hide' : 'Show'} {doneCount} done
               </button>
             )}
@@ -4793,14 +4864,14 @@ const SuggestionsView = () => {
   const all = ctx.state.suggestions || [];
   const open = all.filter(s => !s.done).length;
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-8">
       <p className="text-ink-300 text-sm">
         {open === 0 ? 'All caught up.' : `${open} open item${open===1?'':'s'}.`} Prepopulated from the latest Merrill statement scan (Jul 31, 2026) — check items off as you action them, or add your own.
       </p>
       <div className="card p-4 md:p-5">
         <SuggestionsPanel />
       </div>
-      <div className="text-[10px] text-ink-400 leading-relaxed">
+      <div className="text-2xs text-ink-400 leading-relaxed">
         Not tax or investment advice. Run high-priority items past your Merrill advisor / CPA before executing.
       </div>
     </div>
@@ -4825,31 +4896,31 @@ const PortfolioWidget = ({ onOpen }) => {
     <button onClick={onOpen} className="card p-5 md:p-6 text-left hover:border-gold-500/40 transition group w-full">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-1">Portfolio</div>
+          <div className="text-xs uppercase text-ink-400 mb-1">Portfolio</div>
           <div className="font-display text-3xl md:text-4xl text-ink-100 tabular-nums leading-none">{fmtMoney(total)}</div>
           <div className="text-ink-400 text-xs mt-1.5">Merrill Lynch · {d.numAccounts} accounts · as of {d.asOf}</div>
           <div className="text-xs mt-1"><span className="text-gold-300 tabular-nums font-medium">{fmtMoney(householdTotal())}</span> <span className="text-ink-400">household — incl. bank cash, 529s & vested equity comp</span></div>
         </div>
         <div className="rounded-xl border border-gold-400/40 bg-gold-400/8 px-3 py-2 grid place-items-center text-center shrink-0">
-          <div className="text-[9px] uppercase tracking-wider text-ink-400">Grade</div>
+          <div className="text-2xs uppercase tracking-wider text-ink-400">Grade</div>
           <div className="font-display text-2xl text-gold-400 leading-none">{d.grade?.overall || 'B−'}</div>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-ink-400">Concentration</div>
+          <div className="text-2xs uppercase tracking-wider text-ink-400">Concentration</div>
           <div className={`tabular-nums mt-0.5 ${conc > 25 ? 'text-ember-400' : 'text-ink-100'}`}>{conc.toFixed(0)}% PLTR+AMZN</div>
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-ink-400">Idle cash</div>
+          <div className="text-2xs uppercase tracking-wider text-ink-400">Idle cash</div>
           <div className={`tabular-nums mt-0.5 ${cashP > 8 ? 'text-gold-400' : 'text-ink-100'}`}>{fmtMoneyK(idle.total)} · {cashP.toFixed(0)}%</div>
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-ink-400">Suggestions</div>
+          <div className="text-2xs uppercase tracking-wider text-ink-400">Suggestions</div>
           <div className="tabular-nums mt-0.5 text-ink-100">{suggOpen} open{suggDone ? ` · ${suggDone} done` : ''}</div>
         </div>
       </div>
-      <div className="mt-4 pt-3 border-t border-ink-700 text-[11px] text-ink-400 group-hover:text-gold-300 transition flex items-center gap-1">
+      <div className="mt-4 pt-3 border-t border-ink-700 text-xs text-ink-400 group-hover:text-gold-300 transition flex items-center gap-1">
         View full portfolio <Icon name="chevR" size={11}/>
       </div>
     </button>
@@ -4895,7 +4966,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const kinds = ['all', ...Object.keys(KIND_LABELS).filter(k => counts[k])];
 
       return (
-        <div className="space-y-5 max-w-4xl">
+        <div className="space-y-8">
           <div className="flex items-baseline justify-between gap-3 flex-wrap">
             <p className="text-ink-300 text-sm max-w-2xl">
               Running history of items checked off the dashboard. {log.length} total · most recent first.
@@ -4916,7 +4987,7 @@ const PortfolioWidget = ({ onOpen }) => {
                 {kinds.map(k => (
                   <button key={k} onClick={() => setFilter(k)}
                      className={`px-3 py-1.5 rounded-full text-xs border transition whitespace-nowrap ${
-                       filter === k ? 'bg-ink-100 text-ink-900 border-ink-100' : 'border-ink-600 text-ink-200 hover:bg-ink-800'
+                       filter === k ? 'border-gold-400/50 text-gold-300 bg-gold-400/12' : 'border-ink-600 text-ink-200 hover:bg-ink-800'
                      }`}>
                     {k === 'all' ? `All · ${counts.all}` : `${KIND_LABELS[k]} · ${counts[k]}`}
                   </button>
@@ -4925,7 +4996,7 @@ const PortfolioWidget = ({ onOpen }) => {
 
               {Object.entries(buckets).filter(([_,items]) => items.length > 0).map(([bucket, items]) => (
                 <section key={bucket}>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-2.5">{bucket}</div>
+                  <div className="text-xs uppercase text-ink-400 mb-2.5">{bucket}</div>
                   <div className="space-y-2">
                     {items.map(l => {
                       const d = new Date(l.completedAt);
@@ -4941,7 +5012,7 @@ const PortfolioWidget = ({ onOpen }) => {
                           <div className="min-w-0 flex-1">
                             <div className="text-sm text-ink-100 line-through decoration-ink-500/40 decoration-1">{l.title}</div>
                             {l.sub && <div className="text-ink-400 text-xs mt-0.5 truncate">{l.sub}</div>}
-                            <div className="text-ink-400 text-[11px] mt-1">
+                            <div className="text-ink-400 text-xs mt-1">
                               <span className="uppercase tracking-wider">{KIND_LABELS[l.kind]||l.kind}</span> · {when}
                               {l.originalDue && <span className="text-ink-400"> · was due {fmtDate(l.originalDue,{month:'short',day:'numeric'})}</span>}
                             </div>
@@ -4968,7 +5039,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const empty = value === 0 || value === '0';
       const body = (
         <>
-        <div className="text-[11px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
+        <div className="text-xs uppercase text-ink-400">{label}</div>
         <div className="flex items-baseline gap-2">
           <div className={`font-display text-3xl md:text-4xl tabular-nums ${
             empty            ? 'text-ink-400'   :
@@ -5058,7 +5129,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <>
           <ModalHeader title="This week's digest" subtitle="Forward this to yourself or your spouse." onClose={onClose} />
           <div className="p-5 md:p-6">
-            <textarea readOnly value={text} className="font-mono text-[12.5px] leading-relaxed h-72 resize-none" />
+            <textarea readOnly value={text} className="font-mono text-xs leading-relaxed h-72 resize-none" />
             <div className="flex items-center justify-end gap-2 mt-4 flex-wrap">
               {typeof navigator !== 'undefined' && navigator.share && <Btn variant="ghost" icon="upload" onClick={share}>Share…</Btn>}
               <Btn variant="ghost" icon="mail" onClick={mailto}>Email</Btn>
@@ -5116,15 +5187,15 @@ const PortfolioWidget = ({ onOpen }) => {
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-ink-400">{applied.length} change{applied.length===1?'':'s'} applied</div>
+                <div className="text-xs uppercase text-ink-400">{applied.length} change{applied.length===1?'':'s'} applied</div>
                 {applied.map(op => {
                   const meta = UPDATE_KIND_META[op.kind] || { label: op.kind, icon: 'sparkles' };
                   return (
                     <div key={op.id} className="card-soft p-3.5 flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0"><Icon name={meta.icon} size={16}/></div>
+                      <div className="w-9 h-9 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0"><Icon name={meta.icon} size={16}/></div>
                       <div className="min-w-0">
                         <div className="text-sm font-medium">{op.title || (op.data && (op.data.name || op.data.label)) || meta.label}</div>
-                        <div className="text-ink-400 text-[11px] mt-0.5">{meta.label} · {op.op === 'add' ? 'added' : op.op === 'update' ? 'updated' : 'removed'}</div>
+                        <div className="text-ink-400 text-xs mt-0.5">{meta.label} · {op.op === 'add' ? 'added' : op.op === 'update' ? 'updated' : 'removed'}</div>
                         {op.source && <div className="text-ink-300 text-xs mt-1.5 leading-relaxed">{op.source}</div>}
                       </div>
                     </div>
@@ -5169,7 +5240,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const open = (v) => setModal(<VendorForm vendor={v} onClose={()=>setModal(null)} />);
 
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Everyone who works on the house. Tap to edit. Use the call/text/email buttons to reach out fast.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add vendor</Btn>
@@ -5188,7 +5259,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex gap-2 flex-wrap">
             {types.map(t => (
               <button key={t} onClick={()=>setFilter(t)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs border transition ${filter===t ? 'bg-ink-100 text-ink-900 border-ink-100' : 'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs border transition ${filter===t ? 'border-gold-400/50 text-gold-300 bg-gold-400/12' : 'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
                 {t === 'all' ? 'All' : t}
               </button>
             ))}
@@ -5197,7 +5268,7 @@ const PortfolioWidget = ({ onOpen }) => {
           {filtered.length === 0 ? (
             <Empty icon="users" title="No vendors match" body="Try clearing the filter, or add a new vendor." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vendor</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {filtered.map(v => <VendorCard key={v.id} v={v} onEdit={()=>open(v)} />)}
             </div>
           )}
@@ -5214,7 +5285,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-[11px] uppercase tracking-wider text-ink-400">{v.serviceType}</div>
+                <div className="text-xs uppercase tracking-wider text-ink-400">{v.serviceType}</div>
                 {v.placeholder && <PlaceholderBadge/>}
               </div>
               <div className="font-display text-lg leading-tight mt-0.5">{v.company}</div>
@@ -5335,7 +5406,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f18">Notes</label><textarea id="hq-f18" rows="3" value={v.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Gate code, key location, what they're great/bad at…"/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -5378,7 +5449,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const open = (t) => setModal(<TaskForm task={t} onClose={()=>setModal(null)} />);
 
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Big-ticket recurring tasks. Mark complete and the next due date rolls forward automatically.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add task</Btn>
@@ -5414,7 +5485,7 @@ const PortfolioWidget = ({ onOpen }) => {
                   ? <Btn variant="soft" onClick={()=>{setQuery(''); setStatusFilter('all');}}>Clear filters</Btn>
                   : <Btn variant="soft" icon="plus" onClick={()=>open(null)}>Add a task</Btn>} />
             ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {sorted.map(m => <TaskCard key={m.id} m={m} onEdit={()=>open(m)} />)}
             </div>
             )
@@ -5518,7 +5589,7 @@ const PortfolioWidget = ({ onOpen }) => {
               </div>
             )}
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -5563,8 +5634,8 @@ const PortfolioWidget = ({ onOpen }) => {
               <div key={i} className="flex gap-4 items-start">
                 <div className="w-20 md:w-24 shrink-0 pt-1">
                   <div className="text-ink-100 text-sm font-medium">{m.toLocaleDateString(undefined,{month:'short'})}</div>
-                  <div className="text-ink-400 text-[11px]">{m.getFullYear()}</div>
-                  {totalCost(i) > 0 && <div className="text-gold-400 text-[11px] mt-0.5 tabular-nums">~${totalCost(i).toLocaleString()}</div>}
+                  <div className="text-ink-400 text-xs">{m.getFullYear()}</div>
+                  {totalCost(i) > 0 && <div className="text-gold-400 text-xs mt-0.5 tabular-nums">~${totalCost(i).toLocaleString()}</div>}
                 </div>
                 <div className="flex-1 min-h-[2rem] border-l border-dashed border-ink-600 pl-4 py-1">
                   {buckets[i].length === 0 ? (
@@ -5575,7 +5646,7 @@ const PortfolioWidget = ({ onOpen }) => {
                         const status = maintenanceStatus(t);
                         return (
                           <button key={t.id} onClick={()=>onPick(t)}
-                            className={`text-[12px] px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 transition hover:translate-y-[-1px] ${
+                            className={`text-xs px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 transition hover:translate-y-[-1px] ${
                               status.tone==='overdue' ? 'border-ember-500/30 text-ember-400 bg-ember-500/10' :
                               status.tone==='soon'    ? 'border-gold-400/30 text-gold-300 bg-gold-400/10' :
                                                         'border-ink-600 text-ink-200 bg-ink-800'
@@ -5594,13 +5665,13 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="flex gap-4 items-start pt-2 border-t border-ink-700">
                 <div className="w-20 md:w-24 shrink-0 pt-1">
                   <div className="text-ink-300 text-sm font-medium">No date</div>
-                  <div className="text-ink-400 text-[11px]">set last completed</div>
+                  <div className="text-ink-400 text-xs">set last completed</div>
                 </div>
                 <div className="flex-1 min-h-[2rem] border-l border-dashed border-ink-600 pl-4 py-1">
                   <div className="flex flex-wrap gap-1.5">
                     {unscheduled.map(t => (
                       <button key={t.id} onClick={()=>onPick(t)}
-                        className="text-[12px] px-2.5 py-1 rounded-lg border border-ink-600 text-ink-300 bg-ink-800 inline-flex items-center gap-1.5 transition hover:translate-y-[-1px]">
+                        className="text-xs px-2.5 py-1 rounded-lg border border-ink-600 text-ink-300 bg-ink-800 inline-flex items-center gap-1.5 transition hover:translate-y-[-1px]">
                         <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40"/>
                         {t.name}
                       </button>
@@ -5641,7 +5712,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const open = (a) => setModal(<ApplianceForm appliance={a} onClose={()=>setModal(null)} />);
 
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Major appliances + equipment, with model numbers and warranties. Tap to edit. Photograph the model plate for anything still marked unknown.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add appliance</Btn>
@@ -5655,7 +5726,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex gap-2 flex-wrap">
             {rooms.map(r => (
               <button key={r} onClick={()=>setFilter(r)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs border transition ${filter===r ? 'bg-ink-100 text-ink-900 border-ink-100' : 'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs border transition ${filter===r ? 'border-gold-400/50 text-gold-300 bg-gold-400/12' : 'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
                 {r === 'all' ? 'All rooms' : r}
               </button>
             ))}
@@ -5663,7 +5734,7 @@ const PortfolioWidget = ({ onOpen }) => {
           {filtered.length === 0 ? (
             <Empty icon="cube" title="No appliances match" body="Try clearing the filter, or add a new appliance." cta={<Btn icon="plus" onClick={()=>open(null)}>Add appliance</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {filtered.map(a => <ApplianceCard key={a.id} a={a} onEdit={()=>open(a)} />)}
             </div>
           )}
@@ -5681,7 +5752,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-[11px] uppercase tracking-wider text-ink-400">{a.room || '—'}</div>
+                <div className="text-xs uppercase tracking-wider text-ink-400">{a.room || '—'}</div>
                 {a.placeholder && <PlaceholderBadge/>}
               </div>
               <div className="font-display text-lg leading-tight mt-0.5">{a.name}</div>
@@ -5751,7 +5822,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f37">Notes</label><textarea id="hq-f37" rows="3" value={a.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Service history, quirks, install context…"/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -5775,7 +5846,7 @@ const PortfolioWidget = ({ onOpen }) => {
       }), [state.insurance, ctx.propertyScope]);
       const open = (item) => setModal(<InsuranceForm item={item} onClose={()=>setModal(null)} />);
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Every policy in one place. Tap to edit, then drill into the carrier portal via the link.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>
@@ -5783,7 +5854,7 @@ const PortfolioWidget = ({ onOpen }) => {
           {list.length === 0 ? (
             <Empty icon="shield" title="No policies yet" body="Add your first policy." cta={<Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(p => <InsuranceCard key={p.id} p={p} onEdit={()=>open(p)} />)}
             </div>
           )}
@@ -5798,7 +5869,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-[11px] uppercase tracking-wider text-ink-400">{p.type}{p.property ? ` · ${p.property}` : ''}</div>
+                <div className="text-xs uppercase tracking-wider text-ink-400">{p.type}{p.property ? ` · ${p.property}` : ''}</div>
                 {p.placeholder && <PlaceholderBadge/>}
               </div>
               <div className="font-display text-lg leading-tight mt-0.5">{p.carrier}</div>
@@ -5883,7 +5954,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div><label htmlFor="hq-f49">Document / portal URL</label><input id="hq-f49" value={v.documentUrl||''} onChange={e=>setF('documentUrl', e.target.value)}/></div>
             <div><label htmlFor="hq-f50">Notes</label><textarea id="hq-f50" rows="3" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -5907,7 +5978,7 @@ const PortfolioWidget = ({ onOpen }) => {
         return g;
       }, [list]);
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Account numbers (last-4), payment cadence, and login URLs.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>
@@ -5918,8 +5989,8 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="space-y-6">
               {Object.entries(grouped).map(([propLabel, items]) => (
                 <div key={propLabel}>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-2">{propLabel}</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="text-xs uppercase text-ink-400 mb-2">{propLabel}</div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                     {items.map(u => <UtilityCard key={u.id} u={u} onEdit={()=>open(u)} />)}
                   </div>
                 </div>
@@ -5934,7 +6005,7 @@ const PortfolioWidget = ({ onOpen }) => {
       <div className="card p-4 md:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-wider text-ink-400">{u.kind}</div>
+            <div className="text-xs uppercase tracking-wider text-ink-400">{u.kind}</div>
             <div className="font-display text-lg leading-tight mt-0.5">{u.provider}</div>
             {u.accountNumber && <div className="text-ink-300 text-xs mt-1 font-mono">{u.accountNumber}</div>}
           </div>
@@ -5995,7 +6066,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f58">Notes</label><textarea id="hq-f58" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -6016,7 +6087,7 @@ const PortfolioWidget = ({ onOpen }) => {
       }), [state.property, ctx.propertyScope]);
       const open = (item) => setModal(<PropertyForm item={item} onClose={()=>setModal(null)} />);
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Mortgages, HOAs, property taxes, home warranties, security.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>
@@ -6024,7 +6095,7 @@ const PortfolioWidget = ({ onOpen }) => {
           {list.length === 0 ? (
             <Empty icon="key" title="No property records yet" body="Add your first property record." cta={<Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(p => <PropertyCard key={p.id} p={p} onEdit={()=>open(p)} />)}
             </div>
           )}
@@ -6039,7 +6110,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-[11px] uppercase tracking-wider text-ink-400">{(p.kind||'').replace('_',' ')}{p.property ? ` · ${p.property}` : ''}</div>
+                <div className="text-xs uppercase tracking-wider text-ink-400">{(p.kind||'').replace('_',' ')}{p.property ? ` · ${p.property}` : ''}</div>
                 {p.placeholder && <PlaceholderBadge/>}
               </div>
               <div className="font-display text-lg leading-tight mt-0.5">{p.label}</div>
@@ -6105,7 +6176,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f69">Notes</label><textarea id="hq-f69" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -6142,7 +6213,7 @@ const PortfolioWidget = ({ onOpen }) => {
       }, [active, inactive]);
       const monthly = split.total;
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Recurring spend, surfaced. Tap any line to add cost or renewal date.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>
@@ -6153,27 +6224,27 @@ const PortfolioWidget = ({ onOpen }) => {
                 hint={`${active.length} active subscriptions, every cadence normalised to a month.`} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-xl border border-sage-500/25 bg-sage-500/5 px-3.5 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Confirmed</div>
+                  <div className="text-2xs uppercase text-ink-400">Confirmed</div>
                   <div className="font-display text-xl text-sage-400 tabular-nums mt-0.5">${split.confirmed.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
-                  <div className="text-[11px] text-ink-400 mt-1 tabular-nums">{fmtMoney(split.confirmed * 12)}/yr</div>
+                  <div className="text-xs text-ink-400 mt-1 tabular-nums">{fmtMoney(split.confirmed * 12)}/yr</div>
                 </div>
                 <div className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Unconfirmed</div>
+                  <div className="text-2xs uppercase text-ink-400">Unconfirmed</div>
                   <div className="font-display text-xl text-gold-400 tabular-nums mt-0.5">${split.unconfirmed.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
-                  <div className="text-[11px] text-ink-400 mt-1">
+                  <div className="text-xs text-ink-400 mt-1">
                     {split.unconfirmedRows.length} line{split.unconfirmedRows.length===1?'':'s'}
                     {split.unconfirmedRows[0] && ` · largest ${split.unconfirmedRows[0].name} ${fmtMoney(perMonth(split.unconfirmedRows[0]))}/mo`}
                   </div>
                 </div>
                 <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Suspected cancelled</div>
+                  <div className="text-2xs uppercase text-ink-400">Suspected cancelled</div>
                   <div className="font-display text-xl text-ink-200 tabular-nums mt-0.5">${split.lapsed.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
-                  <div className="text-[11px] text-ink-400 mt-1">
+                  <div className="text-xs text-ink-400 mt-1">
                     {split.lapsedRows.length} line{split.lapsedRows.length===1?'':'s'} with no renewal date — excluded from the total
                   </div>
                 </div>
               </div>
-              <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+              <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
                 Tracked total <span className="text-ink-100 tabular-nums">${monthly.toFixed(2)}/mo</span> ({fmtMoney(monthly*12)}/yr).
                 {split.unconfirmed > 0 && ` ${(split.unconfirmed / monthly * 100).toFixed(0)}% of it rests on questions these records ask themselves — the queue below is sorted by what the answer is worth.`}
               </div>
@@ -6189,10 +6260,10 @@ const PortfolioWidget = ({ onOpen }) => {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-ink-100">
                           {s.name}
-                          <span className="text-ink-400 font-normal text-[11px]"> · ${s.cost} {s.cadence}</span>
+                          <span className="text-ink-400 font-normal text-xs"> · ${s.cost} {s.cadence}</span>
                         </div>
-                        <div className="text-[11px] text-ink-400 mt-0.5">{s.question || s.notes}</div>
-                        <div className="text-[11px] text-gold-400 mt-1 tabular-nums">
+                        <div className="text-xs text-ink-400 mt-0.5">{s.question || s.notes}</div>
+                        <div className="text-xs text-gold-400 mt-1 tabular-nums">
                           {s.confidence === 'cadence-unconfirmed'
                             ? `${fmtMoney(perMonth(s) * 12)}/yr if monthly · ${fmtMoney((s.cost||0) * 4)}/yr if quarterly`
                             : `${fmtMoney(perMonth(s) * 12)}/yr at stake`}
@@ -6223,7 +6294,7 @@ const PortfolioWidget = ({ onOpen }) => {
           {list.length === 0 ? (
             <Empty icon="receipt" title="No subscriptions yet" body="Add your first subscription." cta={<Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(s => <SubscriptionCard key={s.id} s={s} onEdit={()=>open(s)} />)}
             </div>
           )}
@@ -6239,7 +6310,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="card p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-wider text-ink-400">{s.category}</div>
+              <div className="text-xs uppercase tracking-wider text-ink-400">{s.category}</div>
               <div className="font-display text-lg leading-tight mt-0.5">{s.name}</div>
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
@@ -6247,12 +6318,12 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {s.cost ? <Pill tone="muted">${s.cost} {s.cadence||''}</Pill> : null}
             {nextRenewal && <Pill tone={n<0?'overdue':n<=7?'soon':'info'} dot>{n<0?`Renewal passed ${fmtDate(nextRenewal)} — confirm`:`Renews ${fmtDate(nextRenewal)}`}</Pill>}
-            {rolled && <span className="text-[10px] text-ink-400">projected from {fmtDate(s.renewalDate)}</span>}
+            {rolled && <span className="text-2xs text-ink-400">projected from {fmtDate(s.renewalDate)}</span>}
             {s.confidence && s.confidence !== 'confirmed' && (
               <Pill tone={s.confidence === 'lapsed' ? 'muted' : 'soon'}>{s.question || 'unconfirmed'}</Pill>
             )}
             {s.confidence === 'confirmed' && s.verifiedAt && (
-              <span className="text-[10px] text-ink-400">confirmed {fmtDate(s.verifiedAt)}</span>
+              <span className="text-2xs text-ink-400">confirmed {fmtDate(s.verifiedAt)}</span>
             )}
           </div>
           {s.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{s.notes}</div>}
@@ -6298,7 +6369,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div><label htmlFor="hq-f75">Login URL</label><input id="hq-f75" value={v.url||''} onChange={e=>setF('url', e.target.value)} placeholder="https://…"/></div>
             <div><label htmlFor="hq-f76">Notes</label><textarea id="hq-f76" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -6316,7 +6387,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const list = state.vehicles || [];
       const open = (item) => setModal(<VehicleForm item={item} onClose={()=>setModal(null)} />);
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Cars, VINs, and extended warranties.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>
@@ -6324,7 +6395,7 @@ const PortfolioWidget = ({ onOpen }) => {
           {list.length === 0 ? (
             <Empty icon="car" title="No vehicles yet" body="Add your first car." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(v => <VehicleCard key={v.id} v={v} onEdit={()=>open(v)} />)}
             </div>
           )}
@@ -6338,7 +6409,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="card p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-wider text-ink-400">{v.year || ''} {v.make}</div>
+              <div className="text-xs uppercase tracking-wider text-ink-400">{v.year || ''} {v.make}</div>
               <div className="font-display text-lg leading-tight mt-0.5">{v.model}{v.trim?` ${v.trim}`:''}</div>
               {v.primaryDriver && <div className="text-ink-300 text-sm">Driver: {v.primaryDriver}</div>}
             </div>
@@ -6390,7 +6461,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div><label htmlFor="hq-f86">Warranty expires</label><input id="hq-f86" type="date" value={v.warrantyExpires||''} onChange={e=>setF('warrantyExpires', e.target.value)}/></div>
             <div><label htmlFor="hq-f87">Notes</label><textarea id="hq-f87" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -6409,7 +6480,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const list = state.benefits || [];
       const open = (item) => setModal(<BenefitForm item={item} onClose={()=>setModal(null)} />);
       return (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Health + employer benefits — member IDs and portal links you need at appointments.</p>
             <Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>
@@ -6417,7 +6488,7 @@ const PortfolioWidget = ({ onOpen }) => {
           {list.length === 0 ? (
             <Empty icon="heart" title="No benefits yet" body="Add your first benefit." cta={<Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(b => <BenefitCard key={b.id} b={b} onEdit={()=>open(b)} />)}
             </div>
           )}
@@ -6429,7 +6500,7 @@ const PortfolioWidget = ({ onOpen }) => {
       <div className="card p-4 md:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-wider text-ink-400">{b.type}</div>
+            <div className="text-xs uppercase tracking-wider text-ink-400">{b.type}</div>
             <div className="font-display text-lg leading-tight mt-0.5">{b.provider}</div>
           </div>
           <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
@@ -6475,7 +6546,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div><label htmlFor="hq-f92">Portal URL</label><input id="hq-f92" value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
             <div><label htmlFor="hq-f93">Notes</label><textarea id="hq-f93" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -6527,7 +6598,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="flex items-center justify-between gap-3 p-4 border-b border-ink-600">
               <div className="min-w-0 flex-1">
                 <div className="font-display text-base leading-tight truncate">{label}</div>
-                <div className="text-ink-400 text-[11px] mt-0.5 truncate">{(() => { try { return new URL(url).hostname; } catch { return url; } })()}</div>
+                <div className="text-ink-400 text-xs mt-0.5 truncate">{(() => { try { return new URL(url).hostname; } catch { return url; } })()}</div>
               </div>
               <a href={url} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-xs">
                 <Icon name="link" size={13} className="text-gold-400"/> Open in Box
@@ -6563,7 +6634,7 @@ const PortfolioWidget = ({ onOpen }) => {
                 </div>
               )}
             </div>
-            <div className="px-4 py-2 border-t border-ink-600 text-[11px] text-ink-400">
+            <div className="px-4 py-2 border-t border-ink-600 text-xs text-ink-400">
               Inline previews work for files with a Box shared link. Other files open in Box directly.
             </div>
           </div>
@@ -6574,7 +6645,7 @@ const PortfolioWidget = ({ onOpen }) => {
 
     /* Visible "Placeholder" pill — surfaces seeded gap-fillers that need real data */
     const PlaceholderBadge = () => (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-400/12 border border-gold-400/30 text-gold-300 text-[10px] uppercase tracking-[0.14em]">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold-400/12 border border-gold-400/30 text-gold-300 text-2xs uppercase">
         <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse"/>
         Needs info
       </span>
@@ -6621,7 +6692,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label>Rating (optional)</label><RatingPicker value={rating} onChange={setRating} /></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-end gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-end gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
             <Btn icon="wine" onClick={save}>Log it</Btn>
           </div>
@@ -6678,7 +6749,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f105">Notes</label><textarea id="hq-f105" rows="3" value={w.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Where it came from, what to pair it with…"/></div>
           </div>
-          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
+          <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Remove</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
@@ -6697,7 +6768,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className={`card p-4 md:p-5 ${empty ? 'opacity-60' : ''}`}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-wider text-ink-400">{w.region || '—'}</div>
+              <div className="text-xs uppercase tracking-wider text-ink-400">{w.region || '—'}</div>
               <div className="font-display text-lg leading-tight mt-0.5">{w.producer}</div>
               <div className="text-ink-200 text-sm">{w.label}</div>
               <div className="text-ink-300 text-xs mt-1">{w.vintage} · {w.varietal}</div>
@@ -6766,7 +6837,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const recent = (state.wineLog || []).slice(0, 8);
 
       return (
-        <div className="space-y-6 max-w-5xl">
+        <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">The cellar. Log a bottle when you open it and the counts stay honest.</p>
             <Btn icon="plus" onClick={()=>openForm(null)}>Add bottle</Btn>
@@ -6777,7 +6848,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="card p-5 md:p-6 border-gold-400/25">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-[0.16em] text-gold-400 mb-1.5">What should we open tonight?</div>
+                  <div className="text-xs uppercase text-gold-400 mb-1.5">What should we open tonight?</div>
                   <div className="font-display text-xl md:text-2xl leading-tight">{pick.vintage} {pick.producer} <span className="text-ink-200">{pick.label}</span></div>
                   <div className="text-ink-300 text-sm mt-1">
                     {pick.varietal} · {pick.region} · {pick.location}
@@ -6829,10 +6900,10 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="space-y-2">
                 {recent.map(l => (
                   <div key={l.id} className="card-soft p-3.5 flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0"><Icon name="wine" size={16}/></div>
+                    <div className="w-9 h-9 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0"><Icon name="wine" size={16}/></div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium">{l.title}</div>
-                      <div className="text-ink-400 text-[11px] mt-0.5">
+                      <div className="text-ink-400 text-xs mt-0.5">
                         {new Date(l.openedAt).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })}
                         {l.rating ? <span className="text-gold-400"> · {'●'.repeat(l.rating)}{'○'.repeat(5-l.rating)}</span> : null}
                       </div>
@@ -6894,7 +6965,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <>
           <div className="divider my-4"/>
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-ink-400 mb-2">Documents</div>
+            <div className="text-xs uppercase tracking-wider text-ink-400 mb-2">Documents</div>
             <div className="flex flex-wrap gap-1.5 items-center">
               {(links || []).map((l, i) => {
                 const inlineable = !!toBoxEmbed(l.url);
@@ -6906,7 +6977,7 @@ const PortfolioWidget = ({ onOpen }) => {
                       <Icon name="link" size={12} className="text-gold-400" />
                       {l.label}
                       {!inlineable && (
-                        <span className="text-ink-400 text-[10px] ml-0.5">↗</span>
+                        <span className="text-ink-400 text-2xs ml-0.5">↗</span>
                       )}
                     </button>
                     {canEdit && (
@@ -7012,7 +7083,7 @@ const PortfolioWidget = ({ onOpen }) => {
       return (
         <div className="card p-4 flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] uppercase tracking-wider text-ink-400">Quick capture</div>
+            <div className="text-xs uppercase tracking-wider text-ink-400">Quick capture</div>
             <div className="text-sm text-ink-200 mt-0.5">Snap a photo or upload a file straight to your Box Inbox.</div>
           </div>
           <div className="flex items-center gap-2">
@@ -7025,7 +7096,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <Icon name="gear" size={14}/>Box
             </button>
           </div>
-          {err && <div className="w-full text-[11px] text-ember-400">{err}</div>}
+          {err && <div className="w-full text-xs text-ember-400">{err}</div>}
           <input ref={inputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden"/>
           {showSettings && <BoxSettingsModal onClose={() => setShowSettings(false)} onSaved={onSettingsSaved} kindHighlight="inbox"/>}
         </div>
@@ -7044,7 +7115,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const order = ['Insurance','Property','Vehicles','Planning','Reference'];
       const cats = order.filter(c => grouped[c]).concat(Object.keys(grouped).filter(c => !order.includes(c)));
       return (
-        <div className="space-y-7 max-w-5xl">
+        <div className="space-y-8">
           <QuickCaptureBar />
           <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Direct links to source documents — Box folders, manuals, reference sheets. Click to open in a new tab.</p>
           {cats.length === 0 ? (
@@ -7055,18 +7126,18 @@ const PortfolioWidget = ({ onOpen }) => {
                 <h2 className="font-display text-xl tracking-tight">{cat}</h2>
                 <span className="text-ink-400 text-xs">{grouped[cat].length}</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {grouped[cat].map(f => {
                   const embeddable = !!toBoxEmbed(f.url);
                   const Inner = (
                     <>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
                         <Icon name={f.url.includes('/folder/') ? 'folder' : 'link'} size={18} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-ink-100 group-hover:text-gold-300 truncate">{f.label}</div>
                         {f.notes && <div className="text-ink-300 text-xs mt-0.5 line-clamp-2">{f.notes}</div>}
-                        <div className="text-ink-400 text-[11px] mt-1.5 truncate">{(() => { try { return new URL(f.url).hostname; } catch { return f.url; } })()}</div>
+                        <div className="text-ink-400 text-xs mt-1.5 truncate">{(() => { try { return new URL(f.url).hostname; } catch { return f.url; } })()}</div>
                       </div>
                     </>
                   );
@@ -7139,7 +7210,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold text-lg">H</div>
               <div>
                 <div className="font-display text-xl tracking-tight leading-none">Home HQ</div>
-                <div className="text-ink-400 text-[11px] uppercase tracking-wider mt-1">Shared view</div>
+                <div className="text-ink-400 text-xs uppercase tracking-wider mt-1">Shared view</div>
               </div>
             </div>
             <div className="text-ink-200 text-sm mb-1">Welcome.</div>
@@ -7163,7 +7234,7 @@ const PortfolioWidget = ({ onOpen }) => {
               className="btn-primary w-full mt-4 px-3.5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
               {busy ? 'Unlocking…' : 'View dashboard'}
             </button>
-            <div className="text-ink-400 text-[11px] mt-5 leading-relaxed">
+            <div className="text-ink-400 text-xs mt-5 leading-relaxed">
               This is a private view of the McCullum household dashboard. Edits you make are saved on this device only.
             </div>
           </form>
