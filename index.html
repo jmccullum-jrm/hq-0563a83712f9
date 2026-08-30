@@ -94,7 +94,13 @@
     .divider { height: 1px; background: linear-gradient(90deg, transparent, #2a2723, transparent); }
     input, select, textarea {
       background: #131210 !important; border: 1px solid #2a2723 !important; color: #e8e2d4 !important;
-      border-radius: 12px; padding: .65rem .85rem; width: 100%; font-size: .95rem; min-height: 44px;
+      border-radius: 12px; padding: .65rem .85rem; width: 100%; font-size: 16px; min-height: 44px;
+    }
+    /* 16px is the threshold below which iOS Safari zooms the page on focus; the old
+       .95rem (15.2px) meant tapping any field re-laid out the whole view. Desktop can
+       have the smaller type back, where no such behaviour exists. */
+    @media (min-width: 768px) {
+      input, select, textarea { font-size: .95rem; }
     }
     input[type="checkbox"], input[type="radio"] { min-height: 0; width: auto; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: #c19654 !important; box-shadow: 0 0 0 3px rgba(193,150,84,.18); }
@@ -642,7 +648,7 @@
       const ctx = useContext(Ctx);
       return (
         <button onClick={() => { try { navigator.clipboard.writeText(text); ctx.showToast('Copied'); } catch {} }}
-          className="text-ink-400 hover:text-gold-300 transition p-0.5" aria-label="Copy"><Icon name="copy" size={11}/></button>
+          className="text-ink-400 hover:text-gold-300 transition p-2 -m-1.5 shrink-0" aria-label="Copy"><Icon name="copy" size={12}/></button>
       );
     };
 
@@ -1487,7 +1493,7 @@
           </aside>
 
           {/* Main */}
-          <main className="flex-1 min-w-0 pb-24 md:pb-12">
+          <main className="flex-1 min-w-0 pb-36 md:pb-12">
             {/* Top bar */}
             <header className="px-5 md:px-10 pt-safe md:pt-10"><div className="max-w-6xl mx-auto">
               <div className="md:hidden flex items-center justify-between mb-4">
@@ -1664,7 +1670,7 @@
       return (
         <div className="fixed inset-0 z-50 modal-backdrop flex items-end md:items-center justify-center px-3 md:px-6 pb-3 md:pb-0" onClick={onClose}>
           <div ref={shellRef} tabIndex={-1} role="dialog" aria-modal="true"
-            className="modal-shell w-full max-w-lg max-h-[90vh] overflow-y-auto anim-in focus:outline-none" onClick={e=>e.stopPropagation()}>
+            className="modal-shell w-full max-w-lg max-h-[90vh] overflow-y-auto anim-in focus:outline-none pb-safe md:pb-0" onClick={e=>e.stopPropagation()}>
             {children}
           </div>
         </div>
@@ -1687,8 +1693,8 @@
       const msg = typeof toast === 'string' ? toast : toast.msg;
       const action = typeof toast === 'object' ? toast.action : null;
       return (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 anim-in">
-          <div className="card px-4 py-2.5 text-sm flex items-center gap-2 shadow-2xl">
+        <div className="fixed top-4 inset-x-3 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-50 anim-in flex justify-center pointer-events-none">
+          <div className="card px-4 py-2.5 text-sm flex items-center gap-2 shadow-2xl max-w-full pointer-events-auto">
             <Icon name="check" size={16} className="text-sage-400" />
             <span>{msg}</span>
             {action && (
@@ -2190,7 +2196,7 @@
                       </div>
                       <div className="text-ink-300 text-xs mt-1.5 leading-relaxed">{g.why}</div>
                     </div>
-                    <Icon name="chevR" size={14} className="text-ink-400 mt-1 opacity-0 group-hover:opacity-100 transition" />
+                    <Icon name="chevR" size={14} className="text-ink-400 mt-1 md:opacity-0 md:group-hover:opacity-100 transition" />
                   </button>
                 ))}
               </div>
@@ -3519,7 +3525,7 @@ const DafPanel = () => {
                 {d != null && <span className={`text-[11px] tabular-nums ${d >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>{d >= 0 ? '+' : ''}{fmtMoneyK(d)}</span>}
                 <span className="text-ink-400 text-[11px] flex-1 truncate">{e.note || ''}</span>
                 <button onClick={() => { if (window.confirm('Delete this entry?')) ctx.deleteDafValue(e.id); }}
-                  className="opacity-0 group-hover/daf:opacity-100 transition text-ink-400 hover:text-ember-400 p-1"><Icon name="x" size={12}/></button>
+                  className="md:opacity-0 md:group-hover/daf:opacity-100 transition text-ink-400 hover:text-ember-400 p-2 -m-1"><Icon name="x" size={12}/></button>
               </div>
             );
           })}
@@ -3924,7 +3930,7 @@ const SuggestionRow = ({ s, accent }) => {
         </div>
         <button onClick={() => { if (window.confirm('Delete this suggestion?')) ctx.deleteSuggestion(s.id); }}
           aria-label="Delete suggestion"
-          className="shrink-0 opacity-0 group-hover/sg:opacity-100 transition text-ink-400 hover:text-ember-400 p-1">
+          className="shrink-0 md:opacity-0 md:group-hover/sg:opacity-100 transition text-ink-400 hover:text-ember-400 p-2 -m-1">
           <Icon name="x" size={13} />
         </button>
       </div>
