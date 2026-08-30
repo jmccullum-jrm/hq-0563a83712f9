@@ -2292,7 +2292,7 @@
     );
 
     // tone: 'now' (needs you) | 'soon' | 'ok' (affirmatively good) | undefined (fine — most rows)
-    const Row = ({ tone, title, meta = [], value, valueUnit, when, onOpen, action }) => (
+    const Row = ({ tone, title, meta = [], value, valueUnit, when, onOpen, action, below }) => (
       <div role="button" tabIndex={0} onClick={onOpen}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen && onOpen(); } }}
         className="lrow">
@@ -2305,6 +2305,7 @@
               {when && <span className="md:hidden">{meta.filter(Boolean).length ? ' · ' : ''}{when}</span>}
             </span>
           )}
+          {below && <span className="flex items-center gap-1.5 flex-wrap mt-2">{below}</span>}
         </span>
         <span className={`lrow-when hidden md:block text-xs tabular-nums text-right ${
           tone === 'now' ? 'text-ember-400' : tone === 'soon' ? 'text-gold-400' : 'text-ink-400'}`}>{when}</span>
@@ -2785,22 +2786,6 @@
               below", and what used to be right below was a search bar, six tiles and
               two hero cards — roughly 1,600px on a phone before the first task. */}
           <div className="space-y-4">
-          {/* Nothing at all to do — one calm card instead of two empty sections */}
-          {overdue.length === 0 && upcomingTasks.length === 0 && (
-            /* The work block leads the page, so when there is none it still needs to
-               say so — otherwise Today opens on a lone counter. Money dates and
-               charges have their own sections below and are not work. */
-            <div className="card px-5 py-4 flex items-center gap-3.5 flex-wrap sm:flex-nowrap">
-              <div className="w-9 h-9 rounded-xl bg-sage-400/12 grid place-items-center text-sage-400 shrink-0">
-                <Icon name="check" size={17} />
-              </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[10rem]">
-                <div className="text-sm text-ink-100">Nothing needs you</div>
-                <div className="text-xs text-ink-400">No overdue items and the next 30 days are clear.</div>
-              </div>
-              <Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>
-            </div>
-          )}
           {/* Overdue */}
           {overdue.length > 0 && (
           <section>
@@ -2870,25 +2855,10 @@
             );
           })()}
 
-          {/* Money summary + digest */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <PortfolioWidget onOpen={()=>setView('portfolio')} />
-            <div className="card p-5 md:p-6 flex flex-col justify-between gap-4">
-              <div>
-                <div className="text-xs uppercase text-ink-400 mb-1">Digest</div>
-                <div className="font-display text-lg tracking-tight">This week's digest</div>
-                <div className="text-ink-300 text-sm mt-1.5 leading-relaxed">
-                  A clean, forwardable summary of everything that needs attention — overdue items, the next 30 days, renewals and warranties.
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Btn icon="sparkles" onClick={generateDigest}>Generate</Btn>
-                <span className="text-xs text-ink-400">
-                  {digestCount} item{digestCount === 1 ? '' : 's'} would be included
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* The portfolio takes the width it used to share with 130 words of
+              explainer for a single button. The digest becomes a footnote at the
+              bottom of the page, where a "forward this to yourself" action belongs. */}
+          <PortfolioWidget onOpen={()=>setView('portfolio')} />
 
           {/* Dated money events — the things that happen whether or not anyone acts */}
           {moneyDates.length > 0 && (
@@ -3014,31 +2984,19 @@
                 <Icon name="chevR" size={16} className={`text-ink-400 transition-transform ${gapsOpen ? 'rotate-90' : ''}`} />
               </button>
               {gapsOpen && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              <Ledger valueWidth="0rem" hasActions>
                 {gaps.map((g, i) => (
-                  <div key={i} className="card p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
-                      <Icon name={g.icon} size={18} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="text-sm font-medium text-ink-100">{g.title}</div>
-                        {g.property && (
-                          <span className="text-2xs uppercase text-ink-400 px-1.5 py-0.5 rounded border border-ink-600">
-                            {g.property === '1619 Seattle' ? 'Seattle' : 'Sun Valley'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-ink-300 text-xs mt-1.5 leading-relaxed">{g.why}</div>
-                      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                  <Row key={i} title={g.title}
+                    meta={[g.property ? (g.property === '1619 Seattle' ? 'Seattle' : 'Sun Valley') : null, g.why]}
+                    when={null}
+                    action={
+                      <span className="flex items-center gap-1.5">
                         <Btn variant="soft" icon="chevR" onClick={()=>setView(g.module)}>Open {g.module}</Btn>
                         <button onClick={()=>ctx.dismissGap(g.title)}
-                          className="text-xs text-ink-400 hover:text-ink-200 px-2 py-1.5 rounded-lg">Not applicable</button>
-                      </div>
-                    </div>
-                  </div>
+                          className="text-xs text-ink-400 hover:text-ink-200 px-2 py-1.5 rounded-lg whitespace-nowrap">Not applicable</button>
+                      </span>} />
                 ))}
-              </div>
+              </Ledger>
               )}
               {(state.dismissedGaps || []).length > 0 && gapsOpen && (
                 <button onClick={ctx.restoreGaps}
@@ -3071,6 +3029,13 @@
             )}
           </section>
           )}
+
+          {/* The digest is a thing you do at the end of reading the page, so it sits
+              at the end of the page — one line rather than a card of explainer. */}
+          <div className="pt-2 border-t border-ink-700 text-xs text-ink-400 flex items-center gap-2 flex-wrap">
+            <span>This week&rsquo;s digest — {digestCount} item{digestCount === 1 ? '' : 's'} would be included.</span>
+            <button onClick={generateDigest} className="text-gold-300 hover:underline underline-offset-2">Generate</button>
+          </div>
         </div>
       );
     };
@@ -5362,39 +5327,30 @@ const PortfolioWidget = ({ onOpen }) => {
                 ))}
               </div>
 
-              {Object.entries(buckets).filter(([_,items]) => items.length > 0).map(([bucket, items]) => (
-                <section key={bucket}>
-                  <div className="text-xs uppercase text-ink-400 mb-2.5">{bucket}</div>
-                  <div className="space-y-2">
+              <Ledger valueWidth="0rem" hasActions>
+                {Object.entries(buckets).filter(([_,items]) => items.length > 0).map(([bucket, items]) => (
+                  <React.Fragment key={bucket}>
+                    <div className="lgroup flex items-baseline justify-between px-4 py-1.5 bg-ink-750/95 backdrop-blur
+                                    text-2xs uppercase tracking-wide text-ink-300 border-y border-ink-600/60">
+                      <span>{bucket}</span><span className="tabular-nums text-ink-400">{items.length}</span>
+                    </div>
                     {items.map(l => {
                       const d = new Date(l.completedAt);
                       const when = d.toLocaleString(undefined, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
                       return (
-                        <div key={l.id} className="card p-3 md:p-4 flex items-start gap-3 group">
-                          <div className="w-7 h-7 rounded-full bg-sage-400/15 grid place-items-center text-sage-400 shrink-0 mt-0.5">
-                            <Icon name="check" size={13} />
-                          </div>
-                          <div className="w-9 h-9 rounded-lg bg-ink-700 grid place-items-center text-ink-300 shrink-0">
-                            <Icon name={KIND_ICONS[l.kind]||'dot'} size={15} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm text-ink-100 line-through decoration-ink-500/40 decoration-1">{l.title}</div>
-                            {l.sub && <div className="text-ink-400 text-xs mt-0.5 truncate">{l.sub}</div>}
-                            <div className="text-ink-400 text-xs mt-1">
-                              <span className="uppercase tracking-wider">{KIND_LABELS[l.kind]||l.kind}</span> · {when}
-                              {l.originalDue && <span className="text-ink-400"> · was due {fmtDate(l.originalDue,{month:'short',day:'numeric'})}</span>}
-                            </div>
-                          </div>
-                          <button onClick={() => ctx.undoDone(l.id)} title="Undo"
-                             className="md:opacity-0 md:group-hover:opacity-100 transition text-ink-300 hover:text-gold-300 text-xs px-3 py-2 rounded-lg bg-ink-700/60">
-                            Undo
-                          </button>
-                        </div>
+                        <Row key={l.id} tone="ok"
+                          title={<span className="line-through decoration-ink-500/40 decoration-1">{l.title}</span>}
+                          meta={[KIND_LABELS[l.kind]||l.kind, l.sub, when,
+                                 l.originalDue ? `was due ${fmtDate(l.originalDue,{month:'short',day:'numeric'})}` : null]}
+                          when={null}
+                          action={
+                            <button onClick={() => ctx.undoDone(l.id)}
+                              className="text-ink-300 hover:text-gold-300 text-xs px-3 py-2 rounded-lg bg-ink-700/60">Undo</button>} />
                       );
                     })}
-                  </div>
-                </section>
-              ))}
+                  </React.Fragment>
+                ))}
+              </Ledger>
             </>
           )}
         </div>
@@ -6037,8 +5993,18 @@ const PortfolioWidget = ({ onOpen }) => {
 
       const open = (a) => setModal(<ApplianceForm appliance={a} onClose={()=>setModal(null)} />);
 
+      const expiring = filtered.filter(a => { const n = daysUntil(a.warrantyExpires); return n !== null && n <= 90; }).length;
+      const unknown = filtered.filter(a => !a.serial).length;
       return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {filtered.length > 0 && (
+            <Readout value={String(filtered.length)} unit={filtered.length === 1 ? ' appliance' : ' appliances'}
+              parts={[
+                `${rooms.length - 1} rooms`,
+                expiring > 0 && { text: `${expiring} warrant${expiring === 1 ? 'y' : 'ies'} expiring within 90 days`, alert: true },
+                unknown > 0 && `${unknown} with no serial recorded`,
+              ]} />
+          )}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
@@ -6142,8 +6108,20 @@ const PortfolioWidget = ({ onOpen }) => {
         const ad = daysUntil(a.renewalDate) ?? 9e9; const bd = daysUntil(b.renewalDate) ?? 9e9; return ad - bd;
       }), [state.insurance, ctx.propertyScope]);
       const open = (item) => setModal(<InsuranceForm item={item} onClose={()=>setModal(null)} />);
+      const premiumYr = list.reduce((a,p) => {
+        const per = { monthly:12, quarterly:4, annual:1, yearly:1, 'semi-annual':2 }[p.premiumCadence] || 1;
+        return a + (p.premium || 0) * per;
+      }, 0);
+      const undated = list.filter(p => !p.renewalDate).length;
       return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {list.length > 0 && (
+            <Readout value={String(list.length)} unit={list.length === 1 ? ' policy' : ' policies'}
+              parts={[
+                premiumYr > 0 && `${fmtMoney(premiumYr)}/yr in premiums`,
+                undated > 0 && { text: `${undated} with no renewal date — a lapse would be invisible`, alert: true },
+              ]} />
+          )}
           {list.length === 0 ? (
             <Empty icon="shield" title="No policies yet" body="Carriers, policy numbers and renewal dates, so a lapse cannot pass unnoticed." cta={<Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>} />
           ) : (
@@ -6234,8 +6212,17 @@ const PortfolioWidget = ({ onOpen }) => {
         list.forEach(u => { const k = u.property || 'Other'; (g[k] = g[k] || []).push(u); });
         return g;
       }, [list]);
+      const perMo = list.reduce((a,u) => a + (u.monthlyEstimate || 0), 0);
+      const noAutopay = list.filter(u => u.autopay === false).length;
       return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {list.length > 0 && (
+            <Readout value={String(list.length)} unit={list.length === 1 ? ' account' : ' accounts'}
+              parts={[
+                perMo > 0 && `~${fmtMoney(perMo)}/mo estimated`,
+                noAutopay > 0 && { text: `${noAutopay} paid by hand`, alert: true },
+              ]} />
+          )}
           {list.length === 0 ? (
             <Empty icon="zap" title="No utilities yet" body="Account numbers and payment details for both houses, in one place." cta={<Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>} />
           ) : (
@@ -6325,8 +6312,16 @@ const PortfolioWidget = ({ onOpen }) => {
         const ad = daysUntil(a.nextDue) ?? 9e9; const bd = daysUntil(b.nextDue) ?? 9e9; return ad - bd;
       }), [state.property, ctx.propertyScope]);
       const open = (item) => setModal(<PropertyForm item={item} onClose={()=>setModal(null)} />);
+      const dueSoon = list.filter(x => { const n = daysUntil(x.nextDue); return n !== null && n <= 30; }).length;
       return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {list.length > 0 && (
+            <Readout value={String(list.length)} unit={list.length === 1 ? ' record' : ' records'}
+              parts={[
+                `${new Set(list.map(x => x.kind).filter(Boolean)).size} kinds`,
+                dueSoon > 0 && { text: `${dueSoon} due within 30 days`, alert: true },
+              ]} />
+          )}
           {list.length === 0 ? (
             <Empty icon="key" title="No property records yet" body="Mortgages, HOA dues, property taxes and warranties — with their next due dates on Today." cta={<Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>} />
           ) : (
@@ -6436,6 +6431,7 @@ const PortfolioWidget = ({ onOpen }) => {
         const needle = q.trim().toLowerCase();
         let r = list;
         if (facet === 'unconfirmed') r = r.filter(x => x.confidence && x.confidence !== 'confirmed' && subscriptionNextRenewal(x));
+        if (facet === 'confirmed')   r = r.filter(x => (!x.confidence || x.confidence === 'confirmed') && subscriptionNextRenewal(x));
         if (facet === 'lapsed')      r = r.filter(x => !subscriptionNextRenewal(x));
         if (needle) r = r.filter(x => `${x.name} ${x.category||''} ${x.notes||''}`.toLowerCase().includes(needle));
         // Soonest renewal first; anything with no live date sinks to the bottom.
@@ -6447,18 +6443,18 @@ const PortfolioWidget = ({ onOpen }) => {
           return ra < rb ? -1 : ra > rb ? 1 : 0;
         });
       }, [list, q, facet]);
-      const armed = facet === 'unconfirmed';
       return (
         <div className="space-y-6">
           {monthly > 0 && (
             <Readout
               value={fmtMoney(monthly)} unit="/mo"
               parts={[
-                `${active.length} active`,
-                `${fmtMoney(monthly * 12)}/yr`,
+                `${active.length} active · ${fmtMoney(monthly * 12)}/yr`,
+                split.confirmed > 0 && { text: `${fmtMoney(split.confirmed)}/mo confirmed`,
+                                         onClick: () => setFacet(facet === 'confirmed' ? null : 'confirmed') },
                 split.unconfirmed > 0 && { text: `${fmtMoney(split.unconfirmed)}/mo unconfirmed`, alert: true,
                                            onClick: () => setFacet(facet === 'unconfirmed' ? null : 'unconfirmed') },
-                split.lapsedRows.length > 0 && { text: `${split.lapsedRows.length} with no renewal date`,
+                split.lapsedRows.length > 0 && { text: `${fmtMoney(split.lapsed)}/mo suspected cancelled — excluded`,
                                                  onClick: () => setFacet(facet === 'lapsed' ? null : 'lapsed') },
               ]} />
           )}
@@ -6476,7 +6472,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {rows.length === 0 ? (
               <p className="text-sm text-ink-400 py-6">Nothing matches that filter.</p>
             ) : (
-              <Ledger valueWidth="6rem" hasActions={armed}>
+              <Ledger valueWidth="6rem">
                 {rows.map(s => {
                   const nextRenewal = subscriptionNextRenewal(s);
                   const n = daysUntil(nextRenewal);
@@ -6490,24 +6486,29 @@ const PortfolioWidget = ({ onOpen }) => {
                                         : 'no renewal date'}
                       value={fmtMoney(perMonth(s))} valueUnit="/mo"
                       onOpen={()=>open(s)}
-                      action={armed ? (
-                        <span className="flex items-center gap-1">
+                      below={unconfirmed ? (
+                        <>
+                          {/* What the answer is worth, in full — this is the reason the
+                              row is asking, so it must not truncate. */}
+                          <span className="basis-full text-xs text-gold-400 tabular-nums">
+                            {s.confidence === 'cadence-unconfirmed'
+                              ? `${fmtMoney(perMonth(s) * 12)}/yr if monthly · ${fmtMoney((s.cost||0) * 4)}/yr if quarterly`
+                              : `${fmtMoney(perMonth(s) * 12)}/yr at stake`}
+                          </span>
                           {safeUrl(s.url) && (
                             <a href={safeUrl(s.url)} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
                                aria-label={`Open ${s.name} to check`} title="Check"
-                               className="w-8 h-8 rounded-lg grid place-items-center bg-ink-700 hover:bg-ink-600 text-ink-100"><Icon name="link" size={13}/></a>
+                               className="px-2 py-1 rounded-lg text-xs bg-ink-700 hover:bg-ink-600 text-ink-100 inline-flex items-center gap-1"><Icon name="link" size={11}/> Check</a>
                           )}
                           {s.confidence === 'cadence-unconfirmed' && (
                             <button onClick={e=>{ e.stopPropagation(); ctx.updateSubscription(s.id, { cadence:'quarterly', confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} set to quarterly`); }}
-                              className="px-2 h-8 rounded-lg text-xs bg-ink-700 hover:bg-ink-600 text-ink-100 whitespace-nowrap">It&rsquo;s quarterly</button>
+                              className="px-2 py-1 rounded-lg text-xs bg-ink-700 hover:bg-ink-600 text-ink-100 whitespace-nowrap">It&rsquo;s quarterly</button>
                           )}
                           <button onClick={e=>{ e.stopPropagation(); ctx.updateSubscription(s.id, { confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} confirmed`); }}
-                            aria-label={`Confirm ${s.name}`} title="Confirm"
-                            className="w-8 h-8 rounded-lg grid place-items-center bg-sage-500/15 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20"><Icon name="check" size={13}/></button>
+                            className="px-2 py-1 rounded-lg text-xs bg-sage-500/15 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20">Confirm</button>
                           <button onClick={e=>{ e.stopPropagation(); ctx.deleteWithUndo('subscriptions', s, s.name); }}
-                            aria-label={`Remove ${s.name}`} title="Remove"
-                            className="w-8 h-8 rounded-lg grid place-items-center bg-ember-500/12 text-ember-400 border border-ember-500/25 hover:bg-ember-500/20"><Icon name="trash" size={13}/></button>
-                        </span>
+                            className="px-2 py-1 rounded-lg text-xs bg-ember-500/12 text-ember-400 border border-ember-500/25 hover:bg-ember-500/20">Remove</button>
+                        </>
                       ) : undefined} />
                   );
                 })}
@@ -6573,8 +6574,16 @@ const PortfolioWidget = ({ onOpen }) => {
       const { state, setModal } = ctx;
       const list = state.vehicles || [];
       const open = (item) => setModal(<VehicleForm item={item} onClose={()=>setModal(null)} />);
+      const expiring = list.filter(x => { const n = daysUntil(x.warrantyExpires); return n !== null && n <= 90; }).length;
       return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {list.length > 0 && (
+            <Readout value={String(list.length)} unit={list.length === 1 ? ' vehicle' : ' vehicles'}
+              parts={[
+                `${list.filter(x => x.vin).length} with a VIN on file`,
+                expiring > 0 && { text: `${expiring} warrant${expiring === 1 ? 'y' : 'ies'} expiring within 90 days`, alert: true },
+              ]} />
+          )}
           {list.length === 0 ? (
             <Empty icon="car" title="No vehicles yet" body="VINs, service contracts and warranty dates, so a claim call takes one tap." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>} />
           ) : (
@@ -6646,7 +6655,14 @@ const PortfolioWidget = ({ onOpen }) => {
       const list = state.benefits || [];
       const open = (item) => setModal(<BenefitForm item={item} onClose={()=>setModal(null)} />);
       return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {list.length > 0 && (
+            <Readout value={String(list.length)} unit={list.length === 1 ? ' plan' : ' plans'}
+              parts={[
+                `${new Set(list.map(x => x.type).filter(Boolean)).size} types`,
+                `${list.filter(x => x.memberID).length} with a member ID`,
+              ]} />
+          )}
           {list.length === 0 ? (
             <Empty icon="heart" title="No benefits yet" body="Member and group numbers, in a card you can read out at an appointment." cta={<Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>} />
           ) : (
