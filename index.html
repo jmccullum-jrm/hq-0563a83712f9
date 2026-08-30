@@ -1879,7 +1879,11 @@
           .sort((a,b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
       }, [state, scope]);
 
-      const drinkNow = useMemo(() => (state.wine || []).filter(w => wineState(w) === 'now').slice(0, 3), [state]);
+      // Bottles actually available to open: in window and still in stock. The old version
+      // capped at three and counted bottles with qty 0, so the tile and the section disagreed.
+      const drinkNow = useMemo(() => (state.wine || []).filter(w => (w.qty || 0) > 0 && wineState(w) === 'now'), [state]);
+      // Everything the digest emits, so the preview count matches what you get.
+      const digestCount = overdue.length + upcoming.length + renewals.length + warranties.length + Math.min(drinkNow.length, 3);
 
       // Gap analysis — surface things that look missing for a full home profile.
       // Items flagged `placeholder:true` are treated as gaps until filled in.
@@ -1960,7 +1964,7 @@
         }
         if (drinkNow.length) {
           lines.push(`Drink now (${drinkNow.length})`);
-          drinkNow.forEach(w => lines.push(`  • ${w.vintage} ${w.producer} ${w.label} — ${w.location} (×${w.qty})`));
+          drinkNow.slice(0, 3).forEach(w => lines.push(`  • ${w.vintage} ${w.producer} ${w.label} — ${w.location} (×${w.qty})`));
           lines.push('');
         }
         const totalCost = upcoming.filter(i=>i.kind==='maint').reduce((acc,i)=>{
@@ -2000,8 +2004,8 @@
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <Btn icon="sparkles" onClick={generateDigest}>Generate</Btn>
-                <span className="text-[11px] text-ink-500">
-                  {overdue.length + upcoming.length} item{overdue.length + upcoming.length === 1 ? '' : 's'} would be included
+                <span className="text-[11px] text-ink-400">
+                  {digestCount} item{digestCount === 1 ? '' : 's'} would be included
                 </span>
               </div>
             </div>
@@ -2176,7 +2180,7 @@
             <SectionHeader title="Drink now" count={drinkNow.length} hint="In their peak window — open something tonight." />
             {(
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {drinkNow.map(w => (
+                {drinkNow.slice(0, 3).map(w => (
                   <button key={w.id} onClick={()=>setView('wine')} className="card p-4 text-left hover:border-gold-400/40 transition">
                     <div className="text-[11px] uppercase tracking-wider text-ink-400 mb-1">{w.region}</div>
                     <div className="font-display text-base leading-snug">{w.producer}</div>
@@ -2481,13 +2485,15 @@ const PORTFOLIO_GRADES = [
 ];
 
 
-const fmtMoney  = (n) => n == null ? '—' : '$' + Math.round(n).toLocaleString();
+/* Sign goes outside the currency symbol: -$1,234, not $-1,234. */
+const fmtMoney  = (n) => n == null ? '—' : (n < 0 ? '-$' : '$') + Math.round(Math.abs(n)).toLocaleString();
 const fmtMoneyK = (n) => {
   if (n == null) return '—';
   const a = Math.abs(n);
-  if (a >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
-  if (a >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
-  return '$' + Math.round(n);
+  const sign = n < 0 ? '-' : '';
+  if (a >= 1e6) return sign + '$' + (a/1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return sign + '$' + (a/1e3).toFixed(0) + 'K';
+  return sign + '$' + Math.round(a);
 };
 const fmtPct = (n) => n == null ? '—' : n.toFixed(1) + '%';
 
@@ -2496,7 +2502,15 @@ const fmtPct = (n) => n == null ? '—' : n.toFixed(1) + '%';
    money market always trades at $1; private equity has no public quote. */
 const FINNHUB_KEY_STORAGE = 'homehq.finnhubKey';
 const QUOTES_CACHE_STORAGE = 'homehq.quotes.v1';
-const QUOTES_FRESH_MS = 5 * 60 * 1000;  // 5 min freshness
+/* How long a fetched quote may be overlaid on the holdings as a live price.
+   Cached quotes older than this are kept (the bar reports their age) but are NOT
+   applied — otherwise a reload days later silently reported week-old prices as
+   live, with a "vs snapshot" delta computed against them. */
+const QUOTES_FRESH_MS = 60 * 60 * 1000;  // 1 hour
+const quotesFresh = (quotes) => {
+  const newest = Object.values(quotes || {}).reduce((m, q) => Math.max(m, (q && q.asOf) || 0), 0);
+  return newest > 0 && (Date.now() - newest) < QUOTES_FRESH_MS;
+};
 
 const usePriceQuotes = () => {
   const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem(FINNHUB_KEY_STORAGE) || ''; } catch { return ''; } });
@@ -2563,6 +2577,7 @@ const PortfolioPriceBar = ({ priceState, fetchableSymbols, onOpenSettings }) => 
   const { apiKey, quotes, refresh, loading, progress, error } = priceState;
   const quotedCount = fetchableSymbols.filter(s => quotes[s]).length;
   const newest = Object.values(quotes).reduce((m, q) => Math.max(m, q.asOf || 0), 0);
+  const fresh = quotesFresh(quotes);
   const ageStr = (() => {
     if (!newest) return null;
     const min = Math.floor((Date.now() - newest) / 60000);
@@ -2575,9 +2590,11 @@ const PortfolioPriceBar = ({ priceState, fetchableSymbols, onOpenSettings }) => 
   return (
     <div className="card p-3 flex items-center gap-3 flex-wrap">
       <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${quotedCount > 0 ? 'bg-sage-400 animate-pulse' : 'bg-ink-500'}`}/>
+        <span className={`w-2 h-2 rounded-full ${quotedCount > 0 && fresh ? 'bg-sage-400 animate-pulse' : quotedCount > 0 ? 'bg-gold-400' : 'bg-ink-500'}`}/>
         <span className="text-xs text-ink-200 font-medium">
-          {quotedCount > 0 ? `Live · ${quotedCount}/${fetchableSymbols.length} quoted${ageStr ? ' · ' + ageStr : ''}` : 'Snapshot prices'}
+          {quotedCount === 0 ? 'Snapshot prices'
+            : fresh ? `Live · ${quotedCount}/${fetchableSymbols.length} quoted${ageStr ? ' · ' + ageStr : ''}`
+            : `Snapshot prices · cached quotes ${ageStr} are too old to use — refresh for live`}
         </span>
       </div>
       <div className="flex-1"/>
@@ -2862,7 +2879,9 @@ const PortfolioView = () => {
   }, []);
 
   // Apply live quotes to holdings (overlay; baseline preserved)
+  const pricesFresh = quotesFresh(priceState.quotes);
   const liveHoldings = useMemo(() => {
+    if (!pricesFresh) return d.holdings;   // stale cache: show the snapshot, not last week's prices
     return d.holdings.map(h => {
       const q = priceState.quotes[h.symbol];
       if (q && (h.securityType === 'Stock' || h.securityType === 'ETF') && h.quantity != null) {
@@ -2885,13 +2904,13 @@ const PortfolioView = () => {
       }
       return h;
     });
-  }, [priceState.quotes]);
+  }, [priceState.quotes, pricesFresh]);
 
   const rows = useMemo(() => scope === '__all__' ? [...liveHoldings, ...outsideHoldings()] : liveHoldings.filter(h => h.account === scope), [scope, liveHoldings]);
   const total = useMemo(() => rows.reduce((s,h) => s + (h.value||0), 0), [rows]);
   const baselineTotal = useMemo(() => rows.reduce((s,h) => s + (h.baselineValue != null ? h.baselineValue : (h.value||0)), 0), [rows]);
   const liveDelta = total - baselineTotal;
-  const isLive = Object.keys(priceState.quotes).length > 0;
+  const isLive = pricesFresh;
 
   const aggBy = (key) => {
     const m = {};
@@ -2925,12 +2944,20 @@ const PortfolioView = () => {
 
   const sortedHoldings = [...rows].sort((a,b) => (b.value||0) - (a.value||0));
   const isAll = scope === '__all__';
+  // Concentration is a brokerage-risk measure. Diluting it with bank cash, 529s and
+  // equity comp made the headline number read materially lower than the real exposure.
+  const concDen = rows.filter(h => !OUTSIDE_SCOPES.includes(h.account)).reduce((s,h) => s + (h.value||0), 0) || total;
 
   // Accounts table = Merrill accounts + outside-Merrill accounts; weights vs the combined total
   const acctRows = useMemo(() => {
     const v = equityVesting();
+    // Recomputed from the (possibly live) holdings so this table cannot disagree with
+    // the total above it; previously it was memoised on [] and stayed at snapshot values.
+    const liveByAccount = {};
+    liveHoldings.forEach(h => { liveByAccount[h.account] = (liveByAccount[h.account] || 0) + (h.value || 0); });
+    const withLive = (a) => liveByAccount[a.name] != null ? { ...a, value: liveByAccount[a.name] } : a;
     return [
-      ...d.accounts,
+      ...d.accounts.map(withLive),
       { name:'Cash & Banking', accountNum:'BofA …4006 / …3955', taxType:'Taxable', owner:'Joint',
         value:BANKING.total, positions:BANKING.accounts.filter(a => a.value != null).length,
         assetClass:{ 'Cash & Equivalents': BANKING.total } },
@@ -2943,7 +2970,7 @@ const PortfolioView = () => {
         value:mercuryVestedValue(), positions:mercuryVesting().grants.filter(g => g.vested > 0).length,
         assetClass:{ 'Equity': mercuryVestedValue() } },
     ];
-  }, []);
+  }, [liveHoldings]);
   const acctTotal = acctRows.reduce((s,a) => s + a.value, 0);
   const mercury = mercuryVesting();
   const mercuryRange = mercuryValueRange(mercury);
@@ -3010,7 +3037,8 @@ const PortfolioView = () => {
         <PortfolioStat label="Scope value" value={fmtMoneyK(total)} />
         <PortfolioStat label="Positions" value={rows.length.toLocaleString()} />
         <PortfolioStat label="Cash & MMF" value={fmtMoneyK(cashVal) + ' · ' + ((total ? cashVal/total*100 : 0)).toFixed(0) + '%'} tone={cashVal/total > 0.15 ? 'soon' : 'muted'} />
-        <PortfolioStat label="PLTR + AMZN" value={fmtPct((pltrVal+amznVal)/total*100)} tone={(pltrVal+amznVal)/total > 0.25 ? 'overdue' : 'muted'} />
+        <PortfolioStat label="PLTR + AMZN" value={fmtPct(concDen ? (pltrVal+amznVal)/concDen*100 : null)}
+          tone={concDen && (pltrVal+amznVal)/concDen > 0.25 ? 'overdue' : 'muted'} />
         <PortfolioStat label="Unrealized G/L" value={(ugl >= 0 ? '+' : '') + fmtMoneyK(ugl)} tone={ugl >= 0 ? 'ok' : 'overdue'} />
       </div>
 
@@ -3327,7 +3355,7 @@ const PortfolioView = () => {
 
         {/* 529 college savings */}
         <div className="card p-4 md:p-5">
-          <SectionHeader title="529 College Savings" hint={`Outside Merrill — not counted in the totals above. As of ${EDUCATION_529.asOf}.`} />
+          <SectionHeader title="529 College Savings" hint={`Held outside Merrill, but included in the household total above. As of ${fmtDate(EDUCATION_529.asOf)}.`} />
           <div className="space-y-2.5">
             {EDUCATION_529.accounts.map(a => (
               <div key={a.acct} className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
@@ -3421,7 +3449,8 @@ const DafPanel = () => {
   const prev = log.length > 1 ? log[log.length - 2] : null;
   const first = log[0];
   const delta = (a, b) => a && b ? a.value - b.value : null;
-  const pct = (a, b) => a && b && b.value ? ((a.value - b.value) / b.value * 100) : null;
+  const pct = (a, b) => (a && b && typeof b.value === 'number' && b.value !== 0)
+    ? ((a.value - b.value) / b.value * 100) : null;
   const submit = () => {
     const v = parseFloat(String(val).replace(/[$,]/g, ''));
     if (!isFinite(v) || v <= 0) return;
@@ -5271,9 +5300,15 @@ const PortfolioWidget = ({ onOpen }) => {
       const { state, setModal } = ctx;
       const list = state.subscriptions || [];
       const open = (item) => setModal(<SubscriptionForm item={item} onClose={()=>setModal(null)} />);
-      const monthly = useMemo(() => {
-        return list.reduce((acc, s) => acc + (s.cost || 0) / (s.cadence === 'annual' ? 12 : 1), 0);
-      }, [list]);
+      // Every cadence normalised to a month, and anything without a live renewal date
+      // left out: two seeded subscriptions are labelled cancelled in their own notes
+      // and were still inflating this figure by ~$334/mo.
+      const CADENCE_PER_MONTH = { weekly: 52/12, monthly: 1, quarterly: 1/3, annual: 1/12, yearly: 1/12 };
+      const active = useMemo(() => list.filter(s => !!subscriptionNextRenewal(s)), [list]);
+      const inactive = useMemo(() => list.filter(s => !subscriptionNextRenewal(s)), [list]);
+      const monthly = useMemo(
+        () => active.reduce((acc, s) => acc + (s.cost || 0) * (CADENCE_PER_MONTH[s.cadence] != null ? CADENCE_PER_MONTH[s.cadence] : 1), 0),
+        [active]);
       return (
         <div className="space-y-5 max-w-5xl">
           <div className="flex items-center justify-between gap-3">
@@ -5281,9 +5316,18 @@ const PortfolioWidget = ({ onOpen }) => {
             <Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>
           </div>
           {monthly > 0 && (
-            <div className="card-soft p-3 flex items-center justify-between">
-              <div className="text-ink-300 text-xs">Tracked monthly equivalent</div>
-              <div className="font-display text-xl text-gold-400 tabular-nums">${monthly.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
+            <div className="card-soft p-3 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-ink-300 text-xs">Tracked monthly equivalent</div>
+                <div className="text-ink-400 text-[11px] mt-0.5">
+                  {active.length} active · every cadence normalised to a month
+                  {inactive.length > 0 && ` · ${inactive.length} with no renewal date excluded`}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-display text-xl text-gold-400 tabular-nums">${monthly.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
+                <div className="text-ink-400 text-[11px] tabular-nums">{fmtMoney(monthly * 12)}/yr</div>
+              </div>
             </div>
           )}
           {list.length === 0 ? (
