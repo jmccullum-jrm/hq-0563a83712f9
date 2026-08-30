@@ -286,6 +286,13 @@
       const u = f.count === 1 ? f.unit.replace(/s$/,'') : f.unit;
       return `every ${f.count} ${u}`;
     };
+    // How many times a year a cadence comes round — used to price a maintenance
+    // programme without pretending each task costs its estimate once.
+    const PER_YEAR = { days: 365, weeks: 52, months: 12, years: 1 };
+    const annualFactor = (f) => {
+      if (!f || !f.count || !PER_YEAR[f.unit]) return 0;
+      return PER_YEAR[f.unit] / f.count;
+    };
     const uid = () => Math.random().toString(36).slice(2,10);
 
     // Box only honors session cookies on shared-link embeds (/s/<id>).
@@ -835,7 +842,7 @@
                       const isOpen = openId === x.id;
                       return (
                         <div key={x.id}>
-                          <div role="button" tabIndex={0} aria-expanded={isOpen}
+                          <div role="button" tabIndex={0} aria-expanded={isOpen} aria-label={x.service}
                             onClick={()=>setOpenId(isOpen ? null : x.id)}
                             onKeyDown={e=>{ if (e.key==='Enter'||e.key===' ') { e.preventDefault(); setOpenId(isOpen ? null : x.id); } }}
                             className="lrow">
@@ -2292,15 +2299,16 @@
     );
 
     // tone: 'now' (needs you) | 'soon' | 'ok' (affirmatively good) | undefined (fine — most rows)
-    const Row = ({ tone, title, meta = [], value, valueUnit, when, onOpen, action, below }) => (
+    const Row = ({ tone, title, label, meta = [], value, valueUnit, when, onOpen, action, below, wrap }) => (
       <div role="button" tabIndex={0} onClick={onOpen}
+        aria-label={label || (typeof title === 'string' ? title : undefined)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen && onOpen(); } }}
         className="lrow">
         {tone && <span aria-hidden className={`lrail lrail-${tone}`} />}
         <span className="min-w-0">
           <span className="block text-sm font-medium text-ink-100 truncate">{title}</span>
           {(meta.filter(Boolean).length > 0 || when) && (
-            <span className="block text-xs text-ink-400 truncate mt-0.5">
+            <span className={`block text-xs text-ink-400 mt-0.5 ${wrap ? '' : 'truncate'}`}>
               {meta.filter(Boolean).join(' · ')}
               {when && <span className="md:hidden">{meta.filter(Boolean).length ? ' · ' : ''}{when}</span>}
             </span>
@@ -2958,7 +2966,7 @@
                 hint="Already in the app, filed in the wrong place. Adding one copies what's known and names the source." />
               <Ledger valueWidth="0rem" hasActions>
                 {looseEnds.map(e => (
-                  <Row key={e.key} title={e.title} meta={[e.why]} when={null}
+                  <Row key={e.key} title={e.title} meta={[e.why]} when={null} wrap
                     action={
                       <span className="flex items-center gap-1.5">
                         <Btn variant="soft" icon="plus" onClick={()=>ctx.adoptLooseEnd(e)}>Add to {e.module}</Btn>
@@ -2986,7 +2994,7 @@
               {gapsOpen && (
               <Ledger valueWidth="0rem" hasActions>
                 {gaps.map((g, i) => (
-                  <Row key={i} title={g.title}
+                  <Row key={i} title={g.title} wrap
                     meta={[g.property ? (g.property === '1619 Seattle' ? 'Seattle' : 'Sun Valley') : null, g.why]}
                     when={null}
                     action={
@@ -5340,6 +5348,7 @@ const PortfolioWidget = ({ onOpen }) => {
                       return (
                         <Row key={l.id} tone="ok"
                           title={<span className="line-through decoration-ink-500/40 decoration-1">{l.title}</span>}
+                          label={l.title}
                           meta={[KIND_LABELS[l.kind]||l.kind, l.sub, when,
                                  l.originalDue ? `was due ${fmtDate(l.originalDue,{month:'short',day:'numeric'})}` : null]}
                           when={null}
@@ -5572,6 +5581,8 @@ const PortfolioWidget = ({ onOpen }) => {
               `${types.length - 1} service ${types.length - 1 === 1 ? 'type' : 'types'}`,
               filtered.length - withVisit > 0 && { text: `${filtered.length - withVisit} with no next visit`,
                                                    onClick: () => setThisWeek(false) },
+              filtered.filter(v => !v.phone && !v.email).length > 0 &&
+                { text: `${filtered.filter(v => !v.phone && !v.email).length} with no phone or email yet`, alert: true },
             ]} />
 
           {state.vendors.length > 8 && (
@@ -5594,7 +5605,9 @@ const PortfolioWidget = ({ onOpen }) => {
                 const sched = v.schedule?.recurring ? freqLabel(v.schedule.freq) + (v.schedule.dayOfWeek?` · ${v.schedule.dayOfWeek}s`:'') : 'On-demand';
                 return (
                   <Row key={v.id} tone={v.nextVisit ? (n < 0 ? 'now' : n <= 7 ? 'soon' : undefined) : undefined}
-                    title={v.company} meta={[v.name, v.serviceType, sched]}
+                    title={v.company}
+                    meta={[v.name, v.serviceType, sched,
+                           (!v.phone && !v.email) ? 'no phone or email yet' : null]}
                     when={v.nextVisit ? (n < 0 ? `${Math.abs(n)}d overdue` : `Next ${fmtDate(v.nextVisit,{month:'short',day:'numeric'})}`) : null}
                     value={v.rate || null}
                     onOpen={()=>open(v)}
@@ -5735,9 +5748,21 @@ const PortfolioWidget = ({ onOpen }) => {
       }, [state.maintenance, ctx.propertyScope, query, statusFilter]);
 
       const open = (t) => setModal(<TaskForm task={t} onClose={()=>setModal(null)} />);
+      const tone = (m) => { const n = daysUntil(maintenanceNextDue(m)); return n === null ? 'none' : n < 0 ? 'overdue' : n <= 30 ? 'soon' : 'ok'; };
+      const nOverdue = (state.maintenance || []).filter(m => tone(m) === 'overdue').length;
+      const yearCost  = (state.maintenance || []).reduce((a,m) => a + (m.estimatedCost || 0) * annualFactor(m.freq), 0);
 
       return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {(state.maintenance || []).length > 0 && (
+            <Readout value={String((state.maintenance || []).length)}
+              unit={(state.maintenance || []).length === 1 ? ' task' : ' tasks'}
+              parts={[
+                yearCost > 0 && `~${fmtMoney(yearCost)}/yr at the stated cadences`,
+                nOverdue > 0 && { text: `${nOverdue} overdue`, alert: true,
+                                  onClick: () => { setTab('list'); setStatusFilter('overdue'); } },
+              ]} />
+          )}
 
           <div className="flex items-center gap-2 flex-wrap">
             <div className="inline-flex rounded-xl border border-ink-600 p-0.5 bg-ink-850">
@@ -6454,7 +6479,7 @@ const PortfolioWidget = ({ onOpen }) => {
                                          onClick: () => setFacet(facet === 'confirmed' ? null : 'confirmed') },
                 split.unconfirmed > 0 && { text: `${fmtMoney(split.unconfirmed)}/mo unconfirmed`, alert: true,
                                            onClick: () => setFacet(facet === 'unconfirmed' ? null : 'unconfirmed') },
-                split.lapsedRows.length > 0 && { text: `${fmtMoney(split.lapsed)}/mo suspected cancelled — excluded`,
+                split.lapsedRows.length > 0 && { text: `${fmtMoney(split.lapsed)}/mo suspected cancelled — excluded from the total`,
                                                  onClick: () => setFacet(facet === 'lapsed' ? null : 'lapsed') },
               ]} />
           )}
