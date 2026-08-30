@@ -1699,21 +1699,39 @@
       { id:'wine',        label:'Wine',        icon:'wine' },
     ];
     const NAV_ALL = [...NAV_PRIMARY, ...NAV_RECORDS, ...NAV_OTHER];
+
+    /* Sixteen destinations was a table of contents for the state object, not for the
+       household: NAV_ALL mirrored the seed arrays one-for-one, so eight rows led to
+       the same "Add your first X" card. Six now, each grouping the sections that
+       answer one question, with a segmented control inside — the pattern Maintenance
+       and IDs already used one level down.
+
+       Routing is unchanged on purpose: `view` is still the leaf id, so every
+       setView('vehicles') in the file, every search result and every card jump keeps
+       working. Only the nav is regrouped. */
+    const NAV_GROUPS = [
+      { id:'today',    label:'Today',    icon:'home',   views:['dashboard'] },
+      { id:'money',    label:'Money',    icon:'chart',  views:['portfolio','subscriptions','suggestions'] },
+      { id:'houses',   label:'Houses',   icon:'key',    views:['maintenance','vendors','appliances','property','utilities'] },
+      { id:'coverage', label:'Coverage', icon:'shield', views:['insurance','vehicles','benefits'] },
+      { id:'vault',    label:'Vault',    icon:'idcard', views:['ids','files','done'] },
+      { id:'cellar',   label:'Cellar',   icon:'wine',   views:['wine'] },
+    ];
+    const navGroupOf = (view) => NAV_GROUPS.find(g => g.views.includes(view)) || NAV_GROUPS[0];
+    const navLeaf = (id) => NAV_ALL.find(n => n.id === id) || { id, label: id, icon: 'dot' };
+    const navLeaves = (group) => group.views.map(navLeaf);
     // Mobile bottom nav: four most-used + "More". Six tabs made "Maintenance" and
     // "Appliances" collide at 390px, so Suggestions moves into the sheet.
     /* Pointed at the lists that actually hold data. Vendors, maintenance and
        appliances are all empty in practice, while subscriptions (23 rows) and the
        ID sheet (~30) are what you reach for standing at a counter. */
-    const NAV_MOBILE_IDS = ['dashboard','subscriptions','ids','portfolio'];
-    /* The bar gets short names — "Subscriptions" and "IDs & Logins" crowd their
-       neighbours at 390px — while the sidebar and the sheet keep the full ones. */
-    const NAV_SHORT = { subscriptions:'Spend', ids:'IDs', portfolio:'Money', dashboard:'Today' };
+    const NAV_MOBILE_GROUPS = ['today','money','houses','vault'];
     const NAV_MOBILE = [
-      ...NAV_ALL.filter(n => NAV_MOBILE_IDS.includes(n.id)).map(n => ({ ...n, label: NAV_SHORT[n.id] || n.label })),
+      ...NAV_GROUPS.filter(g => NAV_MOBILE_GROUPS.includes(g.id)),
       { id:'_more', label:'More', icon:'more' },
     ];
-    // Anything not on the bottom bar has to be reachable from the sheet.
-    const NAV_SHEET_PRIMARY = NAV_PRIMARY.filter(n => !NAV_MOBILE_IDS.includes(n.id));
+    // The sheet holds whatever the bar doesn't — two groups now, not twelve rows.
+    const NAV_SHEET_GROUPS = NAV_GROUPS.filter(g => !NAV_MOBILE_GROUPS.includes(g.id));
 
     /* How many records a section holds, so an empty shelf is visible without a tap. */
     const navCount = (s, id) => {
@@ -1872,7 +1890,9 @@
         return 'Good evening';
       })();
       const nice = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
-      const title = NAV_ALL.find(n=>n.id===view)?.label || '';
+      const group = navGroupOf(view);
+      const leaves = navLeaves(group);
+      const title = group.id === 'today' ? '' : group.label;
 
       const NavLink = ({ n }) => (
         <button onClick={()=>setView(n.id)}
@@ -1894,11 +1914,18 @@
               </div>
             </div>
             <nav className="px-3 mt-2 flex-1 overflow-y-auto">
-              {NAV_PRIMARY.map(n => <NavLink key={n.id} n={n} />)}
-              <div className="px-3 pt-4 pb-1.5 text-2xs uppercase text-ink-400">Records</div>
-              {NAV_RECORDS.map(n => <NavLink key={n.id} n={n} />)}
-              <div className="px-3 pt-4 pb-1.5 text-2xs uppercase text-ink-400">Pleasure</div>
-              {NAV_OTHER.map(n => <NavLink key={n.id} n={n} />)}
+              {NAV_GROUPS.map(g => {
+                const on = navGroupOf(view).id === g.id;
+                const total = g.views.reduce((n, v) => n + (navCount(ctx.state, v) || 0), 0);
+                return (
+                  <button key={g.id} onClick={()=>setView(g.views[0])}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${on?'bg-ink-700 text-ink-50':'text-ink-300 hover:text-ink-100 hover:bg-ink-800'}`}>
+                    <Icon name={g.icon} size={17} className={on?'text-gold-400':''} />
+                    <span>{g.label}</span>
+                    {total > 0 && <span className="ml-auto text-2xs tabular-nums text-ink-400">{total}</span>}
+                  </button>
+                );
+              })}
             </nav>
             <div className="px-6 py-5 text-xs text-ink-400 leading-relaxed">
               <div className="font-display text-ink-200 text-sm mb-1">The McCullum house</div>
@@ -1954,7 +1981,27 @@
               </div>
             </div></header>
 
-            <section className="px-5 md:px-6 lg:px-10 mt-8 md:mt-12">
+            {leaves.length > 1 && (
+              <div className="px-5 md:px-6 lg:px-10 mt-5 md:mt-6">
+                <div className="max-w-[1160px] mx-auto flex gap-1.5 flex-wrap">
+                  {leaves.map(n => {
+                    const on = n.id === view;
+                    const count = navCount(ctx.state, n.id);
+                    return (
+                      <button key={n.id} onClick={()=>setView(n.id)}
+                        className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-sm border transition ${
+                          on ? 'border-gold-400/50 text-gold-300 bg-gold-400/12' : 'border-ink-600 text-ink-300 hover:text-ink-100 hover:bg-ink-800'}`}>
+                        <Icon name={n.icon} size={14} className={on ? 'text-gold-400' : ''} />
+                        {n.label}
+                        {count != null && <span className={`text-2xs tabular-nums ${on ? 'text-gold-400/70' : 'text-ink-400'}`}>{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <section className="px-5 md:px-6 lg:px-10 mt-6 md:mt-8">
               <div className="max-w-[1160px] mx-auto">
                 {children}
               </div>
@@ -1965,10 +2012,10 @@
           <nav className="md:hidden fixed bottom-0 inset-x-0 bg-ink-900/95 backdrop-blur border-t border-ink-600 z-30 pb-safe">
             <div className="flex justify-around">
               {NAV_MOBILE.map(n => {
-                const moreActive = !NAV_MOBILE_IDS.includes(view);
-                const active = n.id === '_more' ? moreActive : view === n.id;
+                const moreActive = !NAV_MOBILE_GROUPS.includes(group.id);
+                const active = n.id === '_more' ? moreActive : group.id === n.id;
                 return (
-                  <button key={n.id} onClick={()=> n.id==='_more' ? setMoreOpen(true) : setView(n.id)}
+                  <button key={n.id} onClick={()=> n.id==='_more' ? setMoreOpen(true) : setView(n.views[0])}
                     className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 ${active?'text-gold-400':'text-ink-300'}`}>
                     <Icon name={n.icon} size={20} />
                     <span className="text-2xs tracking-wide">{n.label}</span>
@@ -1993,40 +2040,30 @@
               <div ref={moreRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="More sections"
                 className="modal-shell w-full anim-sheet focus:outline-none" onClick={e=>e.stopPropagation()}>
                 <div className="mx-auto mt-2.5 mb-1 h-1 w-9 rounded-full bg-ink-500" aria-hidden="true" />
-                <ModalHeader title="More" subtitle="Records & references" onClose={()=>setMoreOpen(false)} />
-                <div className="p-4 grid grid-cols-2 gap-2.5 pb-safe max-h-[70dvh] overflow-y-auto">
-                  {NAV_SHEET_PRIMARY.map(n => (
-                    <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
-                      className={`card-soft p-4 flex items-center gap-3 text-left col-span-2 ${view===n.id?'border-gold-400/40':''}`}>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
-                        <Icon name={n.icon} size={18} />
+                <ModalHeader title="More" subtitle="Coverage and the cellar" onClose={()=>setMoreOpen(false)} />
+                <div className="p-4 space-y-4 pb-safe max-h-[70dvh] overflow-y-auto">
+                  {/* Two groups, not twelve loose rows — and each one shows what it holds. */}
+                  {NAV_SHEET_GROUPS.map(g => (
+                    <div key={g.id}>
+                      <div className="text-2xs uppercase text-ink-400 px-1 pb-2">{g.label}</div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {navLeaves(g).map(n => {
+                          const badge = navCount(ctx.state, n.id);
+                          return (
+                            <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
+                              className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
+                              <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
+                                <Icon name={n.icon} size={18} />
+                              </div>
+                              <div className="text-sm font-medium flex-1">{n.label}</div>
+                              {n.id === 'wine' && drinkNowCount > 0
+                                ? <span className="pill pill-ok">{drinkNowCount} ready</span>
+                                : badge != null && <span className={`text-2xs tabular-nums ${badge ? 'text-ink-300' : 'text-ink-400'}`}>{badge}</span>}
+                            </button>
+                          );
+                        })}
                       </div>
-                      <div className="text-sm font-medium flex-1">{n.label}</div>
-                    </button>
-                  ))}
-                  <div className="col-span-2 text-2xs uppercase text-ink-400 px-1">Records</div>
-                  {NAV_RECORDS.map(n => {
-                    const badge = navCount(ctx.state, n.id);
-                    return (
-                    <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
-                      className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
-                        <Icon name={n.icon} size={18} />
-                      </div>
-                      <div className="text-sm font-medium flex-1">{n.label}</div>
-                      {badge != null && <span className={`text-2xs tabular-nums ${badge ? 'text-ink-300' : 'text-ink-400'}`}>{badge}</span>}
-                    </button>
-                  );})}
-                  <div className="col-span-2 text-2xs uppercase text-ink-400 px-1 pt-2">Pleasure</div>
-                  {NAV_OTHER.map(n => (
-                    <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
-                      className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
-                        <Icon name={n.icon} size={18} />
-                      </div>
-                      <div className="text-sm font-medium flex-1">{n.label}</div>
-                      {n.id === 'wine' && drinkNowCount > 0 && <span className="pill pill-ok">{drinkNowCount} ready</span>}
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -2061,6 +2098,54 @@
         )}
       </div>
     );
+
+    /* A line for a series, drawn from the values themselves — no axes, no library, no
+       library-shaped abstraction. The last point is marked because "where it is now"
+       is the question a balance log is asked. Flat or single-point series degrade to
+       nothing rather than to a misleading straight line. */
+    const Sparkline = ({ values, width = 120, height = 32, tone = 'gold', showLast = true }) => {
+      const nums = (values || []).filter(v => typeof v === 'number' && isFinite(v));
+      if (nums.length < 2) return null;
+      const min = Math.min(...nums), max = Math.max(...nums);
+      const span = max - min || 1;
+      const pad = 3;
+      const x = (i) => pad + (i / (nums.length - 1)) * (width - pad * 2);
+      const y = (v) => height - pad - ((v - min) / span) * (height - pad * 2);
+      const d = nums.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const area = `${d} L${x(nums.length - 1).toFixed(1)},${height} L${x(0).toFixed(1)},${height} Z`;
+      const stroke = tone === 'sage' ? '#8aa78b' : tone === 'ember' ? '#e07856' : '#d4a96a';
+      const rising = nums[nums.length - 1] >= nums[0];
+      return (
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
+          style={{ width: '100%', height }} className="overflow-visible"
+          role="img" aria-label={`Trend: ${nums.length} points, ${rising ? 'up' : 'down'} overall`}>
+          <path d={area} fill={stroke} opacity="0.13" />
+          <path d={d} fill="none" stroke={stroke} strokeWidth="2" vectorEffect="non-scaling-stroke"
+            strokeLinecap="round" strokeLinejoin="round" />
+          {showLast && <circle cx={x(nums.length - 1)} cy={y(nums[nums.length - 1])} r="3" fill={stroke} />}
+        </svg>
+      );
+    };
+
+    /* Columns for a dated series where the gaps matter as much as the values — a month
+       with no spend should read as empty, which a line would smooth away. */
+    const MiniColumns = ({ values, labels, height = 40, tone = 'gold' }) => {
+      const nums = (values || []).map(v => (typeof v === 'number' && isFinite(v)) ? v : 0);
+      if (!nums.length) return null;
+      const max = Math.max(...nums) || 1;
+      const fill = tone === 'sage' ? '#8aa78b' : '#d4a96a';
+      return (
+        <div className="flex items-end gap-[3px]" style={{ height }} role="img"
+          aria-label={`${nums.filter(Boolean).length} of ${nums.length} periods have a value`}>
+          {nums.map((v, i) => (
+            <div key={i} className="flex-1 min-w-[3px] rounded-sm transition-[height]"
+              title={labels && labels[i] ? `${labels[i]} · ${fmtMoney(v)}` : undefined}
+              style={{ height: v ? `${Math.max(8, (v / max) * 100)}%` : '2px',
+                       background: v ? fill : '#2a2723', opacity: v ? 0.85 : 1 }} />
+          ))}
+        </div>
+      );
+    };
 
     const SectionHeader = ({ title, count, action, hint }) => (
       <div className="flex items-end justify-between gap-3 mb-4">
@@ -2253,10 +2338,16 @@
         groups.push({ label:'Results', items: results.map((r, i) => ({
           key:`r${i}`, icon:r.icon, title:r.title, sub:r.sub, run:()=>go(r.view) })) });
       }
-      const navMatches = NAV_ALL.filter(n => !needle || n.label.toLowerCase().includes(needle));
+      // Named by where they now live, so the palette teaches the structure.
+      const navMatches = NAV_ALL.filter(n => {
+        if (!needle) return true;
+        return n.label.toLowerCase().includes(needle) || navGroupOf(n.id).label.toLowerCase().includes(needle);
+      });
       if (navMatches.length) {
         groups.push({ label:'Jump to', items: navMatches.map(n => ({
-          key:`n${n.id}`, icon:n.icon, title:n.label, sub:'Section', run:()=>go(n.id) })) });
+          key:`n${n.id}`, icon:n.icon, title:n.label,
+          sub: navGroupOf(n.id).label === n.label ? 'Section' : navGroupOf(n.id).label,
+          run:()=>go(n.id) })) });
       }
       // Same list the quick-add sheet uses, so the two can't drift.
       const actionMatches = ADD_TYPES.filter(a => !needle ||
@@ -4271,8 +4362,28 @@ const DafPanel = () => {
         <PortfolioStat label="Current value" value={latest ? fmtMoney(latest.value) : '—'} />
         <PortfolioStat label="Since last check" value={dSince == null ? '— first entry' : `${dSince >= 0 ? '+' : ''}${fmtMoneyK(dSince)} (${pSince >= 0 ? '+' : ''}${pSince.toFixed(1)}%)`} tone={dSince == null ? 'muted' : dSince >= 0 ? 'ok' : 'overdue'} />
         <PortfolioStat label="Since start" value={dStart ? `${dStart >= 0 ? '+' : ''}${fmtMoneyK(dStart)} (${pStart >= 0 ? '+' : ''}${pStart.toFixed(1)}%)` : '—'} tone={!dStart ? 'muted' : dStart >= 0 ? 'ok' : 'overdue'} />
-        <PortfolioStat label="As of" value={latest ? latest.date : '—'} />
+        <PortfolioStat label="As of" value={latest ? fmtDate(latest.date, {month:'short', day:'numeric'}) : '—'} />
       </div>
+      {log.length > 1 && (
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Balance over time"
+            hint={`${log.length} readings, ${fmtDate(first.date, {month:'short', day:'numeric'})} to ${fmtDate(latest.date, {month:'short', day:'numeric'})}.`} />
+          <div className="flex items-end gap-5">
+            <div className="flex-1 min-w-0">
+              <Sparkline values={log.map(e => e.value)} width={320} height={76}
+                tone={dStart >= 0 ? 'sage' : 'ember'} />
+              <div className="flex justify-between text-2xs text-ink-400 mt-1.5">
+                <span>{fmtDate(first.date, {month:'short', day:'numeric'})}</span>
+                <span>{fmtDate(latest.date, {month:'short', day:'numeric'})}</span>
+              </div>
+            </div>
+            <div className="text-xs text-ink-400 space-y-1 shrink-0 pb-5">
+              <div>High <span className="text-ink-100 tabular-nums">{fmtMoney(Math.max(...log.map(e=>e.value)))}</span></div>
+              <div>Low <span className="text-ink-100 tabular-nums">{fmtMoney(Math.min(...log.map(e=>e.value)))}</span></div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="card p-4 md:p-5">
         <SectionHeader title="BofA Charitable Gift Fund" hint="Donor-advised fund — already given away, so it's tracked here but never counted in the household total."
           action={<a href="https://bofa.donorfirst.org" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> DAF login</a>} />
@@ -5336,7 +5447,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Everyone who works on the house. Tap to edit. Use the call/text/email buttons to reach out fast.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add vendor</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add vendor</Btn>
           </div>
 
           <div className="flex items-center gap-2">
@@ -5543,7 +5654,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Big-ticket recurring tasks. Mark complete and the next due date rolls forward automatically.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add task</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add task</Btn>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -5720,6 +5831,24 @@ const PortfolioWidget = ({ onOpen }) => {
       return (
         <div className="card p-4 md:p-5">
           <div className="text-ink-300 text-xs mb-3">Next 12 months — clusters help with budget planning. Tap a task to edit.</div>
+          {months.some((_, i) => totalCost(i) > 0) && (
+            <div className="mb-4 pb-4 border-b border-ink-700">
+              <div className="flex items-baseline justify-between gap-3 mb-2">
+                <div className="text-2xs uppercase text-ink-400">Estimated cost by month</div>
+                <div className="text-xs text-ink-400 tabular-nums">
+                  {fmtMoney(months.reduce((n, _, i) => n + totalCost(i), 0))} over 12 months
+                </div>
+              </div>
+              {/* Columns, not a line: a month with nothing due should read as empty,
+                  which is exactly the cluster this view exists to show. */}
+              <MiniColumns values={months.map((_, i) => totalCost(i))}
+                labels={months.map(m => m.toLocaleDateString(undefined, {month:'short', year:'numeric'}))} height={44} />
+              <div className="flex justify-between text-2xs text-ink-400 mt-1.5">
+                <span>{months[0].toLocaleDateString(undefined,{month:'short'})}</span>
+                <span>{months[months.length-1].toLocaleDateString(undefined,{month:'short', year:'numeric'})}</span>
+              </div>
+            </div>
+          )}
           <div className="space-y-3">
             {months.map((m, i) => (
               <div key={i} className="flex gap-4 items-start">
@@ -5806,7 +5935,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Major appliances + equipment, with model numbers and warranties. Tap to edit. Photograph the model plate for anything still marked unknown.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add appliance</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add appliance</Btn>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -5940,7 +6069,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Every policy in one place. Tap to edit, then drill into the carrier portal via the link.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add policy</Btn>
           </div>
           {list.length === 0 ? (
             <Empty icon="shield" title="No policies yet" body="Carriers, policy numbers and renewal dates, so a lapse cannot pass unnoticed." cta={<Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>} />
@@ -6072,7 +6201,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Account numbers (last-4), payment cadence, and login URLs.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add utility</Btn>
           </div>
           {list.length === 0 ? (
             <Empty icon="zap" title="No utilities yet" body="Account numbers and payment details for both houses, in one place." cta={<Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>} />
@@ -6181,7 +6310,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Mortgages, HOAs, property taxes, home warranties, security.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add record</Btn>
           </div>
           {list.length === 0 ? (
             <Empty icon="key" title="No property records yet" body="Mortgages, HOA dues, property taxes and warranties — with their next due dates on Today." cta={<Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>} />
@@ -6307,7 +6436,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Recurring spend, surfaced. Tap any line to add cost or renewal date.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add subscription</Btn>
           </div>
           {monthly > 0 && (<>
             <div className="card p-4 md:p-5">
@@ -6481,7 +6610,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Cars, VINs, and extended warranties.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>
           </div>
           {list.length === 0 ? (
             <Empty icon="car" title="No vehicles yet" body="VINs, service contracts and warranty dates, so a claim call takes one tap." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>} />
@@ -6574,7 +6703,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="space-y-8">
           <div className="flex items-center justify-between gap-3">
             <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Health + employer benefits — member IDs and portal links you need at appointments.</p>
-            <Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>
+            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add benefit</Btn>
           </div>
           {list.length === 0 ? (
             <Empty icon="heart" title="No benefits yet" body="Member and group numbers, in a card you can read out at an appointment." cta={<Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>} />
