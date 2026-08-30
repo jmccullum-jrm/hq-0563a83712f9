@@ -1313,30 +1313,58 @@
       );
     };
 
-    /* Quick-add sheet — one tap from anywhere to the 4 fastest entry paths */
+    /* Quick-add sheet. It used to offer four of the app's ten record types, so
+       hitting Add on the Insurance page couldn't add a policy. Every type is here
+       now, and whichever section you're standing in comes first. */
+    const ADD_TYPES = [
+      { view:'vendors',       label:'Vendor',       sub:'Someone who works on the house', icon:'users',   form:(close)=><VendorForm onClose={close} /> },
+      { view:'maintenance',   label:'Task',         sub:'Recurring maintenance',          icon:'wrench',  form:(close)=><TaskForm onClose={close} /> },
+      { view:'appliances',    label:'Appliance',    sub:'Equipment worth tracking',       icon:'cube',    form:(close)=><ApplianceForm onClose={close} /> },
+      { view:'insurance',     label:'Policy',       sub:'Insurance coverage',             icon:'shield',  form:(close)=><InsuranceForm onClose={close} /> },
+      { view:'property',      label:'Property item',sub:'Dues, mortgage, HOA',            icon:'key',     form:(close)=><PropertyForm onClose={close} /> },
+      { view:'utilities',     label:'Utility',      sub:'Power, water, internet',         icon:'zap',     form:(close)=><UtilityForm onClose={close} /> },
+      { view:'subscriptions', label:'Subscription', sub:'Recurring charge',               icon:'receipt', form:(close)=><SubscriptionForm onClose={close} /> },
+      { view:'vehicles',      label:'Vehicle',      sub:'Car, VIN, service',              icon:'car',     form:(close)=><VehicleForm onClose={close} /> },
+      { view:'benefits',      label:'Benefit',      sub:'Member IDs and portals',         icon:'heart',   form:(close)=><BenefitForm onClose={close} /> },
+      { view:'wine',          label:'Bottle',       sub:'Add to the cellar',              icon:'wine',    form:(close)=><WineForm onClose={close} /> },
+    ];
+
     const QuickAdd = ({ onClose }) => {
       const ctx = useContext(Ctx);
-      const open = (form) => ctx.setModal(form);
-      const items = [
-        { label:'Vendor',    sub:'Someone who works on the house', icon:'users',  form:()=><VendorForm onClose={()=>ctx.setModal(null)} /> },
-        { label:'Task',      sub:'Recurring maintenance',          icon:'wrench', form:()=><TaskForm onClose={()=>ctx.setModal(null)} /> },
-        { label:'Appliance', sub:'Equipment worth tracking',       icon:'cube',   form:()=><ApplianceForm onClose={()=>ctx.setModal(null)} /> },
-        { label:'Bottle',    sub:'Add to the cellar',              icon:'wine',   form:()=><WineForm onClose={()=>ctx.setModal(null)} /> },
-      ];
+      const open = (t) => ctx.setModal(t.form(() => ctx.setModal(null)));
+      const here  = ADD_TYPES.filter(t => t.view === ctx.view);
+      const rest  = ADD_TYPES.filter(t => t.view !== ctx.view);
+      const Tile = ({ t, highlight }) => (
+        <button onClick={()=>open(t)}
+          className={`card-soft p-4 flex flex-col items-start gap-2 text-left transition ${
+            highlight ? 'border-gold-400/40 bg-gold-400/5' : 'hover:border-gold-400/40'}`}>
+          <div className={`w-10 h-10 rounded-xl grid place-items-center ${highlight ? 'bg-gold-400/15 text-gold-300' : 'bg-ink-700 text-gold-400'}`}>
+            <Icon name={t.icon} size={18}/>
+          </div>
+          <div>
+            <div className="text-sm font-medium">{t.label}</div>
+            <div className="text-ink-400 text-[11px] mt-0.5">{t.sub}</div>
+          </div>
+        </button>
+      );
       return (
         <>
           <ModalHeader title="Add something" subtitle="Takes about 30 seconds." onClose={onClose} />
-          <div className="p-4 grid grid-cols-2 gap-2.5">
-            {items.map(it => (
-              <button key={it.label} onClick={()=>open(it.form())}
-                className="card-soft p-4 flex flex-col items-start gap-2 text-left hover:border-gold-400/40 transition">
-                <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400"><Icon name={it.icon} size={18}/></div>
-                <div>
-                  <div className="text-sm font-medium">{it.label}</div>
-                  <div className="text-ink-400 text-[11px] mt-0.5">{it.sub}</div>
+          <div className="p-4 space-y-3">
+            {here.length > 0 && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-ink-500 px-1 pb-2">In this section</div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {here.map(t => <Tile key={t.view} t={t} highlight />)}
                 </div>
-              </button>
-            ))}
+              </div>
+            )}
+            <div>
+              {here.length > 0 && <div className="text-[10px] uppercase tracking-[0.16em] text-ink-500 px-1 pb-2">Everything else</div>}
+              <div className="grid grid-cols-2 gap-2.5">
+                {rest.map(t => <Tile key={t.view} t={t} />)}
+              </div>
+            </div>
           </div>
         </>
       );
@@ -1552,15 +1580,27 @@
     );
 
     const Modal = ({ children, onClose }) => {
+      const shellRef = useRef(null);
       useEffect(() => {
         const onKey = (e) => { if (e.key === 'Escape') onClose(); };
         window.addEventListener('keydown', onKey);
         document.body.style.overflow = 'hidden';
-        return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+        // Focus moves into the dialog, so keyboard and screen-reader users aren't
+        // left behind on the trigger with the page inert behind a backdrop. The
+        // shell itself takes focus rather than the first field — auto-focusing an
+        // input would pop the keyboard on every phone that opens a form.
+        const opener = document.activeElement;
+        if (shellRef.current) { try { shellRef.current.focus({ preventScroll: true }); } catch {} }
+        return () => {
+          window.removeEventListener('keydown', onKey);
+          document.body.style.overflow = '';
+          if (opener && opener.focus) { try { opener.focus({ preventScroll: true }); } catch {} }
+        };
       }, [onClose]);
       return (
         <div className="fixed inset-0 z-50 modal-backdrop flex items-end md:items-center justify-center px-3 md:px-6 pb-3 md:pb-0" onClick={onClose}>
-          <div className="modal-shell w-full max-w-lg max-h-[90vh] overflow-y-auto anim-in" onClick={e=>e.stopPropagation()}>
+          <div ref={shellRef} tabIndex={-1} role="dialog" aria-modal="true"
+            className="modal-shell w-full max-w-lg max-h-[90vh] overflow-y-auto anim-in focus:outline-none" onClick={e=>e.stopPropagation()}>
             {children}
           </div>
         </div>
@@ -1650,13 +1690,6 @@
        Search used to live only on Today, which meant leaving whatever you were
        doing to look anything up. This is the same index plus navigation and the
        quick-add forms, reachable from everywhere and driveable by keyboard. */
-    const PALETTE_ACTIONS = [
-      { id:'add-vendor',    icon:'users',  title:'Add vendor',    sub:'New contractor or service',  form:(close)=><VendorForm onClose={close} /> },
-      { id:'add-task',      icon:'wrench', title:'Add task',      sub:'Recurring maintenance',      form:(close)=><TaskForm onClose={close} /> },
-      { id:'add-appliance', icon:'cube',   title:'Add appliance', sub:'Equipment worth tracking',   form:(close)=><ApplianceForm onClose={close} /> },
-      { id:'add-bottle',    icon:'wine',   title:'Add bottle',    sub:'Into the cellar',            form:(close)=><WineForm onClose={close} /> },
-    ];
-
     const CommandPalette = ({ onClose }) => {
       const ctx = useContext(Ctx);
       const [q, setQ] = useState('');
@@ -1681,10 +1714,12 @@
         groups.push({ label:'Jump to', items: navMatches.map(n => ({
           key:`n${n.id}`, icon:n.icon, title:n.label, sub:'Section', run:()=>go(n.id) })) });
       }
-      const actionMatches = PALETTE_ACTIONS.filter(a => !needle || a.title.toLowerCase().includes(needle) || a.sub.toLowerCase().includes(needle));
+      // Same list the quick-add sheet uses, so the two can't drift.
+      const actionMatches = ADD_TYPES.filter(a => !needle ||
+        `add ${a.label} ${a.sub}`.toLowerCase().includes(needle));
       if (actionMatches.length) {
         groups.push({ label:'Add', items: actionMatches.map(a => ({
-          key:a.id, icon:a.icon, title:a.title, sub:a.sub, run:()=>runForm(a.form) })) });
+          key:`add-${a.view}`, icon:a.icon, title:`Add ${a.label.toLowerCase()}`, sub:a.sub, run:()=>runForm(a.form) })) });
       }
       const flat = groups.flatMap(g => g.items);
       const active = flat[Math.min(sel, flat.length - 1)];
@@ -5774,17 +5809,21 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
           )}
 
-          {/* Filters + search */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[['all','All'],['now','Drink now'],['aging','Aging'],['past','Past peak']].map(([id,label]) => (
-              <button key={id} onClick={()=>setFilter(id)}
-                className={`px-2.5 py-1.5 rounded-full text-xs border transition ${filter===id?'border-gold-400/50 text-gold-300 bg-gold-400/10':'border-ink-600 text-ink-300 hover:text-ink-100'}`}>
-                {label} <span className="opacity-60 tabular-nums">{counts[id]}</span>
-              </button>
-            ))}
-          </div>
-          <input type="search" value={query} onChange={e=>setQuery(e.target.value)}
-            placeholder="Search producer, varietal, region…" className="max-w-sm" />
+          {/* Filters + search — nothing to filter in an empty cellar */}
+          {bottles.length > 0 && (
+            <>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[['all','All'],['now','Drink now'],['aging','Aging'],['past','Past peak']].map(([id,label]) => (
+                  <button key={id} onClick={()=>setFilter(id)}
+                    className={`px-2.5 py-1.5 rounded-full text-xs border transition ${filter===id?'border-gold-400/50 text-gold-300 bg-gold-400/10':'border-ink-600 text-ink-300 hover:text-ink-100'}`}>
+                    {label} <span className="opacity-60 tabular-nums">{counts[id]}</span>
+                  </button>
+                ))}
+              </div>
+              <input type="search" value={query} onChange={e=>setQuery(e.target.value)}
+                placeholder="Search producer, varietal, region…" className="max-w-sm" aria-label="Search the cellar" />
+            </>
+          )}
 
           {/* Bottles */}
           {filtered.length === 0 ? (
