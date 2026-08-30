@@ -73,6 +73,10 @@
       border: 1px solid #24211c;
       border-radius: 16px;
     }
+    /* Grid and flex items default to min-width:auto, so a wide table sitting inside
+       an overflow-x-auto wrapper stretches its card — and the whole page — instead
+       of scrolling within it. This is what made Portfolio scroll sideways on phones. */
+    .card, .card-soft { min-width: 0; }
     .btn-primary {
       background: linear-gradient(180deg,#d4a96a,#c19654);
       color: #1a140a;
@@ -587,6 +591,22 @@
 
     const IDS_CATEGORIES = ['Travel','Financial','Medical','School & kids','Legal & professional','Home & property','Identity'];
 
+    /* A free-text `fields` row can hold anything from a frequent-flyer number to a
+       Social Security number. The first is the whole point of this page; the second
+       has no business sitting in the clear while a gym password is starred out.
+       Anything in Identity, or that reads like an SSN or passport number, hides
+       behind the same reveal toggle — keeping the last four so a row stays
+       recognisable without exposing the number. */
+    const SECRET_FIELD_KEY = /ssn|social security|passport|tax ?id|driver'?s? licen[cs]e/i;
+    const SSN_SHAPED = /^\d{3}-?\d{2}-?\d{4}$/;
+    const isSecretField = (category, key, value) =>
+      category === 'Identity' || SECRET_FIELD_KEY.test(key || '') || SSN_SHAPED.test(String(value || '').trim());
+    const maskSecret = (value) => {
+      const v = String(value == null ? '' : value);
+      const tail = v.replace(/[^A-Za-z0-9]/g, '').slice(-4);
+      return tail ? `••• ${tail}` : '••••••••';
+    };
+
     const IdCopy = ({ text }) => {
       const ctx = useContext(Ctx);
       return (
@@ -605,9 +625,10 @@
             <p className="text-ink-300 text-sm max-w-2xl">
               Every family ID, membership and login in one place — from the <a href={IDS_SHEET_URL} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 underline">master sheet</a>.
             </p>
-            <button onClick={()=>setReveal(v=>!v)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-[12px] transition">
-              {reveal ? 'Hide' : 'Show'} secrets
+            <button onClick={()=>setReveal(v=>!v)} aria-pressed={reveal}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-[12px] transition ${
+                reveal ? 'border-gold-400/50 text-gold-300 bg-gold-400/10' : 'border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40'}`}>
+              <Icon name={reveal ? 'x' : 'key'} size={13}/> {reveal ? 'Hide' : 'Show'} secrets
             </button>
           </div>
           <div className="rounded-xl border border-ember-500/30 bg-ember-500/8 px-4 py-3 text-[12px] text-ink-200 leading-relaxed">
@@ -627,13 +648,16 @@
                         {x.url && <a href={x.url} target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1 shrink-0"><Icon name="link" size={12}/> Log in</a>}
                       </div>
                       <div className="mt-2.5 space-y-1 text-xs">
-                        {(x.fields||[]).map(([k,v],i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <span className="text-ink-400 w-24 shrink-0">{k}</span>
-                            <span className="text-ink-100 font-mono truncate">{v}</span>
-                            <IdCopy text={v}/>
-                          </div>
-                        ))}
+                        {(x.fields||[]).map(([k,v],i) => {
+                          const secret = isSecretField(x.category, k, v);
+                          return (
+                            <div key={i} className="flex items-center gap-2">
+                              <span className="text-ink-400 w-24 shrink-0">{k}</span>
+                              <span className="text-ink-100 font-mono truncate">{secret && !reveal ? maskSecret(v) : v}</span>
+                              <IdCopy text={v}/>
+                            </div>
+                          );
+                        })}
                         {x.username && (
                           <div className="flex items-center gap-2">
                             <span className="text-ink-400 w-24 shrink-0">Username</span>
@@ -1233,8 +1257,15 @@
       { id:'wine',        label:'Wine',        icon:'wine' },
     ];
     const NAV_ALL = [...NAV_PRIMARY, ...NAV_RECORDS, ...NAV_OTHER];
-    // Mobile bottom nav: 5 most used + "More"
-    const NAV_MOBILE = [...NAV_PRIMARY, { id:'_more', label:'More', icon:'more' }];
+    // Mobile bottom nav: four most-used + "More". Six tabs made "Maintenance" and
+    // "Appliances" collide at 390px, so Suggestions moves into the sheet.
+    const NAV_MOBILE_IDS = ['dashboard','vendors','maintenance','appliances'];
+    const NAV_MOBILE = [
+      ...NAV_PRIMARY.filter(n => NAV_MOBILE_IDS.includes(n.id)),
+      { id:'_more', label:'More', icon:'more' },
+    ];
+    // Anything not on the bottom bar has to be reachable from the sheet.
+    const NAV_SHEET_PRIMARY = NAV_PRIMARY.filter(n => !NAV_MOBILE_IDS.includes(n.id));
 
     /* Property scope segmented control */
     const PropertyScopeBar = () => {
@@ -1421,7 +1452,7 @@
           <nav className="md:hidden fixed bottom-0 inset-x-0 bg-ink-900/95 backdrop-blur border-t border-ink-600 z-30 pb-safe">
             <div className="flex justify-around">
               {NAV_MOBILE.map(n => {
-                const moreActive = !NAV_PRIMARY.some(p => p.id === view);
+                const moreActive = !NAV_MOBILE_IDS.includes(view);
                 const active = n.id === '_more' ? moreActive : view === n.id;
                 return (
                   <button key={n.id} onClick={()=> n.id==='_more' ? setMoreOpen(true) : setView(n.id)}
@@ -1447,6 +1478,15 @@
               <div className="modal-shell w-full anim-in" onClick={e=>e.stopPropagation()}>
                 <ModalHeader title="More" subtitle="Records & references" onClose={()=>setMoreOpen(false)} />
                 <div className="p-4 grid grid-cols-2 gap-2.5 pb-safe max-h-[70vh] overflow-y-auto">
+                  {NAV_SHEET_PRIMARY.map(n => (
+                    <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
+                      className={`card-soft p-4 flex items-center gap-3 text-left col-span-2 ${view===n.id?'border-gold-400/40':''}`}>
+                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
+                        <Icon name={n.icon} size={18} />
+                      </div>
+                      <div className="text-sm font-medium flex-1">{n.label}</div>
+                    </button>
+                  ))}
                   <div className="col-span-2 text-[10px] uppercase tracking-[0.18em] text-ink-400 px-1">Records</div>
                   {NAV_RECORDS.map(n => {
                     const badge = n.id === 'done' ? (ctx.state.completedLog||[]).length : null;
@@ -1481,8 +1521,8 @@
 
     /* ---------- shared UI ---------- */
     const SectionHeader = ({ title, count, action, hint }) => (
-      <div className="flex items-end justify-between mb-3">
-        <div>
+      <div className="flex items-end justify-between gap-3 mb-3">
+        <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <h2 className="font-display text-xl md:text-2xl tracking-tight">{title}</h2>
             {typeof count === 'number' && <span className="text-ink-400 text-sm tabular-nums">{count}</span>}
@@ -4265,7 +4305,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{v.company}</div>
               <div className="text-ink-200 text-sm">{v.name}</div>
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {v.nextVisit && (
@@ -4476,7 +4516,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="text-sm font-medium leading-snug">{m.name}</div>
               <div className="text-ink-300 text-xs mt-0.5">{freqLabel(m.freq)}{m.estimatedCost?` · ~$${m.estimatedCost}`:''}</div>
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <Pill tone={status.tone} dot>{status.label}</Pill>
@@ -4726,7 +4766,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{a.name}</div>
               {(brand || model) && <div className="text-ink-200 text-sm">{brand} {model && <span className="text-ink-300">· {model}</span>}</div>}
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           {a.serial && <div className="text-ink-400 text-xs mt-2">SN {a.serial}</div>}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -4840,7 +4880,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{p.carrier}</div>
               {p.coverageSummary && <div className="text-ink-300 text-sm">{p.coverageSummary}</div>}
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           {p.policyNumber && <div className="text-ink-200 text-xs mt-2 font-mono">Policy {p.policyNumber}</div>}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -4968,7 +5008,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="font-display text-lg leading-tight mt-0.5">{u.provider}</div>
             {u.accountNumber && <div className="text-ink-300 text-xs mt-1 font-mono">{u.accountNumber}</div>}
           </div>
-          <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
         </div>
         <div className="mt-3 flex items-center gap-2 flex-wrap">
           {u.monthlyEstimate ? <Pill tone="muted">~${u.monthlyEstimate}/mo</Pill> : null}
@@ -5075,7 +5115,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{p.label}</div>
               {p.contact && <div className="text-ink-300 text-sm">{p.contact}</div>}
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {p.nextDue && <Pill tone={n<0?'overdue':n<=30?'soon':'info'} dot>Due {fmtDate(p.nextDue)}</Pill>}
@@ -5190,7 +5230,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="text-[11px] uppercase tracking-wider text-ink-400">{s.category}</div>
               <div className="font-display text-lg leading-tight mt-0.5">{s.name}</div>
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {s.cost ? <Pill tone="muted">${s.cost} {s.cadence||''}</Pill> : null}
@@ -5283,7 +5323,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{v.model}{v.trim?` ${v.trim}`:''}</div>
               {v.primaryDriver && <div className="text-ink-300 text-sm">Driver: {v.primaryDriver}</div>}
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           {v.vin && <div className="text-ink-300 text-xs mt-2 font-mono">VIN {v.vin}</div>}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -5373,7 +5413,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="text-[11px] uppercase tracking-wider text-ink-400">{b.type}</div>
             <div className="font-display text-lg leading-tight mt-0.5">{b.provider}</div>
           </div>
-          <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
           {b.memberID && <><div className="text-ink-400">Member ID</div><div className="text-ink-100 font-mono">{b.memberID}</div></>}
@@ -5643,7 +5683,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="text-ink-200 text-sm">{w.label}</div>
               <div className="text-ink-300 text-xs mt-1">{w.vintage} · {w.varietal}</div>
             </div>
-            <button onClick={onEdit} className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <Pill tone={meta.tone} dot>
