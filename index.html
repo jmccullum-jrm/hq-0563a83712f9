@@ -94,6 +94,12 @@
     }
     input[type="checkbox"], input[type="radio"] { min-height: 0; width: auto; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: #c19654 !important; box-shadow: 0 0 0 3px rgba(193,150,84,.18); }
+    /* Chromeless field for the command palette — the rules above are !important. */
+    .bare-input, .bare-input:focus {
+      background: transparent !important; border: none !important; box-shadow: none !important;
+      padding: 0 !important; min-height: 0 !important; border-radius: 0;
+    }
+    kbd { font-family: inherit; }
     button:focus-visible, a:focus-visible { outline: 2px solid #c19654; outline-offset: 2px; border-radius: 8px; }
     label { font-size: .75rem; color: #8b8478; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
     .modal-backdrop { background: rgba(8,7,5,0.7); backdrop-filter: blur(8px); }
@@ -683,6 +689,98 @@
 
     /* ---------- derived helpers ---------- */
     const maintenanceNextDue = (m) => addInterval(m.lastCompleted, m.freq);
+
+    /* Subscriptions bill themselves. A renewal date in the past means the stored
+       anchor has gone stale, not that anything needs doing — roll it forward by
+       the cadence to the real next charge, the same way maintenanceNextDue derives
+       a task's next date from its last completion. Anchoring every step on the
+       original day-of-month (clamped) keeps a 31st subscription on the 31st.
+       With no cadence there is nothing to roll, so the raw date stands and can
+       legitimately read as overdue. */
+    const CADENCE_MONTHS = { monthly:1, quarterly:3, annual:12, yearly:12 };
+    const subscriptionNextRenewal = (s) => {
+      if (!s || !s.renewalDate) return null;
+      const todayISO = toISO(today());
+      if (s.renewalDate >= todayISO) return s.renewalDate;
+      if (s.cadence === 'weekly') {
+        let d = s.renewalDate;
+        for (let i = 0; i < 520 && d < todayISO; i++) {
+          const next = addInterval(d, { count:1, unit:'weeks' });
+          if (!next || next <= d) break;
+          d = next;
+        }
+        return d;
+      }
+      const step = CADENCE_MONTHS[s.cadence];
+      if (!step) return s.renewalDate;
+      for (let i = 1; i <= 600; i++) {
+        const d = addMonthsClamped(s.renewalDate, i * step);
+        if (!d) break;
+        if (d >= todayISO) return d;
+      }
+      return s.renewalDate;
+    };
+
+    /* One definition of "overdue" and "coming up", shared by the dashboard list and
+       the header's attention count. They used to be computed separately and had
+       drifted: the header ignored subscriptions and warranties, so it could cheerfully
+       say "nothing needs you today" above seven overdue cards. */
+    const collectOverdue = (state, scope) => {
+      const items = [];
+      const inS = (x) => inScope(x, scope);
+      (state.maintenance||[]).forEach(m => {
+        if (!inS(m)) return;
+        const next = maintenanceNextDue(m);
+        const n = daysUntil(next);
+        if (n !== null && n < 0) items.push({ kind:'maint', id:m.id, title:m.name, when:next, n });
+      });
+      (state.vendors||[]).forEach(v => {
+        if (!inS(v)) return;
+        if (v.nextVisit && daysUntil(v.nextVisit) < 0) items.push({ kind:'vendor', id:v.id, title:`${v.serviceType} — ${v.company}`, when:v.nextVisit, n:daysUntil(v.nextVisit), sub:v.name });
+      });
+      (state.appliances||[]).forEach(a => {
+        if (!inS(a) || a.warrantyDismissed) return;
+        const n = daysUntil(a.warrantyExpires);
+        if (n !== null && n < 0) items.push({ kind:'warranty', id:a.id, title:`${a.name} warranty`, when:a.warrantyExpires, n });
+      });
+      (state.property||[]).forEach(p => {
+        if (!inS(p)) return;
+        const n = daysUntil(p.nextDue);
+        if (n !== null && n < 0) items.push({ kind:'property', id:p.id, title:p.label, when:p.nextDue, n, sub:p.cadence ? `${p.cadence}${p.amount?` · $${p.amount}`:''}` : '' });
+      });
+      // Only subscriptions that can't roll themselves forward — those genuinely need a look.
+      (state.subscriptions||[]).forEach(sb => {
+        const when = subscriptionNextRenewal(sb);
+        const n = daysUntil(when);
+        if (n !== null && n < 0) items.push({ kind:'sub', id:sb.id, title:sb.name, when, n, sub:sb.cost?`$${sb.cost} ${sb.cadence||''}`.trim():'' });
+      });
+      return items.sort((a,b) => a.n - b.n);
+    };
+
+    const collectUpcoming = (state, scope, days = 30) => {
+      const items = [];
+      const inS = (x) => inScope(x, scope);
+      const within = (n) => n !== null && n >= 0 && n <= days;
+      (state.maintenance||[]).forEach(m => {
+        if (!inS(m)) return;
+        const next = maintenanceNextDue(m);
+        if (within(daysUntil(next))) items.push({ kind:'maint', id:m.id, title:m.name, when:next, n:daysUntil(next), sub:m.estimatedCost?`~$${m.estimatedCost}`:'' });
+      });
+      (state.vendors||[]).forEach(v => {
+        if (!inS(v)) return;
+        if (within(daysUntil(v.nextVisit))) items.push({ kind:'vendor', id:v.id, title:`${v.serviceType} — ${v.company}`, when:v.nextVisit, n:daysUntil(v.nextVisit), sub:v.name });
+      });
+      (state.property||[]).forEach(p => {
+        if (!inS(p)) return;
+        if (within(daysUntil(p.nextDue))) items.push({ kind:'property', id:p.id, title:p.label, when:p.nextDue, n:daysUntil(p.nextDue), sub:p.cadence ? `${p.cadence}${p.amount?` · $${p.amount}`:''}` : '' });
+      });
+      // Subscriptions are personal, not property-bound — never scoped out.
+      (state.subscriptions||[]).forEach(s => {
+        const when = subscriptionNextRenewal(s);
+        if (within(daysUntil(when))) items.push({ kind:'sub', id:s.id, title:s.name, when, n:daysUntil(when), amount:s.cost||0, sub:s.cost?`$${s.cost} ${s.cadence||''}`.trim():'' });
+      });
+      return items.sort((a,b) => a.n - b.n);
+    };
     const maintenanceStatus = (m) => {
       const due = maintenanceNextDue(m);
       const n = daysUntil(due);
@@ -796,6 +894,7 @@
       const [modal, setModal] = useState(null);
       const [previewFile, setPreviewFile] = useState(null);
       const [toast, setToast] = useState(null);
+      const [paletteOpen, setPaletteOpen] = useState(false);
       const [propertyScope, setPropertyScope] = useState(loadScope);
 
       useEffect(() => { saveState(state); }, [state]);
@@ -895,6 +994,17 @@
         try { if (localStorage.getItem(HOUSE_KEY)) checkCloudUpdates(false); } catch {}
       }, []);
 
+      // ⌘K / Ctrl-K from anywhere; "/" too, unless you're already typing somewhere.
+      useEffect(() => {
+        const onKey = (e) => {
+          const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') || (e.target && e.target.isContentEditable);
+          if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setPaletteOpen(true); }
+          else if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); setPaletteOpen(true); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, []);
+
       // generic CRUD factory for the new flat-list modules
       const mk = (key) => ({
         add:    (item)        => setState(s => ({...s, [key]:[{...item, id:uid()}, ...(s[key]||[])]})),
@@ -912,6 +1022,7 @@
 
       const ctx = {
         state, setState, view, setView, modal, setModal, showToast,
+        openPalette: () => setPaletteOpen(true),
         refreshCloud: checkCloudUpdates, refreshing,
         previewFile, setPreviewFile,
         propertyScope, setPropertyScope,
@@ -923,21 +1034,30 @@
         addTask: (t) => setState(s => ({...s, maintenance:[{...t, id:uid()}, ...s.maintenance]})),
         updateTask: (id, patch) => setState(s => ({...s, maintenance: s.maintenance.map(t => t.id===id?{...t,...patch}:t)})),
         deleteTask: (id) => setState(s => ({...s, maintenance: s.maintenance.filter(t => t.id!==id)})),
-        completeTask: (id) => setState(s => {
-          const t0 = (s.maintenance||[]).find(t => t.id === id);
-          if (!t0) return s;
-          const nowISO = toISO(today());
-          const logEntry = {
-            id: uid(), kind:'maint', refId:id, title: t0.name || '', sub:'',
-            originalDue: maintenanceNextDue(t0) || '', prevValue: t0.lastCompleted || '',
-            completedAt: new Date().toISOString(),
-          };
-          return {
-            ...s,
-            maintenance: (s.maintenance||[]).map(t => t.id===id ? {...t, lastCompleted: nowISO} : t),
-            completedLog: [logEntry, ...(s.completedLog||[])],
-          };
-        }),
+        completeTask: (id) => {
+          const logId = uid();
+          // Name is read from the current state, not mutated out of the updater —
+          // updaters run at render time, so a value assigned inside one isn't
+          // available to the showToast call below.
+          const t0 = (state.maintenance||[]).find(t => t.id === id);
+          if (!t0) return;
+          setState(s => {
+            const t0 = (s.maintenance||[]).find(t => t.id === id);
+            if (!t0) return s;
+            const nowISO = toISO(today());
+            const logEntry = {
+              id: logId, kind:'maint', refId:id, title: t0.name || '', sub:'',
+              originalDue: maintenanceNextDue(t0) || '', prevValue: t0.lastCompleted || '',
+              completedAt: new Date().toISOString(),
+            };
+            return {
+              ...s,
+              maintenance: (s.maintenance||[]).map(t => t.id===id ? {...t, lastCompleted: nowISO} : t),
+              completedLog: [logEntry, ...(s.completedLog||[])],
+            };
+          });
+          showToast(`Completed: ${t0.name || 'task'}`, { label:'Undo', fn: () => undoDoneById(logId) });
+        },
         // appliances
         addAppliance: (a) => setState(s => ({...s, appliances:[{...a, id:uid()}, ...s.appliances]})),
         updateAppliance: (id, patch) => setState(s => ({...s, appliances: s.appliances.map(a => a.id===id?{...a,...patch}:a)})),
@@ -1079,6 +1199,7 @@
               {view === 'done'         && <DoneView />}
               {view === 'wine'         && <WineView />}
             </Shell>
+            {paletteOpen && <CommandPalette onClose={()=>setPaletteOpen(false)} />}
             {modal && <Modal onClose={()=>setModal(null)}>{modal}</Modal>}
             {previewFile && <FilePreviewModal file={previewFile} onClose={()=>setPreviewFile(null)} />}
             {toast && <Toast toast={toast} onAction={()=>setToast(null)} />}
@@ -1194,13 +1315,11 @@
       const ctx = useContext(Ctx);
       const [moreOpen, setMoreOpen] = useState(false);
       useEffect(() => { window.scrollTo(0, 0); }, [view]);
-      const attention = useMemo(() => {
-        const s = ctx.state;
-        let n = (s.maintenance||[]).filter(m => { const d = daysUntil(maintenanceNextDue(m)); return d !== null && d < 0; }).length;
-        n += (s.vendors||[]).filter(v => v.nextVisit && daysUntil(v.nextVisit) < 0).length;
-        n += (s.property||[]).filter(p => { const d = daysUntil(p.nextDue); return d !== null && d < 0; }).length;
-        return n;
-      }, [ctx.state]);
+      // Same collector the dashboard list uses, so the greeting can never claim the
+      // house is caught up while overdue cards sit right below it.
+      const attention = useMemo(
+        () => collectOverdue(ctx.state, ctx.propertyScope).length,
+        [ctx.state, ctx.propertyScope]);
       const drinkNowCount = useMemo(() => (ctx.state.wine||[]).filter(w => w.qty > 0 && wineState(w) === 'now').length, [ctx.state]);
       const greeting = (() => {
         const h = new Date().getHours();
@@ -1272,6 +1391,12 @@
                 </div>
                 <div className="mt-4 md:mt-0 md:pb-1.5 flex items-center gap-2.5">
                   <PropertyScopeBar />
+                  <button onClick={ctx.openPalette} title="Search everything (⌘K)" aria-label="Search everything"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-[13px] transition">
+                    <Icon name="search" size={14}/>
+                    <span className="hidden md:inline">Search</span>
+                    <kbd className="hidden md:inline text-[10px] text-ink-400 border border-ink-600 rounded px-1 ml-0.5">⌘K</kbd>
+                  </button>
                   <button onClick={()=>ctx.refreshCloud(true)} title="Pull the latest scan of email, Box & calendar"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40 text-[13px] transition">
                     <Icon name="refresh" size={14} className={ctx.refreshing ? 'animate-spin' : ''}/>
@@ -1448,66 +1573,157 @@
     );
 
     /* ===================== DASHBOARD ===================== */
-    /* ---------- global search: one box over everything in Home HQ ---------- */
-    const GlobalSearch = () => {
+    /* ---------- search index: one pass over everything in Home HQ ---------- */
+    /* Module-scope so the command palette and anything else can share one index
+       instead of each growing its own drifting copy. */
+    const searchEverything = (s, needle) => {
+      if (!s || !needle || needle.length < 2) return [];
+      const hit = (...vals) => vals.some(v => v != null && String(v).toLowerCase().includes(needle));
+      const out = [];
+      const push = (view, icon, title, sub) => out.push({ view, icon, title, sub });
+      (s.vendors||[]).forEach(x => hit(x.name, x.company, x.serviceType, x.notes, x.phone, x.email) && push('vendors', 'users', x.company || x.name, `Vendor · ${x.serviceType || ''}`));
+      (s.maintenance||[]).forEach(x => hit(x.name, x.notes, x.property) && push('maintenance', 'wrench', x.name, `Maintenance · ${x.property || 'both homes'}`));
+      (s.appliances||[]).forEach(x => hit(x.name, x.brand, x.model, x.serial, x.notes) && push('appliances', 'cube', x.name, `Appliance · ${x.brand || ''} ${x.model || ''}`));
+      (s.insurance||[]).forEach(x => hit(x.carrier, x.type, x.policyNumber, x.coverageSummary, x.notes, x.agentName) && push('insurance', 'shield', `${x.carrier} — ${x.type}`, `Insurance · ${x.policyNumber || ''}`));
+      (s.property||[]).forEach(x => hit(x.name, x.kind, x.notes, x.provider) && push('property', 'key', x.name, `Property · ${x.property || ''}`));
+      (s.utilities||[]).forEach(x => hit(x.name, x.provider, x.account, x.notes) && push('utilities', 'zap', x.provider || x.name, `Utility · ${x.property || ''}`));
+      (s.subscriptions||[]).forEach(x => hit(x.name, x.category, x.notes) && push('subscriptions', 'receipt', x.name, `Subscription · $${x.cost || 0} ${x.cadence || ''}`));
+      (s.vehicles||[]).forEach(x => hit(x.name, x.make, x.model, x.vin, x.plate, x.notes) && push('vehicles', 'car', x.name || `${x.make || ''} ${x.model || ''}`, `Vehicle · ${x.vin || ''}`));
+      (s.benefits||[]).forEach(x => hit(x.name, x.provider, x.notes) && push('benefits', 'heart', x.provider || x.name, `Benefit · ${x.type || ''}`));
+      (s.files||[]).forEach(x => hit(x.name, x.notes, x.folder) && push('files', 'folder', x.name, 'File'));
+      (s.wine||[]).forEach(x => hit(x.name, x.producer, x.region, x.notes, x.label, x.varietal) && push('wine', 'wine', `${x.producer || ''} ${x.label || ''}`.trim() || x.name, `Wine · ${x.vintage || ''} ${x.region || ''}`));
+      (s.suggestions||[]).forEach(x => hit(x.title, x.body) && push('suggestions', 'bulb', x.title, `Suggestion · ${x.priority || ''}${x.done ? ' · done' : ''}`));
+      (s.ids||[]).forEach(x => hit(x.service, x.username, x.category, ...(x.fields||[]).flat()) && push('ids', 'idcard', x.service, `IDs & Logins · ${x.category}`));
+      (s.dafValues||[]).length && hit('daf', 'charitable', 'gift fund', 'donor') && push('portfolio', 'chart', 'Charitable DAF', 'Portfolio · Charitable DAF tab');
+      // portfolio: accounts + holdings + outside items
+      PORTFOLIO_DATA.accounts.forEach(a => hit(a.name, a.accountNum, a.taxType) && push('portfolio', 'chart', a.name, `Portfolio · ${fmtMoneyK(a.value)}`));
+      PORTFOLIO_DATA.holdings.forEach(h => hit(h.symbol, h.description) && out.length < 40 && push('portfolio', 'chart', `${h.symbol} — ${fmtMoneyK(h.value)}`, `Portfolio · ${h.account}`));
+      BANKING.accounts.forEach(a => hit(a.name, a.acct, 'bank of america', 'savings', 'checking', 'money market') && push('portfolio', 'chart', a.name, 'Portfolio · Cash & Banking tab'));
+      EDUCATION_529.accounts.forEach(a => hit(a.child, a.fund, '529', 'college') && push('portfolio', 'chart', `${a.child} 529 — ${a.fund}`, 'Portfolio · 529 tab'));
+      EQUITY_COMP.grants.forEach(g => hit('anthropic', g.id, g.type, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Anthropic ${g.type} · ${g.id}`, 'Portfolio · Anthropic Equity tab'));
+      MERCURY_EQUITY.grants.forEach(g => hit('mercury', 'amanda', 'carta', g.id, g.type, g.subtype, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Mercury ${g.type} · ${g.id}`, 'Portfolio · Amanda — Mercury Equity tab'));
+      const seen = new Set();
+      return out.filter(r => { const k = r.view + '|' + r.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 20);
+    };
+
+    /* ---------- command palette (⌘K) — search and jump from any view ----------
+       Search used to live only on Today, which meant leaving whatever you were
+       doing to look anything up. This is the same index plus navigation and the
+       quick-add forms, reachable from everywhere and driveable by keyboard. */
+    const PALETTE_ACTIONS = [
+      { id:'add-vendor',    icon:'users',  title:'Add vendor',    sub:'New contractor or service',  form:(close)=><VendorForm onClose={close} /> },
+      { id:'add-task',      icon:'wrench', title:'Add task',      sub:'Recurring maintenance',      form:(close)=><TaskForm onClose={close} /> },
+      { id:'add-appliance', icon:'cube',   title:'Add appliance', sub:'Equipment worth tracking',   form:(close)=><ApplianceForm onClose={close} /> },
+      { id:'add-bottle',    icon:'wine',   title:'Add bottle',    sub:'Into the cellar',            form:(close)=><WineForm onClose={close} /> },
+    ];
+
+    const CommandPalette = ({ onClose }) => {
       const ctx = useContext(Ctx);
       const [q, setQ] = useState('');
-      const results = useMemo(() => {
-        const needle = q.trim().toLowerCase();
-        if (needle.length < 2) return [];
-        const hit = (...vals) => vals.some(v => v != null && String(v).toLowerCase().includes(needle));
-        const out = [];
-        const push = (view, icon, title, sub) => out.push({ view, icon, title, sub });
-        const s = ctx.state;
-        (s.vendors||[]).forEach(x => hit(x.name, x.company, x.serviceType, x.notes, x.phone, x.email) && push('vendors', 'users', x.company || x.name, `Vendor · ${x.serviceType || ''}`));
-        (s.maintenance||[]).forEach(x => hit(x.name, x.notes, x.property) && push('maintenance', 'wrench', x.name, `Maintenance · ${x.property || 'both homes'}`));
-        (s.appliances||[]).forEach(x => hit(x.name, x.brand, x.model, x.serial, x.notes) && push('appliances', 'cube', x.name, `Appliance · ${x.brand || ''} ${x.model || ''}`));
-        (s.insurance||[]).forEach(x => hit(x.carrier, x.type, x.policyNumber, x.coverageSummary, x.notes, x.agentName) && push('insurance', 'shield', `${x.carrier} — ${x.type}`, `Insurance · ${x.policyNumber || ''}`));
-        (s.property||[]).forEach(x => hit(x.name, x.kind, x.notes, x.provider) && push('property', 'key', x.name, `Property · ${x.property || ''}`));
-        (s.utilities||[]).forEach(x => hit(x.name, x.provider, x.account, x.notes) && push('utilities', 'zap', x.provider || x.name, `Utility · ${x.property || ''}`));
-        (s.subscriptions||[]).forEach(x => hit(x.name, x.category, x.notes) && push('subscriptions', 'receipt', x.name, `Subscription · $${x.cost || 0} ${x.cadence || ''}`));
-        (s.vehicles||[]).forEach(x => hit(x.name, x.make, x.model, x.vin, x.plate, x.notes) && push('vehicles', 'car', x.name || `${x.make || ''} ${x.model || ''}`, `Vehicle · ${x.vin || ''}`));
-        (s.benefits||[]).forEach(x => hit(x.name, x.provider, x.notes) && push('benefits', 'heart', x.name, 'Benefit'));
-        (s.files||[]).forEach(x => hit(x.name, x.notes, x.folder) && push('files', 'folder', x.name, 'File'));
-        (s.wine||[]).forEach(x => hit(x.name, x.producer, x.region, x.notes) && push('wine', 'wine', x.name, `Wine · ${x.producer || ''}`));
-        (s.suggestions||[]).forEach(x => hit(x.title, x.body) && push('suggestions', 'bulb', x.title, `Suggestion · ${x.priority || ''}${x.done ? ' · done' : ''}`));
-        (s.ids||[]).forEach(x => hit(x.service, x.username, x.category, ...(x.fields||[]).flat()) && push('ids', 'idcard', x.service, `IDs & Logins · ${x.category}`));
-        (s.dafValues||[]).length && hit('daf', 'charitable', 'gift fund', 'donor') && push('portfolio', 'chart', 'Charitable DAF', 'Portfolio · Charitable DAF tab');
-        // portfolio: accounts + holdings + outside items
-        PORTFOLIO_DATA.accounts.forEach(a => hit(a.name, a.accountNum, a.taxType) && push('portfolio', 'chart', a.name, `Portfolio · ${fmtMoneyK(a.value)}`));
-        PORTFOLIO_DATA.holdings.forEach(h => hit(h.symbol, h.description) && out.length < 40 && push('portfolio', 'chart', `${h.symbol} — ${fmtMoneyK(h.value)}`, `Portfolio · ${h.account}`));
-        BANKING.accounts.forEach(a => hit(a.name, a.acct, 'bank of america', 'savings', 'checking', 'money market') && push('portfolio', 'chart', a.name, 'Portfolio · Cash & Banking tab'));
-        EDUCATION_529.accounts.forEach(a => hit(a.child, a.fund, '529', 'college') && push('portfolio', 'chart', `${a.child} 529 — ${a.fund}`, 'Portfolio · 529 tab'));
-        EQUITY_COMP.grants.forEach(g => hit('anthropic', g.id, g.type, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Anthropic ${g.type} · ${g.id}`, 'Portfolio · Anthropic Equity tab'));
-        MERCURY_EQUITY.grants.forEach(g => hit('mercury', 'amanda', 'carta', g.id, g.type, g.subtype, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Mercury ${g.type} · ${g.id}`, 'Portfolio · Amanda — Mercury Equity tab'));
-        // dedupe by view+title
-        const seen = new Set();
-        return out.filter(r => { const k = r.view + '|' + r.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 20);
-      }, [q, ctx.state]);
+      const [sel, setSel] = useState(0);
+      const inputRef = useRef(null);
+      const selRef = useRef(null);
+      const needle = q.trim().toLowerCase();
+
+      const go = (view) => { ctx.setView(view); onClose(); };
+      const runForm = (mk) => { onClose(); ctx.setModal(mk(() => ctx.setModal(null))); };
+
+      // Built fresh each render — the whole dataset is a few hundred rows, and a
+      // memo here would just risk going stale against ctx.state.
+      const groups = [];
+      const results = searchEverything(ctx.state, needle);
+      if (results.length) {
+        groups.push({ label:'Results', items: results.map((r, i) => ({
+          key:`r${i}`, icon:r.icon, title:r.title, sub:r.sub, run:()=>go(r.view) })) });
+      }
+      const navMatches = NAV_ALL.filter(n => !needle || n.label.toLowerCase().includes(needle));
+      if (navMatches.length) {
+        groups.push({ label:'Jump to', items: navMatches.map(n => ({
+          key:`n${n.id}`, icon:n.icon, title:n.label, sub:'Section', run:()=>go(n.id) })) });
+      }
+      const actionMatches = PALETTE_ACTIONS.filter(a => !needle || a.title.toLowerCase().includes(needle) || a.sub.toLowerCase().includes(needle));
+      if (actionMatches.length) {
+        groups.push({ label:'Add', items: actionMatches.map(a => ({
+          key:a.id, icon:a.icon, title:a.title, sub:a.sub, run:()=>runForm(a.form) })) });
+      }
+      const flat = groups.flatMap(g => g.items);
+      const active = flat[Math.min(sel, flat.length - 1)];
+
+      useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, []);
+      useEffect(() => { setSel(0); }, [q]);
+      useEffect(() => {
+        if (selRef.current && selRef.current.scrollIntoView) selRef.current.scrollIntoView({ block:'nearest' });
+      }, [sel, q]);
+      useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = ''; };
+      }, []);
+
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, flat.length - 1)); }
+        else if (e.key === 'ArrowUp')   { e.preventDefault(); setSel(s => Math.max(s - 1, 0)); }
+        else if (e.key === 'Enter')     { e.preventDefault(); if (active) active.run(); }
+      };
+
+      let idx = -1;
       return (
-        <div className="relative">
-          <div className="flex items-center gap-2.5 card px-4 py-3">
-            <Icon name="search" size={16} className="text-ink-400 shrink-0" />
-            <input value={q} onChange={e=>setQ(e.target.value)}
-              placeholder="Search everything — vendors, policies, holdings, subscriptions, wine…"
-              className="flex-1 bg-transparent border-none outline-none text-sm text-ink-100 placeholder-ink-500 p-0 focus:ring-0" style={{boxShadow:'none'}} />
-            {q && <button onClick={()=>setQ('')} className="text-ink-500 hover:text-ink-200"><Icon name="x" size={14}/></button>}
-          </div>
-          {q.trim().length >= 2 && (
-            <div className="card mt-2 p-2 max-h-80 overflow-y-auto">
-              {results.length === 0
-                ? <div className="text-ink-400 text-sm px-3 py-2.5">No matches for “{q}”.</div>
-                : results.map((r, i) => (
-                  <button key={i} onClick={()=>{ ctx.setView(r.view); setQ(''); }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-ink-700/60 transition">
-                    <Icon name={r.icon} size={15} className="text-gold-400 shrink-0" />
-                    <span className="text-sm text-ink-100 truncate">{r.title}</span>
-                    <span className="text-[11px] text-ink-400 ml-auto shrink-0 truncate max-w-[45%]">{r.sub}</span>
-                  </button>
-                ))}
+        <div className="fixed inset-0 z-[60] modal-backdrop flex items-start justify-center px-3 pt-[8vh] md:pt-[12vh]" onClick={onClose}>
+          <div className="modal-shell w-full max-w-xl anim-in overflow-hidden flex flex-col max-h-[76vh]" onClick={e=>e.stopPropagation()}
+               role="dialog" aria-modal="true" aria-label="Search Home HQ">
+            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-ink-600 shrink-0">
+              <Icon name="search" size={17} className="text-ink-400 shrink-0" />
+              <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} onKeyDown={onKey}
+                placeholder="Search everything, or jump to a section…"
+                aria-label="Search Home HQ"
+                className="bare-input flex-1 outline-none text-[15px] text-ink-100 placeholder-ink-500" />
+              {q && <button onClick={()=>{ setQ(''); inputRef.current && inputRef.current.focus(); }} aria-label="Clear search"
+                className="text-ink-500 hover:text-ink-200 shrink-0"><Icon name="x" size={15}/></button>}
             </div>
-          )}
+            <div className="overflow-y-auto p-2 flex-1">
+              {flat.length === 0 ? (
+                <div className="text-ink-400 text-sm px-3 py-6 text-center">No matches for “{q}”.</div>
+              ) : groups.map(g => (
+                <div key={g.label} className="mb-1">
+                  <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.16em] text-ink-500">{g.label}</div>
+                  {g.items.map(it => {
+                    idx += 1;
+                    const on = idx === Math.min(sel, flat.length - 1);
+                    return (
+                      <button key={it.key} ref={on ? selRef : null}
+                        onClick={it.run} onMouseEnter={(function(i){ return () => setSel(i); })(idx)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${on ? 'bg-ink-700' : 'hover:bg-ink-800'}`}>
+                        <Icon name={it.icon} size={15} className={`shrink-0 ${on ? 'text-gold-400' : 'text-ink-400'}`} />
+                        <span className="text-sm text-ink-100 truncate">{it.title}</span>
+                        <span className="text-[11px] text-ink-400 ml-auto shrink-0 truncate max-w-[45%]">{it.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="px-4 py-2.5 border-t border-ink-600 text-[10px] text-ink-500 flex items-center gap-3 shrink-0">
+              <span><kbd className="text-ink-300">↑↓</kbd> navigate</span>
+              <span><kbd className="text-ink-300">↵</kbd> open</span>
+              <span><kbd className="text-ink-300">esc</kbd> close</span>
+              <span className="ml-auto hidden md:inline">{flat.length} result{flat.length === 1 ? '' : 's'}</span>
+            </div>
+          </div>
         </div>
+      );
+    };
+
+    /* Dashboard's search bar — a trigger for the palette, so there is exactly one
+       search implementation rather than two that drift apart. */
+    const GlobalSearch = () => {
+      const ctx = useContext(Ctx);
+      return (
+        <button onClick={ctx.openPalette}
+          className="w-full flex items-center gap-2.5 card px-4 py-3 text-left hover:border-gold-400/40 transition group">
+          <Icon name="search" size={16} className="text-ink-400 shrink-0 group-hover:text-gold-400 transition" />
+          <span className="flex-1 text-sm text-ink-500 truncate">Search everything — vendors, policies, holdings, subscriptions, wine…</span>
+          <kbd className="hidden md:inline text-[10px] text-ink-400 border border-ink-600 rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
+        </button>
       );
     };
 
@@ -1519,61 +1735,13 @@
 
       const [showAllOverdue, setShowAllOverdue] = useState(false);
       const [gapsOpen, setGapsOpen] = useState(false);
-      const overdue = useMemo(() => {
-        const items = [];
-        state.maintenance.forEach(m => {
-          if (!inS(m)) return;
-          const next = maintenanceNextDue(m);
-          const n = daysUntil(next);
-          if (n !== null && n < 0) items.push({ kind:'maint', id:m.id, title:m.name, when:next, n });
-        });
-        state.vendors.forEach(v => {
-          if (!inS(v)) return;
-          if (v.nextVisit && daysUntil(v.nextVisit) < 0) items.push({ kind:'vendor', id:v.id, title:`${v.serviceType} — ${v.company}`, when:v.nextVisit, n:daysUntil(v.nextVisit), sub:v.name });
-        });
-        state.appliances.forEach(a => {
-          if (!inS(a)) return;
-          if (a.warrantyDismissed) return;
-          const n = daysUntil(a.warrantyExpires);
-          if (n !== null && n < 0) items.push({ kind:'warranty', id:a.id, title:`${a.name} warranty`, when:a.warrantyExpires, n });
-        });
-        (state.property || []).forEach(p => {
-          if (!inS(p)) return;
-          const n = daysUntil(p.nextDue);
-          if (n !== null && n < 0) items.push({ kind:'property', id:p.id, title:p.label, when:p.nextDue, n, sub:p.cadence ? `${p.cadence}${p.amount?` · $${p.amount}`:''}` : '' });
-        });
-        (state.subscriptions || []).forEach(sb => {
-          const n = daysUntil(sb.renewalDate);
-          if (n !== null && n < 0) items.push({ kind:'sub', id:sb.id, title:sb.name, when:sb.renewalDate, n, sub:sb.cost?`$${sb.cost} ${sb.cadence}`:'' });
-        });
-        return items.sort((a,b)=>a.n-b.n);
-      }, [state, scope]);
-
-      const upcoming = useMemo(() => {
-        const items = [];
-        state.maintenance.forEach(m => {
-          if (!inS(m)) return;
-          const next = maintenanceNextDue(m);
-          const n = daysUntil(next);
-          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'maint', id:m.id, title:m.name, when:next, n, sub:`~$${m.estimatedCost}` });
-        });
-        state.vendors.forEach(v => {
-          if (!inS(v)) return;
-          const n = daysUntil(v.nextVisit);
-          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'vendor', id:v.id, title:`${v.serviceType} — ${v.company}`, when:v.nextVisit, n, sub:v.name });
-        });
-        (state.property || []).forEach(p => {
-          if (!inS(p)) return;
-          const n = daysUntil(p.nextDue);
-          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'property', id:p.id, title:p.label, when:p.nextDue, n, sub:p.cadence ? `${p.cadence}${p.amount?` · $${p.amount}`:''}` : '' });
-        });
-        // subscriptions are personal, not property-bound — show always
-        (state.subscriptions || []).forEach(s => {
-          const n = daysUntil(s.renewalDate);
-          if (n !== null && n >= 0 && n <= 30) items.push({ kind:'sub', id:s.id, title:s.name, when:s.renewalDate, n, sub:s.cost?`$${s.cost} ${s.cadence}`:'' });
-        });
-        return items.sort((a,b)=>a.n-b.n);
-      }, [state, scope]);
+      const overdue  = useMemo(() => collectOverdue(state, scope), [state, scope]);
+      const upcoming = useMemo(() => collectUpcoming(state, scope), [state, scope]);
+      // Subscriptions charge themselves — they're money to expect, not work to do.
+      // Mixed into "Coming up" they drown the handful of items that need a person.
+      const upcomingTasks   = useMemo(() => upcoming.filter(i => i.kind !== 'sub'), [upcoming]);
+      const upcomingCharges = useMemo(() => upcoming.filter(i => i.kind === 'sub'), [upcoming]);
+      const chargeTotal     = useMemo(() => upcomingCharges.reduce((s,i) => s + (i.amount||0), 0), [upcomingCharges]);
 
       const warranties = useMemo(() => {
         return state.appliances
@@ -1686,71 +1854,109 @@
           <GlobalSearch />
 
           {/* Tile row: stats */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <StatTile label="Overdue"      value={overdue.length}  tone="overdue" hint="needs attention" />
-            <StatTile label="Next 30 days" value={upcoming.length} tone="soon"    hint="upcoming" />
-            <StatTile label="Renewals"     value={renewals.length} tone="info"    hint="≤ 60 days" />
-            <StatTile label="Warranties"   value={warranties.length} tone="info"  hint="≤ 90 days" />
-            <StatTile label="Drink now"    value={drinkNow.length} tone="ok"      hint="in window" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <StatTile label="Overdue"      value={overdue.length}         tone="overdue" hint="now" />
+            <StatTile label="To do"        value={upcomingTasks.length}   tone="soon"    hint="30d" />
+            <StatTile label="Charges"      value={fmtMoneyK(chargeTotal)} tone="info"    hint="30d" onClick={()=>setView('subscriptions')} />
+            <StatTile label="Renewals"     value={renewals.length}        tone="info"    hint="60d" onClick={()=>setView('insurance')} />
+            <StatTile label="Warranties"   value={warranties.length}      tone="info"    hint="90d" onClick={()=>setView('appliances')} />
+            <StatTile label="Drink now"    value={drinkNow.length}        tone="ok"      hint="ready" onClick={()=>setView('wine')} />
           </div>
 
-          {/* Generate digest */}
-          <div className="card p-5 md:p-6 flex items-center justify-between gap-4">
-            <div>
-              <div className="font-display text-lg tracking-tight">This week's digest</div>
-              <div className="text-ink-300 text-sm mt-1">A clean, forwardable summary of everything that needs attention.</div>
+          {/* Money summary + digest */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <PortfolioWidget onOpen={()=>setView('portfolio')} />
+            <div className="card p-5 md:p-6 flex flex-col justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-1">Digest</div>
+                <div className="font-display text-lg tracking-tight">This week's digest</div>
+                <div className="text-ink-300 text-sm mt-1.5 leading-relaxed">
+                  A clean, forwardable summary of everything that needs attention — overdue items, the next 30 days, renewals and warranties.
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Btn icon="sparkles" onClick={generateDigest}>Generate</Btn>
+                <span className="text-[11px] text-ink-500">
+                  {overdue.length + upcoming.length} item{overdue.length + upcoming.length === 1 ? '' : 's'} would be included
+                </span>
+              </div>
             </div>
-            <Btn icon="sparkles" onClick={generateDigest}>Generate</Btn>
           </div>
+
+          {/* Nothing at all to do — one calm card instead of two empty sections */}
+          {overdue.length === 0 && upcomingTasks.length === 0 && (
+            <Empty icon="check" title="Nothing needs you"
+              body="No overdue items, and the next 30 days are clear. Work surfaces here as it comes due."
+              cta={<Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>} />
+          )}
 
           {/* Overdue */}
+          {overdue.length > 0 && (
           <section>
             <SectionHeader title="Overdue" count={overdue.length} hint="Roll these forward when they're done." />
-            {overdue.length === 0 ? (
-              <Empty icon="check" title="Nothing overdue" body="Great — the house is caught up. New items will surface here as they fall behind."/>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(showAllOverdue ? overdue : overdue.slice(0, 5)).map(i => <DashboardItem key={i.kind+i.id} item={i} kind="overdue"
-                    onComplete={() => ctx.markDone(i)}
-                    onJump={() => setView(
-                      i.kind==='maint'?'maintenance':
-                      i.kind==='vendor'?'vendors':
-                      i.kind==='property'?'property':
-                      i.kind==='sub'?'subscriptions':
-                      'appliances'
-                    )} />)}
-                </div>
-                {overdue.length > 5 && (
-                  <button onClick={()=>setShowAllOverdue(v=>!v)}
-                    className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-ink-500 text-ink-300 hover:text-gold-300 hover:border-gold-500/50 text-sm transition">
-                    {showAllOverdue ? 'Show fewer' : `Show all ${overdue.length} overdue`}
-                  </button>
-                )}
-              </>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {(showAllOverdue ? overdue : overdue.slice(0, 5)).map(i => <DashboardItem key={i.kind+i.id} item={i} kind="overdue"
+                onComplete={() => ctx.markDone(i)}
+                onJump={() => setView(
+                  i.kind==='maint'?'maintenance':
+                  i.kind==='vendor'?'vendors':
+                  i.kind==='property'?'property':
+                  i.kind==='sub'?'subscriptions':
+                  'appliances'
+                )} />)}
+            </div>
+            {overdue.length > 5 && (
+              <button onClick={()=>setShowAllOverdue(v=>!v)}
+                className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-ink-500 text-ink-300 hover:text-gold-300 hover:border-gold-500/50 text-sm transition">
+                {showAllOverdue ? 'Show fewer' : `Show all ${overdue.length} overdue`}
+              </button>
             )}
           </section>
+          )}
 
-          {/* Coming up */}
+          {/* Coming up — work that needs a person */}
+          {(upcomingTasks.length > 0 || overdue.length > 0) && (
           <section>
-            <SectionHeader title="Coming up" count={upcoming.length} hint="Next 30 days — maintenance, vendors, dues, subscriptions." />
-            {upcoming.length === 0 ? (
-              <Empty icon="calendar" title="The next 30 days are clear" body="Nothing to prep. Add or edit a vendor, task, or subscription and it'll show up here."
+            <SectionHeader title="Coming up" count={upcomingTasks.length} hint="Next 30 days — maintenance, vendor visits and property dues." />
+            {upcomingTasks.length === 0 ? (
+              <Empty icon="calendar" title="The next 30 days are clear" body="Nothing to prep. Add a task or schedule a vendor and it'll show up here."
                 cta={<Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>} />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {upcoming.map(i => <DashboardItem key={i.kind+i.id} item={i} kind="soon"
+                {upcomingTasks.map(i => <DashboardItem key={i.kind+i.id} item={i} kind="soon"
                   onComplete={() => ctx.markDone(i)}
                   onJump={()=> setView(
                     i.kind==='maint'?'maintenance':
                     i.kind==='vendor'?'vendors':
                     i.kind==='property'?'property':
-                    i.kind==='sub'?'subscriptions':
                     'appliances'
                   )} />)}
               </div>
             )}
           </section>
+          )}
+
+          {/* Recurring charges — money that moves on its own, so a compact ledger
+              rather than 18 cards with checkboxes nobody should tick. */}
+          {upcomingCharges.length > 0 && (
+            <section>
+              <SectionHeader title="Recurring charges" count={upcomingCharges.length}
+                hint={`${fmtMoney(chargeTotal)} billing in the next 30 days — automatic, nothing to do.`}
+                action={<button onClick={()=>setView('subscriptions')} className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1">Manage <Icon name="chevR" size={11}/></button>} />
+              <div className="card p-2">
+                <div className="grid grid-cols-1 md:grid-cols-2">
+                  {upcomingCharges.map(c => (
+                    <button key={c.id} onClick={()=>setView('subscriptions')}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-ink-800 text-left transition">
+                      <span className="text-sm text-ink-200 truncate flex-1">{c.title}</span>
+                      <span className="text-[11px] text-ink-500 tabular-nums shrink-0">{fmtDate(c.when, {month:'short', day:'numeric'})}</span>
+                      <span className="text-xs text-ink-100 tabular-nums shrink-0 w-16 text-right">{c.amount ? fmtMoney(c.amount) : '—'}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Insurance renewals — hidden entirely when empty to keep Today calm */}
           {renewals.length > 0 && (
@@ -1840,13 +2046,11 @@
             </section>
           )}
 
-          {/* Drink now */}
+          {/* Drink now — hidden entirely when empty, like renewals and warranties */}
+          {drinkNow.length > 0 && (
           <section>
             <SectionHeader title="Drink now" count={drinkNow.length} hint="In their peak window — open something tonight." />
-            {drinkNow.length === 0 ? (
-              <Empty icon="wine" title="No bottles in window" body="Add wines with drink windows and we'll surface 2–3 here when they're ready."
-                cta={<Btn variant="soft" icon="wine" onClick={()=>setView('wine')}>Open the cellar</Btn>} />
-            ) : (
+            {(
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {drinkNow.map(w => (
                   <button key={w.id} onClick={()=>setView('wine')} className="card p-4 text-left hover:border-gold-400/40 transition">
@@ -1863,6 +2067,7 @@
               </div>
             )}
           </section>
+          )}
         </div>
       );
     };
@@ -1893,8 +2098,15 @@ const BANKING = {
   ],
   missingNote: 'No statements for the two kids’ SafeBalance accounts yet — drop their eStmts into the Spending docs folder in Box (or tell Claude the balances) and they’ll be added to the total.',
 };
-/* Merrill snapshot + bank cash + 529s + vested Anthropic equity (options at intrinsic spread). */
-const householdTotal = () => PORTFOLIO_DATA.totalValue + BANKING.total + EDUCATION_529.total + equityVesting().vestedValue;
+/* Vested Mercury equity at the reference secondary mark. Indicative, not a 409A —
+   it reads high, and every surface that shows it says so. Swap MERCURY_MARKS for a
+   real MERCURY_FMV and this becomes a straight valuation with no caveat. */
+const mercuryHousehold = () => mercuryValueRange(mercuryVesting()).ref;
+const mercuryVestedValue = () => mercuryHousehold().value.vestedValue;
+
+/* Merrill snapshot + bank cash + 529s + vested equity comp — Anthropic options at
+   intrinsic spread, Mercury at the indicative secondary mark. */
+const householdTotal = () => PORTFOLIO_DATA.totalValue + BANKING.total + EDUCATION_529.total + equityVesting().vestedValue + mercuryVestedValue();
 
 /* Outside-Merrill positions as holding rows, so "All Accounts" reflects the whole household. */
 const outsideHoldings = () => {
@@ -1920,6 +2132,16 @@ const outsideHoldings = () => {
     productClass:'Private Equity', symbol:'ANTH',
     description:`Anthropic vested equity — ${vestedQty.toLocaleString()} sh at $${EQUITY_FMV.price.toFixed(2)} (options at spread)`,
     quantity:vestedQty, price:null, value:v.vestedValue,
+    unrealizedGL:null, unrealizedGLPct:null, costBasis:null,
+    securityType:'Private Equity', assetClass:'Equity', sector:null,
+  });
+  const mv = mercuryVesting();
+  const mref = mercuryHousehold();
+  rows.push({
+    account:'Amanda — Mercury Equity', accountNum:'vested · indicative', taxType:'Equity comp', owner:'Amanda',
+    productClass:'Private Equity', symbol:'MERC',
+    description:`Mercury vested equity — ${mv.vested.toLocaleString()} sh at the ${mref.source} mark $${mref.price.toFixed(2)} (options at spread; indicative, no 409A)`,
+    quantity:mv.vested, price:null, value:mref.value.vestedValue,
     unrealizedGL:null, unrealizedGLPct:null, costBasis:null,
     securityType:'Private Equity', assetClass:'Equity', sector:null,
   });
@@ -1986,7 +2208,7 @@ const MERCURY_EQUITY = {
       granted:5644, vested:705, settled:0, vesting:null,
       detail:'Vesting schedule not in the Carta export — the vested count is Carta’s reported figure, not computed here. Nothing settled yet.' },
   ],
-  notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet. Share counts are hard facts; the dollar figures are indicative only — they come from secondary-market marks, not a 409A, so they read high and stay out of the household total.',
+  notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet. Share counts are hard facts; the dollar figures are indicative — they come from secondary-market marks, not a 409A, so they read high. The vested figure feeds the household total and carries that caveat with it.',
 };
 
 /* Month arithmetic that clamps to the end of short months — a Jan-31 vesting
@@ -2604,6 +2826,9 @@ const PortfolioView = () => {
       { name:'Anthropic Equity', accountNum:'vested only', taxType:'Equity comp', owner:'Justin',
         value:v.vestedValue, positions:v.perGrant.filter(g => g.vestedQty > 0).length,
         assetClass:{ 'Equity': v.vestedValue } },
+      { name:'Amanda — Mercury Equity', accountNum:'vested · indicative', taxType:'Equity comp', owner:'Amanda',
+        value:mercuryVestedValue(), positions:mercuryVesting().grants.filter(g => g.vested > 0).length,
+        assetClass:{ 'Equity': mercuryVestedValue() } },
     ];
   }, []);
   const acctTotal = acctRows.reduce((s,a) => s + a.value, 0);
@@ -2645,7 +2870,7 @@ const PortfolioView = () => {
         </p>
         <p className="text-ink-200 text-sm mt-1.5 max-w-2xl">
           Household total <span className="font-medium text-gold-300 tabular-nums">{fmtMoney(householdTotal())}</span>
-          <span className="text-ink-400"> — Merrill {fmtMoneyK(d.totalValue)} + bank cash {fmtMoneyK(BANKING.total)} + 529s {fmtMoneyK(EDUCATION_529.total)} + vested Anthropic equity {fmtMoneyK(equityVesting().vestedValue)} (net of exercise cost). DAF tracked separately.</span>
+          <span className="text-ink-400"> — Merrill {fmtMoneyK(d.totalValue)} + bank cash {fmtMoneyK(BANKING.total)} + 529s {fmtMoneyK(EDUCATION_529.total)} + vested Anthropic equity {fmtMoneyK(equityVesting().vestedValue)} (net of exercise cost) + vested Mercury equity {fmtMoneyK(mercuryVestedValue())} (indicative — secondary mark, not a 409A). DAF tracked separately.</span>
         </p>
         {isLive && (
           <div className="mt-2 flex items-baseline gap-3 flex-wrap">
@@ -3031,7 +3256,7 @@ const PortfolioView = () => {
         {/* Amanda — Mercury equity comp (Carta) */}
         <div className="card p-4 md:p-5">
           <SectionHeader title="Amanda — Mercury Equity"
-            hint={`${mercury.vested.toLocaleString()} of ${mercury.granted.toLocaleString()} sh vested · ${fmtMoneyK(mercuryRange.vested.lo)}–${fmtMoneyK(mercuryRange.vested.hi)} indicative on secondary marks — no 409A yet, so it isn’t in the totals above. Detail under the Amanda — Mercury Equity tab.`}
+            hint={`${mercury.vested.toLocaleString()} of ${mercury.granted.toLocaleString()} sh vested · ${fmtMoneyK(mercuryRange.vested.lo)}–${fmtMoneyK(mercuryRange.vested.hi)} indicative on secondary marks. The ${mercuryRange.ref.source} figure is in the household total. Detail under the Amanda — Mercury Equity tab.`}
             action={<Pill tone="soon">indicative</Pill>} />
           <div className="space-y-2.5">
             {mercury.grants.map(g => (
@@ -3058,7 +3283,7 @@ const PortfolioView = () => {
           </div>
           <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
             {MERCURY_EQUITY.company} via {MERCURY_EQUITY.source}, {fmtDate(MERCURY_EQUITY.asOf)}. Vested counts are computed from each grant’s schedule; dollars are priced off
-            the {mercuryRange.ref.source} secondary mark (${mercuryRange.ref.price.toFixed(2)}/sh, {fmtDate(mercuryRange.ref.asOf)}) — an upper bound, not a 409A.
+            the {mercuryRange.ref.source} secondary mark (${mercuryRange.ref.price.toFixed(2)}/sh, {fmtDate(mercuryRange.ref.asOf)}) — an upper bound, not a 409A, and the household total inherits that caveat.
             {mercury.discrepancies.length > 0 && ' Carta’s stored vested figure disagrees on ' + mercury.discrepancies.map(g => g.id).join(', ') + ' — see the tab.'}
           </div>
         </div>
@@ -3219,7 +3444,8 @@ const OutsideMerrillPanel = ({ scope }) => {
         </div>
         <div className="text-[11px] text-ink-400 -mt-1">
           {MERCURY_EQUITY.holder} · {MERCURY_EQUITY.source} export as of {fmtDate(MERCURY_EQUITY.asOf)}. Share counts are computed from the vesting schedules;
-          dollar figures below are indicative only — priced off secondary-market marks, not a 409A, so they read high and are not in the household total.
+          dollar figures below are indicative — priced off secondary-market marks, not a 409A, so they read high.
+          The vested figure at the {ref.source} mark ({fmtMoney(range.ref.value.vestedValue)}) is what feeds the household total.
           {v.vestedExerciseCost ? ` Exercising just the vested portion costs ${fmtMoney(v.vestedExerciseCost)}.` : ''}
         </div>
 
@@ -3280,7 +3506,7 @@ const OutsideMerrillPanel = ({ scope }) => {
             These are preferred and secondary prices, not a 409A. A 409A values <em>common</em> stock and sits materially below them, because preferred
             carries liquidation preferences and protections common doesn’t — so treat every figure here as an upper bound, not a valuation.
             The per-share numbers come from secondary marketplaces working back from headline valuation and an estimated share count, not from a filing.
-            Nothing here is counted in the household total.
+            The vested figure at the {ref.source} mark is included in the household total, so that total carries the same upper-bound caveat until a real 409A replaces it.
           </div>
           <div className="text-[11px] text-ink-400 mt-2 leading-relaxed">
             For the real number: Carta shows the current common FMV on the holdings page and in the exercise flow. Drop it in and this section prices properly.
@@ -3659,7 +3885,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="text-[11px] uppercase tracking-[0.18em] text-ink-400 mb-1">Portfolio</div>
           <div className="font-display text-3xl md:text-4xl text-ink-100 tabular-nums leading-none">{fmtMoney(total)}</div>
           <div className="text-ink-400 text-xs mt-1.5">Merrill Lynch · {d.numAccounts} accounts · as of {d.asOf}</div>
-          <div className="text-xs mt-1"><span className="text-gold-300 tabular-nums font-medium">{fmtMoney(householdTotal())}</span> <span className="text-ink-400">household — incl. bank cash, 529s & vested Anthropic equity</span></div>
+          <div className="text-xs mt-1"><span className="text-gold-300 tabular-nums font-medium">{fmtMoney(householdTotal())}</span> <span className="text-ink-400">household — incl. bank cash, 529s & vested equity comp</span></div>
         </div>
         <div className="rounded-xl border border-gold-400/40 bg-gold-400/8 px-3 py-2 grid place-items-center text-center shrink-0">
           <div className="text-[9px] uppercase tracking-wider text-ink-400">Grade</div>
@@ -3793,20 +4019,29 @@ const PortfolioWidget = ({ onOpen }) => {
       );
     };
 
-    const StatTile = ({ label, value, tone, hint }) => (
-      <div className="card p-4 md:p-5 flex flex-col gap-1.5">
+    const StatTile = ({ label, value, tone, hint, onClick }) => {
+      // A zero is good news — colour it like nothing, so the eye lands on the
+      // counts that actually have something behind them.
+      const empty = value === 0 || value === '0';
+      const body = (
+        <>
         <div className="text-[11px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
         <div className="flex items-baseline gap-2">
           <div className={`font-display text-3xl md:text-4xl tabular-nums ${
+            empty            ? 'text-ink-500'   :
             tone==='overdue' ? 'text-ember-400' :
             tone==='soon'    ? 'text-gold-400'  :
             tone==='ok'      ? 'text-sage-400'  :
             'text-ink-100'
           }`}>{value}</div>
-          {hint && <div className="text-ink-400 text-xs">{hint}</div>}
+          {hint && <div className={empty ? 'text-ink-500 text-xs' : 'text-ink-400 text-xs'}>{hint}</div>}
         </div>
-      </div>
-    );
+        </>
+      );
+      return onClick && !empty
+        ? <button onClick={onClick} className="card p-4 md:p-5 flex flex-col gap-1.5 text-left hover:border-gold-400/40 transition">{body}</button>
+        : <div className="card p-4 md:p-5 flex flex-col gap-1.5">{body}</div>;
+    };
 
     const DashboardItem = ({ item, kind, onComplete, onJump }) => {
       const [checking, setChecking] = useState(false);
@@ -4043,11 +4278,20 @@ const PortfolioWidget = ({ onOpen }) => {
           </div>
           {v.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2 leading-relaxed">{v.notes}</div>}
           <div className="divider my-4" />
-          <div className="flex items-center gap-2">
-            <a href={`tel:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="phone" size={15}/> Call</a>
-            <a href={`sms:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="message" size={15}/> Text</a>
-            <a href={`mailto:${v.email}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="mail" size={15}/> Email</a>
-          </div>
+          {/* Only offer the channels this vendor actually has — a Call button that
+              dials "tel:undefined" is worse than no button. */}
+          {(v.phone || v.email) ? (
+            <div className="flex items-center gap-2">
+              {v.phone && <a href={`tel:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="phone" size={15}/> Call</a>}
+              {v.phone && <a href={`sms:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="message" size={15}/> Text</a>}
+              {v.email && <a href={`mailto:${v.email}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="mail" size={15}/> Email</a>}
+            </div>
+          ) : (
+            <button onClick={onEdit}
+              className="w-full py-2 rounded-lg border border-dashed border-ink-600 text-ink-400 hover:text-gold-300 hover:border-gold-400/40 text-xs transition">
+              No phone or email yet — add one
+            </button>
+          )}
         <LinkChips links={v.links} entityKind="vendors" entityId={v.id} />
         </div>
       );
@@ -4250,7 +4494,7 @@ const PortfolioWidget = ({ onOpen }) => {
           )}
           <div className="divider my-4"/>
           <div className="flex items-center gap-2">
-            <button onClick={()=>{ ctx.completeTask(m.id); ctx.showToast(`Completed: ${m.name}`); }}
+            <button onClick={()=>ctx.completeTask(m.id)}
               className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-sage-500/10 text-sage-400 hover:bg-sage-500/15 border border-sage-500/25 text-sm">
               <Icon name="check" size={15}/> Mark complete
             </button>
@@ -4936,7 +5180,9 @@ const PortfolioWidget = ({ onOpen }) => {
     };
 
     const SubscriptionCard = ({ s, onEdit }) => {
-      const n = daysUntil(s.renewalDate);
+      const nextRenewal = subscriptionNextRenewal(s);
+      const n = daysUntil(nextRenewal);
+      const rolled = nextRenewal && nextRenewal !== s.renewalDate;
       return (
         <div className="card p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
@@ -4948,7 +5194,8 @@ const PortfolioWidget = ({ onOpen }) => {
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {s.cost ? <Pill tone="muted">${s.cost} {s.cadence||''}</Pill> : null}
-            {s.renewalDate && <Pill tone={n<0?'overdue':n<=30?'soon':'info'} dot>{n<0?`Renewal passed ${fmtDate(s.renewalDate)} — confirm`:`Renews ${fmtDate(s.renewalDate)}`}</Pill>}
+            {nextRenewal && <Pill tone={n<0?'overdue':n<=7?'soon':'info'} dot>{n<0?`Renewal passed ${fmtDate(nextRenewal)} — confirm`:`Renews ${fmtDate(nextRenewal)}`}</Pill>}
+            {rolled && <span className="text-[10px] text-ink-500">projected from {fmtDate(s.renewalDate)}</span>}
           </div>
           {s.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{s.notes}</div>}
           {s.url && (
