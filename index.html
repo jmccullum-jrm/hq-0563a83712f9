@@ -851,6 +851,83 @@
       });
       return items.sort((a,b) => a.n - b.n);
     };
+    /* Dated money events, gathered from what the app already computes: equity vest
+       dates, annual renewals that are otherwise invisible for eleven months, and any
+       suggestion carrying a target date. Everything here is derived — nothing is a
+       second copy of a number kept somewhere else. */
+    const collectMoneyDates = (state, days = 120) => {
+      const out = [];
+      const nowISO = toISO(today());
+      const within = (d) => { const n = daysUntil(d); return n !== null && n >= 0 && n <= days; };
+
+      // Equity vesting, priced at the same marks the portfolio uses. A monthly grant
+      // would otherwise fill this list with four identical rows, so only the next
+      // tranche is listed per grant and the rest are rolled into one line.
+      try {
+        const merc = mercuryVesting();
+        const ref = mercuryHousehold();
+        merc.grants.forEach(g => {
+          const ahead = (g.tranches || []).filter(t => t.date > nowISO && within(t.date));
+          if (!ahead.length) return;
+          const perShare = g.strike != null ? Math.max(0, ref.price - g.strike) : ref.price;
+          const [next, ...rest] = ahead;
+          out.push({
+            when: next.date, n: daysUntil(next.date), kind: 'vest', jumpTo: 'portfolio',
+            title: `${next.shares.toLocaleString()} Mercury shares vest`,
+            amount: next.shares * perShare,
+            why: g.strike != null
+              ? `${g.id} · ${fmtMoney(next.shares * g.strike)} to exercise · indicative at the ${ref.source} mark`
+              : `${g.id} · indicative at the ${ref.source} mark`,
+          });
+          if (rest.length) {
+            const shares = rest.reduce((a, t) => a + t.shares, 0);
+            const last = rest[rest.length - 1];
+            out.push({
+              when: last.date, n: daysUntil(last.date), kind: 'vest', jumpTo: 'portfolio',
+              title: `${rest.length} more ${g.id} vest${rest.length === 1 ? '' : 's'} by ${fmtDate(last.date, {month:'short', day:'numeric'})}`,
+              amount: shares * perShare,
+              why: `${shares.toLocaleString()} shares in total · indicative at the ${ref.source} mark`,
+              rollup: true,
+            });
+          }
+        });
+      } catch (e) {}
+
+      // Annual and quarterly renewals: large, easy to forget, invisible until they land.
+      (state.subscriptions || []).forEach(s => {
+        const per = CADENCE_MONTHS[s.cadence];
+        if (!per || per < 3) return;                      // monthly lines have their own ledger
+        const when = subscriptionNextRenewal(s);
+        if (!when || !within(when)) return;
+        out.push({
+          when, n: daysUntil(when), kind: 'renewal', jumpTo: 'subscriptions',
+          title: `${s.name} renews`, amount: s.cost || 0,
+          why: `${s.cadence} · ${fmtMoney(s.cost || 0)} charge`,
+        });
+      });
+
+      // Insurance renewals carry real money and a real deadline.
+      (state.insurance || []).forEach(x => {
+        if (!within(x.renewalDate)) return;
+        out.push({
+          when: x.renewalDate, n: daysUntil(x.renewalDate), kind: 'policy', jumpTo: 'insurance',
+          title: `${x.carrier} ${x.type} renews`, amount: x.premium || 0,
+          why: x.coverageSummary || x.policyNumber || '',
+        });
+      });
+
+      // Suggestions the household gave a date to.
+      (state.suggestions || []).forEach(x => {
+        if (x.done || !within(x.targetDate)) return;
+        out.push({
+          when: x.targetDate, n: daysUntil(x.targetDate), kind: 'decision', jumpTo: 'suggestions',
+          title: x.title, amount: x.amount || 0, why: x.priority ? `${x.priority} priority` : '',
+        });
+      });
+
+      return out.sort((a, b) => a.n - b.n);
+    };
+
     const maintenanceStatus = (m) => {
       const due = maintenanceNextDue(m);
       const n = daysUntil(due);
@@ -1503,6 +1580,9 @@
       const attention = useMemo(
         () => collectOverdue(ctx.state, ctx.propertyScope).length,
         [ctx.state, ctx.propertyScope]);
+      // "Nothing needs you" is true of the house and was, for a while, the whole
+      // message — while equity vested and annual renewals landed unannounced.
+      const nextMoney = useMemo(() => collectMoneyDates(ctx.state, 120)[0] || null, [ctx.state]);
       const drinkNowCount = useMemo(() => (ctx.state.wine||[]).filter(w => w.qty > 0 && wineState(w) === 'now').length, [ctx.state]);
       const greeting = (() => {
         const h = new Date().getHours();
@@ -1566,9 +1646,11 @@
                   </h1>
                   {view === 'dashboard' && (
                     <p className="text-ink-300 text-sm md:text-base mt-1.5 max-w-xl">
-                      {attention === 0
-                        ? 'The house is caught up. Nothing needs you today.'
-                        : `${attention} thing${attention===1?'':'s'} need${attention===1?'s':''} attention — right below.`}
+                      {attention > 0
+                        ? `${attention} thing${attention===1?'':'s'} need${attention===1?'s':''} attention — right below.`
+                        : nextMoney
+                        ? <>The house is caught up. Next money date: <span className="text-ink-100">{nextMoney.title.toLowerCase()}</span> {fmtRelative(nextMoney.when)}.</>
+                        : 'The house is caught up. Nothing needs you today.'}
                     </p>
                   )}
                 </div>
@@ -1958,7 +2040,7 @@
       const upcomingTasks   = useMemo(() => upcoming.filter(i => i.kind !== 'sub'), [upcoming]);
       const upcomingCharges = useMemo(() => upcoming.filter(i => i.kind === 'sub'), [upcoming]);
       const chargeTotal     = useMemo(() => upcomingCharges.reduce((s,i) => s + (i.amount||0), 0), [upcomingCharges]);
-
+      const moneyDates      = useMemo(() => collectMoneyDates(state), [state]);
       const warranties = useMemo(() => {
         return state.appliances
           .filter(a => inS(a) && !a.warrantyDismissed && (() => { const n = daysUntil(a.warrantyExpires); return n !== null && n >= 0 && n <= 90; })())
@@ -1974,8 +2056,10 @@
       // Bottles actually available to open: in window and still in stock. The old version
       // capped at three and counted bottles with qty 0, so the tile and the section disagreed.
       const drinkNow = useMemo(() => (state.wine || []).filter(w => (w.qty || 0) > 0 && wineState(w) === 'now'), [state]);
+      const digestCount = overdue.length + upcomingTasks.length + renewals.length + warranties.length
+
       // Everything the digest emits, so the preview count matches what you get.
-      const digestCount = overdue.length + upcoming.length + renewals.length + warranties.length + Math.min(drinkNow.length, 3);
+                        + Math.min(drinkNow.length, 3) + moneyDates.length + (upcomingCharges.length ? 1 : 0);
 
       // Gap analysis — surface things that look missing for a full home profile.
       // Items flagged `placeholder:true` are treated as gaps until filled in.
@@ -2039,9 +2123,18 @@
           overdue.slice(0,8).forEach(i => lines.push(`  • ${i.title}${propTag(i)} — ${Math.abs(i.n)}d overdue`));
           lines.push('');
         }
-        if (upcoming.length) {
-          lines.push(`Coming up — next 30 days (${upcoming.length})`);
-          upcoming.slice(0,12).forEach(i => lines.push(`  • ${i.title}${propTag(i)} — ${fmtRelative(i.when)} (${fmtDate(i.when,{month:'short',day:'numeric'})})`));
+        if (upcomingTasks.length) {
+          lines.push(`Coming up — next 30 days (${upcomingTasks.length})`);
+          upcomingTasks.slice(0,12).forEach(i => lines.push(`  • ${i.title}${propTag(i)} — ${fmtRelative(i.when)} (${fmtDate(i.when,{month:'short',day:'numeric'})})`));
+          lines.push('');
+        }
+        if (moneyDates.length) {
+          lines.push(`Money dates (${moneyDates.length})`);
+          moneyDates.slice(0,8).forEach(m => lines.push(`  • ${fmtDate(m.when,{month:'short',day:'numeric'})} — ${m.title}${m.amount ? ` (${fmtMoneyK(m.amount)})` : ''}`));
+          lines.push('');
+        }
+        if (upcomingCharges.length) {
+          lines.push(`Recurring charges — next 30 days: ${fmtMoney(chargeTotal)} across ${upcomingCharges.length} subscriptions`);
           lines.push('');
         }
         if (renewals.length) {
@@ -2103,8 +2196,40 @@
             </div>
           </div>
 
+          {/* Dated money events — the things that happen whether or not anyone acts */}
+          {moneyDates.length > 0 && (
+            <section>
+              <SectionHeader title="Money dates" count={moneyDates.length}
+                hint="Equity vesting, annual renewals and dated decisions in the next four months."
+                action={<span className="text-[11px] text-ink-400">next {fmtRelative(moneyDates[0].when)}</span>} />
+              <div className="card p-2">
+                {moneyDates.slice(0, 8).map((m, i) => (
+                  <button key={i} onClick={()=>setView(m.jumpTo)}
+                    className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-ink-800 text-left transition">
+                    <div className={`w-9 h-9 rounded-lg grid place-items-center shrink-0 ${
+                      m.kind === 'vest' ? 'bg-sage-400/12 text-sage-400' :
+                      m.kind === 'decision' ? 'bg-gold-400/12 text-gold-400' : 'bg-ink-700 text-ink-300'}`}>
+                      <Icon name={m.kind === 'vest' ? 'chart' : m.kind === 'policy' ? 'shield' : m.kind === 'decision' ? 'bulb' : 'receipt'} size={16}/>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-ink-100 truncate">{m.title}</div>
+                      <div className="text-[11px] text-ink-400 truncate">{m.why}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {m.amount > 0 && <div className="text-sm text-ink-100 tabular-nums">{fmtMoneyK(m.amount)}</div>}
+                      <div className="text-[11px] text-ink-400 tabular-nums">{fmtRelative(m.when)}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {moneyDates.length > 8 && (
+                <div className="text-[11px] text-ink-400 mt-2 px-1">{moneyDates.length - 8} more in the next four months.</div>
+              )}
+            </section>
+          )}
+
           {/* Nothing at all to do — one calm card instead of two empty sections */}
-          {overdue.length === 0 && upcomingTasks.length === 0 && (
+          {overdue.length === 0 && upcomingTasks.length === 0 && moneyDates.length === 0 && (
             <Empty icon="check" title="Nothing needs you"
               body="No overdue items, and the next 30 days are clear. Work surfaces here as it comes due."
               cta={<Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>} />
