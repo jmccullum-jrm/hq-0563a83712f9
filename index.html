@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0e0d0b" />
+  <meta name="theme-color" content="#0a0908" />
   <title>Home HQ — Shared</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
           colors: {
             ink: {
               950: '#0a0907',
-              900: '#0e0d0b',
+              900: '#0a0908',
               850: '#141210',
               800: '#181612',
               750: '#1d1b16',
@@ -70,7 +70,7 @@
        This replaces .grain, whose 0.012 alpha at 0.35 opacity worked out to one 8-bit
        level on one pixel in nine — invisible, in exchange for a full-viewport layer. */
     html, body {
-      background: radial-gradient(120% 55% at 50% -8%, rgba(212,169,106,.05), transparent 62%), #0e0d0b;
+      background: radial-gradient(120% 55% at 50% -8%, rgba(212,169,106,.05), transparent 62%), #0a0908;
       background-attachment: fixed;
     }
     body { font-family: 'Inter', system-ui, sans-serif; font-feature-settings: "ss01","cv11"; }
@@ -82,22 +82,22 @@
     ::-webkit-scrollbar-thumb:hover { background: #3a3631; }
     /* Card */
     .card {
-      background: linear-gradient(180deg, #1e1b17 0%, #1a1814 100%);
-      border: 1px solid #2a2723;
+      background: linear-gradient(180deg, #26221c 0%, #211e18 100%);
+      border: 1px solid #322d26;
       border-radius: 18px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 1px 2px rgba(0,0,0,.35);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 3px rgba(0,0,0,.4);
     }
     /* A raised tap target, for the tiles that were using .card-soft — a recessed well —
        to mean the opposite of what it means everywhere else. */
     .card-raised {
-      background: #201e19;
-      border: 1px solid #2e2a24;
+      background: #2e2922;
+      border: 1px solid #3a352c;
       border-radius: 16px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
     .card-soft {
-      background: #161410;
-      border: 1px solid #24211c;
+      background: #171512;
+      border: 1px solid #262219;
       border-radius: 16px;
     }
     /* Grid and flex items default to min-width:auto, so a wide table sitting inside
@@ -118,7 +118,50 @@
     .pill-ok      { background: rgba(138,167,139,0.12); color: #a6c1a7; border: 1px solid rgba(138,167,139,0.25); }
     .pill-info    { background: #211f1a; color: #a49c8c; border: 1px solid #2a2723; }
     .pill-muted   { background: #211f1a; color: #8b8478; border: 1px solid #2a2723; }
+    .tnum { font-variant-numeric: tabular-nums slashed-zero; letter-spacing: .045em; }
     .divider { height: 1px; background: linear-gradient(90deg, transparent, #2a2723, transparent); }
+    /* ---- The ledger: one surface, records ruled off each other ----
+       Replaces the 3-up grids of cards. A status rail is one dead-straight
+       vertical line down the sheet, broken only where something needs you —
+       unlike a pill, which sits at a different x on every row. */
+    .ledger { background: linear-gradient(180deg, #26221c 0%, #211e18 100%);
+              border: 1px solid #322d26; border-radius: 18px;
+              box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 3px rgba(0,0,0,.4);
+              overflow: hidden; }
+    .lrow { position: relative; width: 100%; text-align: left; min-height: 56px;
+            display: grid; align-items: center; gap: .75rem;
+            padding: .625rem .75rem .625rem 1.125rem;
+            grid-template-columns: minmax(0,1fr) 2rem;
+            transition: background .12s ease; }
+    @media (min-width: 768px) {
+      .lrow { grid-template-columns: minmax(0,1fr) var(--lrow-when, 9rem) var(--lrow-value, 5.5rem) 2rem; }
+      .ledger[data-act="1"] .lrow { grid-template-columns: minmax(0,1fr) var(--lrow-value, 5.5rem) auto; }
+      .ledger[data-act="1"] .lrow > .lrow-when { display: none; }
+    }
+    .lrow + .lrow::before { content:''; position:absolute; left:16px; right:0; top:0;
+                            height:1px; background:#322d26; }
+    .lrow:hover { background: rgba(255,255,255,.022); }
+    .lrow:focus-visible { outline: 2px solid #d4a96a; outline-offset: -2px; }
+    /* The global press-scale (175) shrinks the whole row and reads as a glitch. */
+    .lrow:active { transform: none; }
+    .lgroup { position: sticky; top: 0; z-index: 10; }
+    /* Expand in place with no measurement and no library. */
+    .lexp { display: grid; grid-template-rows: 0fr;
+            transition: grid-template-rows 220ms cubic-bezier(.2,.8,.3,1); }
+    .lexp[data-open="1"] { grid-template-rows: 1fr; }
+    .lexp > * { overflow: hidden; }
+    @media (prefers-reduced-motion: reduce) { .lexp { transition: none; } }
+    .lrail { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+    .lrail-now  { background: #e07856; }
+    .lrail-soon { background: #d4a96a; }
+    .lrail-ok   { background: rgba(138,167,139,.45); }
+    /* Row rules are the only thing separating tap targets now; keep them
+       when the OS overrides our colours entirely. */
+    @media (forced-colors: active) {
+      .lrow + .lrow { border-top: 1px solid CanvasText; }
+      .ledger { border: 1px solid CanvasText; }
+      .lrail { forced-color-adjust: none; }
+    }
     input, select, textarea {
       background: #131210 !important; border: 1px solid #2a2723 !important; color: #e8e2d4 !important;
       border-radius: 12px; padding: .65rem .85rem; width: 100%; font-size: 16px; min-height: 44px;
@@ -153,8 +196,8 @@
     label { font-size: .75rem; color: #8b8478; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
     .modal-backdrop { background: rgba(8,7,5,0.7); backdrop-filter: blur(8px); }
     .modal-shell {
-      background: #232019;
-      border: 1px solid #322e27;
+      background: #2e2922;
+      border: 1px solid #3d372e;
       /* A sheet on a phone is flush to the edge it rises from; a dialog floats. */
       border-radius: 22px 22px 0 0;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 64px -16px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5);
@@ -385,7 +428,7 @@
 
     /* ---------- icons (inline SVG, hairline weight) ---------- */
     const Icon = ({ name, size=18, className='' }) => {
-      const props = { width:size, height:size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:1.6, strokeLinecap:'round', strokeLinejoin:'round', className };
+      const props = { width:size, height:size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth: size <= 14 ? 2 : size >= 22 ? 1.5 : 1.6, strokeLinecap:'round', strokeLinejoin:'round', className };
       const paths = {
         home:        <><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></>,
         users:       <><circle cx="9" cy="8" r="3.2"/><path d="M2.5 19c.7-3.1 3.4-5 6.5-5s5.8 1.9 6.5 5"/><circle cx="17" cy="9" r="2.6"/><path d="M21.5 18c-.4-2.2-2-3.6-4.5-3.6"/></>,
@@ -725,67 +768,134 @@
       const ctx = useContext(Ctx);
       const list = ctx.state.ids || [];
       const [reveal, setReveal] = useState(false);
+      const [openId, setOpenId] = useState(null);   // one at a time, so the sheet never concertinas
+      const [q, setQ] = useState('');
+      const [dismissed, setDismissed] = useState(false);
+
+      const match = (x) => {
+        const n = q.trim().toLowerCase();
+        if (!n) return true;
+        return `${x.service} ${x.category} ${x.username||''} ${(x.fields||[]).map(f=>f.join(' ')).join(' ')}`
+          .toLowerCase().includes(n);
+      };
+      const shown = list.filter(match);
+      // Two words about what a record holds, so a closed row is still identifying.
+      const summarise = (x) => {
+        const bits = [];
+        if (x.username) bits.push('username');
+        if (x.password) bits.push('password');
+        (x.fields || []).slice(0, 2).forEach(([k]) => bits.push(String(k).toLowerCase()));
+        return bits.slice(0, 3).join(' · ');
+      };
+
       return (
-        <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-ink-300 text-sm max-w-2xl">
-              Every family ID, membership and login in one place — from the <a href={IDS_SHEET_URL} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 underline">master sheet</a>.
-            </p>
-            <button onClick={()=>setReveal(v=>!v)} aria-pressed={reveal}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs transition ${
-                reveal ? 'border-gold-400/50 text-gold-300 bg-gold-400/10' : 'border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40'}`}>
-              <Icon name={reveal ? 'x' : 'key'} size={13}/> {reveal ? 'Hide' : 'Show'} secrets
-            </button>
-          </div>
-          <div className="rounded-xl border border-ember-500/30 bg-ember-500/8 px-4 py-3 text-xs text-ink-200 leading-relaxed">
-            Heads up: these values live in this page's source, which anyone with the site URL can fetch — the password screen doesn't protect them. You asked for them here anyway; if you change your mind, ask Claude to strip the secrets back out.
-          </div>
-          {IDS_CATEGORIES.map(cat => {
-            const items = list.filter(x => x.category === cat);
-            if (!items.length) return null;
-            return (
-              <section key={cat}>
-                <SectionHeader title={cat} count={items.length} />
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {items.map(x => (
-                    <div key={x.id} className="card p-4 md:p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="font-display text-base leading-tight">{x.service}</div>
-                        {safeUrl(x.url) && <a href={safeUrl(x.url)} target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1 shrink-0"><Icon name="link" size={12}/> Log in</a>}
-                      </div>
-                      <div className="mt-2.5 space-y-1 text-xs">
-                        {(x.fields||[]).map(([k,v],i) => {
-                          const secret = isSecretField(x.category, k, v);
-                          return (
-                            <div key={i} className="flex items-center gap-2">
-                              <span className="text-ink-400 w-24 shrink-0">{k}</span>
-                              <span className="text-ink-100 font-mono truncate">{secret && !reveal ? maskSecret(v) : v}</span>
-                              <IdCopy text={v}/>
-                            </div>
-                          );
-                        })}
-                        {x.username && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-ink-400 w-24 shrink-0">Username</span>
-                            <span className="text-ink-100 font-mono truncate">{x.username}</span>
-                            <IdCopy text={x.username}/>
-                          </div>
-                        )}
-                        {x.password && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-ink-400 w-24 shrink-0">Password</span>
-                            <span className="text-ink-100 font-mono truncate">{reveal ? x.password : '••••••••'}</span>
-                            <IdCopy text={x.password}/>
-                          </div>
-                        )}
-                      </div>
-                      {x.notes && <div className="text-ink-400 text-xs mt-2.5">{x.notes}</div>}
+        <div className="space-y-6">
+          <Readout
+            value={String(shown.length)} unit={shown.length === 1 ? ' record' : ' records'}
+            parts={[
+              `${IDS_CATEGORIES.filter(c => shown.some(x => x.category === c)).length} categories`,
+              { text: reveal ? 'secrets shown' : 'secrets hidden', alert: reveal, onClick: () => setReveal(v => !v) },
+            ]}
+            aside={
+              <button onClick={()=>setReveal(v=>!v)} aria-pressed={reveal}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs transition ${
+                  reveal ? 'border-gold-400/50 text-gold-300 bg-gold-400/10' : 'border-ink-600 text-ink-200 hover:text-gold-300 hover:border-gold-400/40'}`}>
+                <Icon name={reveal ? 'x' : 'key'} size={13}/> {reveal ? 'Hide' : 'Show'} secrets
+              </button>} />
+
+          {!dismissed && (
+            <div className="rounded-xl border border-ember-500/30 bg-ember-500/8 px-4 py-3 text-xs text-ink-200 leading-relaxed flex items-start gap-3">
+              <span className="flex-1">
+                Heads up: these values live in this page&rsquo;s source, which anyone with the site URL can fetch — the password screen doesn&rsquo;t protect them. You asked for them here anyway; if you change your mind, ask Claude to strip the secrets back out.
+                {' '}<a href={IDS_SHEET_URL} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 underline">Master sheet</a>.
+              </span>
+              <button onClick={()=>setDismissed(true)} aria-label="Dismiss for this session"
+                className="text-ink-400 hover:text-ink-100 shrink-0"><Icon name="x" size={13}/></button>
+            </div>
+          )}
+
+          {list.length > 8 && (
+            <Toolbar query={q} setQuery={setQ} placeholder={`Filter ${list.length} records`} chips={[]} />
+          )}
+
+          {shown.length === 0 ? (
+            <p className="text-sm text-ink-400 py-6">Nothing matches that filter.</p>
+          ) : (
+            <Ledger valueWidth="0rem">
+              {IDS_CATEGORIES.map(cat => {
+                const items = shown.filter(x => x.category === cat);
+                if (!items.length) return null;
+                return (
+                  <React.Fragment key={cat}>
+                    <div className="lgroup flex items-baseline justify-between px-4 py-1.5 bg-ink-750/95 backdrop-blur
+                                    text-2xs uppercase tracking-wide text-ink-300 border-y border-ink-600/60">
+                      <span>{cat}</span><span className="tabular-nums text-ink-400">{items.length}</span>
                     </div>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+                    {items.map(x => {
+                      const isOpen = openId === x.id;
+                      return (
+                        <div key={x.id}>
+                          <div role="button" tabIndex={0} aria-expanded={isOpen}
+                            onClick={()=>setOpenId(isOpen ? null : x.id)}
+                            onKeyDown={e=>{ if (e.key==='Enter'||e.key===' ') { e.preventDefault(); setOpenId(isOpen ? null : x.id); } }}
+                            className="lrow">
+                            <span className="min-w-0">
+                              <span className="block text-sm font-medium text-ink-100 truncate">{x.service}</span>
+                              <span className="block text-xs text-ink-400 truncate mt-0.5">{summarise(x)}</span>
+                            </span>
+                            <span className="lrow-when hidden md:block" />
+                            <span className="hidden md:block" />
+                            <span className="flex items-center gap-1">
+                              {safeUrl(x.url) && (
+                                <a href={safeUrl(x.url)} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
+                                   aria-label={`Log in to ${x.service}`} title="Log in"
+                                   className="w-8 h-8 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-gold-300"><Icon name="link" size={13}/></a>
+                              )}
+                              <span aria-hidden className={`grid place-items-center text-ink-400 transition-transform ${isOpen ? 'rotate-90' : ''}`}>
+                                <Icon name="chevR" size={14}/>
+                              </span>
+                            </span>
+                          </div>
+                          {/* Comparing three United accounts at a counter wants the record and
+                              its neighbours visible at once — so this opens in place, not in a modal. */}
+                          <div className="lexp" data-open={isOpen ? '1' : '0'}>
+                            <div>
+                              <div className="grid grid-cols-[6rem_minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 px-4 pb-4 pt-1 text-xs">
+                                {(x.fields||[]).map(([k,v],i) => {
+                                  const secret = isSecretField(x.category, k, v);
+                                  return (
+                                    <React.Fragment key={i}>
+                                      <span className="text-ink-400">{k}</span>
+                                      <span className="text-ink-100 tnum truncate">{secret && !reveal ? maskSecret(v) : v}</span>
+                                      <IdCopy text={v}/>
+                                    </React.Fragment>
+                                  );
+                                })}
+                                {x.username && (<>
+                                  <span className="text-ink-400">Username</span>
+                                  <span className="text-ink-100 tnum truncate">{x.username}</span>
+                                  <IdCopy text={x.username}/>
+                                </>)}
+                                {x.password && (<>
+                                  <span className="text-ink-400">Password</span>
+                                  <span className="text-ink-100 tnum truncate">{reveal ? x.password : '••••••••'}</span>
+                                  <IdCopy text={x.password}/>
+                                </>)}
+                                {x.notes && (<>
+                                  <span className="text-ink-400">Notes</span>
+                                  <span className="text-ink-300 col-span-2">{x.notes}</span>
+                                </>)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
+            </Ledger>
+          )}
         </div>
       );
     };
@@ -1820,7 +1930,7 @@
       const rest  = ADD_TYPES.filter(t => t.view !== ctx.view);
       const Tile = ({ t, highlight }) => (
         <button onClick={()=>open(t)}
-          className={`card-soft p-4 flex flex-col items-start gap-2 text-left transition ${
+          className={`card-raised p-4 flex flex-col items-start gap-2 text-left transition ${
             highlight ? 'border-gold-400/40 bg-gold-400/5' : 'hover:border-gold-400/40'}`}>
           <div className={`w-10 h-10 rounded-xl grid place-items-center ${highlight ? 'bg-gold-400/15 text-gold-300' : 'bg-ink-700 text-gold-400'}`}>
             <Icon name={t.icon} size={18}/>
@@ -1893,6 +2003,9 @@
       const group = navGroupOf(view);
       const leaves = navLeaves(group);
       const title = group.id === 'today' ? '' : group.label;
+      const addHere = ADD_TYPES.find(t => t.view === view);
+      const openAdd = () => ctx.setModal(addHere ? addHere.form(()=>ctx.setModal(null))
+                                                 : <QuickAdd onClose={()=>ctx.setModal(null)} />);
 
       const NavLink = ({ n }) => (
         <button onClick={()=>setView(n.id)}
@@ -1973,9 +2086,9 @@
                     <Icon name="refresh" size={14} className={ctx.refreshing ? 'animate-spin' : ''}/>
                     <span className="hidden md:inline">{ctx.refreshing ? 'Checking…' : 'Refresh'}</span>
                   </button>
-                  <button onClick={()=>ctx.setModal(<QuickAdd onClose={()=>ctx.setModal(null)} />)}
+                  <button onClick={openAdd}
                     className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full btn-primary text-sm font-medium">
-                    <Icon name="plus" size={14}/> Add
+                    <Icon name="plus" size={14}/> {addHere ? `Add ${addHere.label.toLowerCase()}` : 'Add'}
                   </button>
                 </div>
               </div>
@@ -2027,8 +2140,8 @@
 
           {/* Quick-add FAB (mobile) — only where there is something here to add. */}
           {(view === 'dashboard' || ADD_TYPES.some(t => t.view === view)) && (
-          <button onClick={()=>ctx.setModal(<QuickAdd onClose={()=>ctx.setModal(null)} />)}
-            aria-label="Add"
+          <button onClick={openAdd}
+            aria-label={addHere ? `Add ${addHere.label.toLowerCase()}` : 'Add'}
             className="md:hidden fixed right-4 bottom-[calc(var(--bar)+env(safe-area-inset-bottom)+1rem)] z-30 w-14 h-14 rounded-full btn-primary shadow-2xl grid place-items-center active:brightness-90">
             <Icon name="plus" size={22} />
           </button>
@@ -2051,7 +2164,7 @@
                           const badge = navCount(ctx.state, n.id);
                           return (
                             <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
-                              className={`card-soft p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
+                              className={`card-raised p-4 flex items-center gap-3 text-left ${view===n.id?'border-gold-400/40':''}`}>
                               <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
                                 <Icon name={n.icon} size={18} />
                               </div>
@@ -2165,6 +2278,102 @@
         {dot && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />}
         {children}
       </span>
+    );
+
+    /* ---- Ledger + Row ----
+       One record is one line. The nineteen 3-up card grids put costs and dates
+       at a different x on every tile, so nothing could be compared down a column;
+       these lock four zones so the eye learns one set of scan-lines once. */
+    const Ledger = ({ children, className = '', valueWidth, hasActions }) => (
+      <div className={`ledger ${className}`} data-act={hasActions ? '1' : undefined}
+           style={valueWidth ? { '--lrow-value': valueWidth } : undefined}>
+        {children}
+      </div>
+    );
+
+    // tone: 'now' (needs you) | 'soon' | 'ok' (affirmatively good) | undefined (fine — most rows)
+    const Row = ({ tone, title, meta = [], value, valueUnit, when, onOpen, action }) => (
+      <div role="button" tabIndex={0} onClick={onOpen}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen && onOpen(); } }}
+        className="lrow">
+        {tone && <span aria-hidden className={`lrail lrail-${tone}`} />}
+        <span className="min-w-0">
+          <span className="block text-sm font-medium text-ink-100 truncate">{title}</span>
+          {(meta.filter(Boolean).length > 0 || when) && (
+            <span className="block text-xs text-ink-400 truncate mt-0.5">
+              {meta.filter(Boolean).join(' · ')}
+              {when && <span className="md:hidden">{meta.filter(Boolean).length ? ' · ' : ''}{when}</span>}
+            </span>
+          )}
+        </span>
+        <span className={`lrow-when hidden md:block text-xs tabular-nums text-right ${
+          tone === 'now' ? 'text-ember-400' : tone === 'soon' ? 'text-gold-400' : 'text-ink-400'}`}>{when}</span>
+        <span className="hidden md:block text-sm tabular-nums text-right text-ink-100">
+          {value}{valueUnit && <span className="text-2xs text-ink-400">{valueUnit}</span>}
+        </span>
+        <span className="grid place-items-center text-ink-400">
+          {action || (onOpen && <Icon name="chevR" size={14} />)}
+        </span>
+      </div>
+    );
+
+    /* One computed figure where a section used to open with a sentence that never
+       changed. Every value is derived from the records, so it cannot go stale — and
+       a fragment that names something needing action doubles as the filter for it. */
+    const Readout = ({ value, unit, parts = [], aside }) => (
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <div className="font-display text-2xl md:text-3xl tabular-nums text-ink-100 leading-none">
+            {value}{unit && <span className="text-lg text-ink-400">{unit}</span>}
+          </div>
+          {parts.filter(Boolean).length > 0 && (
+            <div className="text-xs text-ink-400 mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              {parts.filter(Boolean).map((p, i) => {
+                const o = typeof p === 'string' ? { text: p } : p;
+                return (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span aria-hidden className="text-ink-600">·</span>}
+                    {o.onClick
+                      ? <button onClick={o.onClick}
+                          className={`hover:underline underline-offset-2 ${o.alert ? 'text-gold-300' : 'text-ink-200'}`}>{o.text}</button>
+                      : <span>{o.text}</span>}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {aside}
+      </div>
+    );
+
+    /* One filter row, and only once a list is long enough to need filtering.
+       Chips are never gold — gold is spent on the nav and on needs-action alone. */
+    const Toolbar = ({ query, setQuery, placeholder, chips = [], active, setActive, aside }) => (
+      <div className="flex items-center gap-3 flex-wrap">
+        <label className="flex items-center gap-2 flex-1 min-w-[11rem] max-w-sm rounded-xl border border-ink-600 px-3 py-2">
+          <Icon name="search" size={14} className="text-ink-400 shrink-0" />
+          <input value={query} onChange={e=>setQuery(e.target.value)} placeholder={placeholder} aria-label={placeholder}
+                 className="bare-input flex-1 text-sm bg-transparent border-0 p-0" />
+          {query && <button onClick={()=>setQuery('')} aria-label="Clear filter"
+                            className="text-ink-400 hover:text-ink-100 shrink-0"><Icon name="x" size={13}/></button>}
+        </label>
+        {chips.length > 0 && (
+          <div className="flex items-center gap-1 overflow-x-auto no-bar">
+            {chips.map(c => (
+              <button key={c.id} onClick={()=>setActive(active === c.id ? null : c.id)}
+                aria-pressed={active === c.id}
+                className={`px-2.5 py-1.5 rounded-full text-xs whitespace-nowrap inline-flex items-center gap-1.5 transition ${
+                  active === c.id ? 'bg-ink-700 text-ink-50' : 'text-ink-400 hover:text-ink-100'}`}>
+                {c.alert && active !== c.id && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-gold-400" />}
+                {c.label}
+                <span className="text-2xs tabular-nums opacity-60">{c.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {aside}
+      </div>
     );
 
     const Empty = ({ icon='sparkles', title, body, cta }) => (
@@ -2431,9 +2640,7 @@
       const scope = ctx.propertyScope;
       const inS = (x) => inScope(x, scope);
 
-      const [showAllOverdue, setShowAllOverdue] = useState(false);
       const [gapsOpen, setGapsOpen] = useState(false);
-      const [showAllEnds, setShowAllEnds] = useState(false);
       const overdue  = useMemo(() => collectOverdue(state, scope), [state, scope]);
       const upcoming = useMemo(() => collectUpcoming(state, scope), [state, scope]);
       // Subscriptions charge themselves — they're money to expect, not work to do.
@@ -2598,8 +2805,8 @@
           {overdue.length > 0 && (
           <section>
             <SectionHeader title="Overdue" count={overdue.length} hint="Roll these forward when they're done." />
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {(showAllOverdue ? overdue : overdue.slice(0, 5)).map(i => <DashboardItem key={i.kind+i.id} item={i} kind="overdue"
+            <div className="grid grid-cols-1 gap-2 max-w-[680px]">
+              {overdue.map(i => <DashboardItem key={i.kind+i.id} item={i} kind="overdue"
                 onComplete={() => ctx.markDone(i)}
                 onJump={() => setView(
                   i.kind==='maint'?'maintenance':
@@ -2610,12 +2817,6 @@
                   'appliances'
                 )} />)}
             </div>
-            {overdue.length > 5 && (
-              <button onClick={()=>setShowAllOverdue(v=>!v)}
-                className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-ink-500 text-ink-300 hover:text-gold-300 hover:border-gold-500/50 text-sm transition">
-                {showAllOverdue ? 'Show fewer' : `Show all ${overdue.length} overdue`}
-              </button>
-            )}
           </section>
           )}
           {/* Coming up — work that needs a person */}
@@ -2626,7 +2827,7 @@
               <Empty icon="calendar" title="The next 30 days are clear" body="Nothing to prep. Add a task or schedule a vendor and it'll show up here."
                 cta={<Btn variant="soft" icon="plus" onClick={()=>setModal(<TaskForm onClose={()=>setModal(null)} />)}>Add a task</Btn>} />
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-2 max-w-[680px]">
                 {upcomingTasks.map(i => <DashboardItem key={i.kind+i.id} item={i} kind="soon"
                   onComplete={() => ctx.markDone(i)}
                   onJump={()=> setView(
@@ -2642,39 +2843,29 @@
           )}
           </div>
 
-          {/* A tile that is structurally zero — four of these six are, because their
-              collections are empty — is a third of the first screen saying nothing.
-              The counts that have something behind them get a tile; the rest get one
-              muted line. The sections below already hid themselves when empty; the
-              tiles just never got the same rule. */}
+          {/* Six tiles, four of them structurally zero, each restating the heading of a
+              section directly below it — about 200px of the first screen. One line says
+              the same thing and rhymes with the readout every other page now opens with.
+              Zeros stay, muted: "no overdue" is an answer, not an absence. */}
           {(() => {
-            const tiles = [
-              { label:'Overdue',    value:overdue.length,         tone:'overdue', hint:'now'   },
-              { label:'To do',      value:upcomingTasks.length,   tone:'soon',    hint:'30d'   },
-              { label:'Charges',    value:chargeTotal,            tone:'info',    hint:'30d',   fmt:fmtMoneyK, view:'subscriptions' },
-              { label:'Renewals',   value:renewals.length,        tone:'info',    hint:'60d',   view:'insurance' },
-              { label:'Warranties', value:warranties.length,      tone:'info',    hint:'90d',   view:'appliances' },
-              { label:'Drink now',  value:drinkNow.length,        tone:'ok',      hint:'ready', view:'wine' },
+            const bits = [
+              { n: overdue.length,        text: `${overdue.length} overdue`,                                              view: 'maintenance',   tone: 'text-ember-400' },
+              { n: upcomingTasks.length,  text: `${upcomingTasks.length} due in 30 days`,                                 view: 'maintenance',   tone: 'text-gold-300'  },
+              { n: chargeTotal,           text: `${fmtMoneyK(chargeTotal)} charging`,                                     view: 'subscriptions', tone: 'text-ink-200'   },
+              { n: renewals.length,       text: `${renewals.length} renewal${renewals.length===1?'':'s'}`,                view: 'insurance',     tone: 'text-ink-200'   },
+              { n: warranties.length,     text: `${warranties.length} warrant${warranties.length===1?'y':'ies'} expiring`, view: 'appliances',   tone: 'text-ink-200'   },
+              { n: drinkNow.length,       text: `${drinkNow.length} ready to drink`,                                      view: 'wine',          tone: 'text-sage-400'  },
             ];
-            const live = tiles.filter(t => t.value);
-            const quiet = tiles.filter(t => !t.value);
             return (
-              <div className="space-y-2">
-                {live.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {live.map(t => (
-                      <div key={t.label} className={live.length > 2 ? 'min-w-[7.5rem] flex-1' : 'min-w-[9rem]'}>
-                        <StatTile label={t.label} value={t.fmt ? t.fmt(t.value) : t.value} tone={t.tone} hint={t.hint}
-                          onClick={t.view ? ()=>setView(t.view) : undefined} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {quiet.length > 0 && (
-                  <div className="text-xs text-ink-400">
-                    {quiet.map(t => `no ${t.label.toLowerCase()}`).join(' · ')}
-                  </div>
-                )}
+              <div className="text-sm flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                {bits.map((b, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span aria-hidden className="text-ink-600">·</span>}
+                    {b.n
+                      ? <button onClick={()=>setView(b.view)} className={`${b.tone} hover:underline underline-offset-2`}>{b.text}</button>
+                      : <span className="text-ink-450">{b.text}</span>}
+                  </React.Fragment>
+                ))}
               </div>
             );
           })()}
@@ -2761,21 +2952,14 @@
           <section>
             <SectionHeader title="Insurance renewals" count={renewals.length} hint="Within 60 days — review coverage + premium." />
             {(
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              <Ledger valueWidth="0rem">
                 {renewals.map(p => (
-                  <button key={p.id} onClick={()=>setView('insurance')} className="card p-4 text-left flex items-start gap-3 hover:border-gold-400/40 transition">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0"><Icon name="shield" size={18}/></div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{p.carrier} <span className="text-ink-300 font-normal">· {p.type}</span></div>
-                      <div className="text-ink-300 text-xs mt-0.5 truncate">{p.coverageSummary || p.policyNumber || '—'}</div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <Pill tone="soon" dot>Renews {fmtDate(p.renewalDate)}</Pill>
-                        <span className="text-ink-400 text-xs">{fmtRelative(p.renewalDate)}</span>
-                      </div>
-                    </div>
-                  </button>
+                  <Row key={p.id} tone="soon" title={p.carrier}
+                    meta={[p.type, p.coverageSummary || p.policyNumber]}
+                    when={`renews ${fmtDate(p.renewalDate)} · ${fmtRelative(p.renewalDate)}`}
+                    onOpen={()=>setView('insurance')} />
                 ))}
-              </div>
+              </Ledger>
             )}
           </section>
           )}
@@ -2785,21 +2969,14 @@
           <section>
             <SectionHeader title="Warranties expiring" count={warranties.length} hint="Within 90 days — time to evaluate or extend." />
             {(
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              <Ledger valueWidth="0rem">
                 {warranties.map(a => (
-                  <div key={a.id} className="card p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0"><Icon name="cube" size={18}/></div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{a.name}</div>
-                      <div className="text-ink-300 text-xs mt-0.5 truncate">{a.brand} {a.model} · {a.room}</div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <Pill tone="soon" dot>Expires {fmtDate(a.warrantyExpires)}</Pill>
-                        <span className="text-ink-400 text-xs">{fmtRelative(a.warrantyExpires)}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <Row key={a.id} tone="soon" title={a.name}
+                    meta={[a.brand, a.model, a.room]}
+                    when={`expires ${fmtDate(a.warrantyExpires)} · ${fmtRelative(a.warrantyExpires)}`}
+                    onOpen={()=>setView('appliances')} />
                 ))}
-              </div>
+              </Ledger>
             )}
           </section>
           )}
@@ -2809,30 +2986,17 @@
             <section>
               <SectionHeader title="Loose ends" count={looseEnds.length}
                 hint="Already in the app, filed in the wrong place. Adding one copies what's known and names the source." />
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                {(showAllEnds ? looseEnds : looseEnds.slice(0, 4)).map(e => (
-                  <div key={e.key} className="card p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
-                      <Icon name={e.icon} size={18} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-ink-100">{e.title}</div>
-                      <div className="text-ink-300 text-xs mt-1 leading-relaxed">{e.why}</div>
-                      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+              <Ledger valueWidth="0rem" hasActions>
+                {looseEnds.map(e => (
+                  <Row key={e.key} title={e.title} meta={[e.why]} when={null}
+                    action={
+                      <span className="flex items-center gap-1.5">
                         <Btn variant="soft" icon="plus" onClick={()=>ctx.adoptLooseEnd(e)}>Add to {e.module}</Btn>
                         <button onClick={()=>ctx.dismissLooseEnd(e)}
-                          className="text-xs text-ink-400 hover:text-ink-200 px-2 py-1.5 rounded-lg">Not needed</button>
-                      </div>
-                    </div>
-                  </div>
+                          className="text-xs text-ink-400 hover:text-ink-200 px-2 py-1.5 rounded-lg whitespace-nowrap">Not needed</button>
+                      </span>} />
                 ))}
-              </div>
-              {looseEnds.length > 4 && (
-                <button onClick={()=>setShowAllEnds(v=>!v)}
-                  className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-ink-500 text-ink-300 hover:text-gold-300 hover:border-gold-500/50 text-sm transition">
-                  {showAllEnds ? 'Show fewer' : `Show all ${looseEnds.length} loose ends`}
-                </button>
-              )}
+              </Ledger>
             </section>
           )}
 
@@ -5443,86 +5607,51 @@ const PortfolioWidget = ({ onOpen }) => {
 
       const open = (v) => setModal(<VendorForm vendor={v} onClose={()=>setModal(null)} />);
 
+      const withVisit = filtered.filter(v => v.nextVisit).length;
       return (
-        <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Everyone who works on the house. Tap to edit. Use the call/text/email buttons to reach out fast.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add vendor</Btn>
-          </div>
+        <div className="space-y-6">
+          <Readout
+            value={String(filtered.length)} unit={filtered.length === 1 ? ' person' : ' people'}
+            parts={[
+              `${types.length - 1} service ${types.length - 1 === 1 ? 'type' : 'types'}`,
+              filtered.length - withVisit > 0 && { text: `${filtered.length - withVisit} with no next visit`,
+                                                   onClick: () => setThisWeek(false) },
+            ]} />
 
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
-              <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search vendors, notes, services…" className="!pl-9" />
-            </div>
-            <button onClick={()=>setThisWeek(s=>!s)} className={`shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm border ${thisWeek?'bg-gold-400/12 border-gold-400/40 text-gold-300':'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
-              <Icon name="calendar" size={15} /> This week
-            </button>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {types.map(t => (
-              <button key={t} onClick={()=>setFilter(t)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs border transition ${filter===t ? 'border-gold-400/50 text-gold-300 bg-gold-400/12' : 'border-ink-600 text-ink-200 hover:bg-ink-800'}`}>
-                {t === 'all' ? 'All' : t}
-              </button>
-            ))}
-          </div>
+          {state.vendors.length > 8 && (
+            <Toolbar query={query} setQuery={setQuery} placeholder={`Filter ${state.vendors.length} vendors`}
+              active={filter === 'all' ? null : filter} setActive={(id)=>setFilter(id || 'all')}
+              chips={types.filter(t => t !== 'all').map(t => ({ id:t, label:t, count: state.vendors.filter(v=>v.serviceType===t).length }))}
+              aside={
+                <button onClick={()=>setThisWeek(s=>!s)}
+                  className={`shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full text-xs transition ${thisWeek?'bg-ink-700 text-ink-50':'text-ink-400 hover:text-ink-100'}`}>
+                  <Icon name="calendar" size={13} /> This week
+                </button>} />
+          )}
 
           {filtered.length === 0 ? (
-            <Empty icon="users" title="No vendors match" body="Try clearing the filter, or add a new vendor." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vendor</Btn>} />
+            <p className="text-sm text-ink-400 py-6">No vendors match. <button onClick={()=>{setQuery('');setFilter('all');setThisWeek(false);}} className="text-gold-300 hover:underline">Clear filters</button></p>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {filtered.map(v => <VendorCard key={v.id} v={v} onEdit={()=>open(v)} />)}
-            </div>
+            <Ledger valueWidth="5rem">
+              {filtered.map(v => {
+                const n = daysUntil(v.nextVisit);
+                const sched = v.schedule?.recurring ? freqLabel(v.schedule.freq) + (v.schedule.dayOfWeek?` · ${v.schedule.dayOfWeek}s`:'') : 'On-demand';
+                return (
+                  <Row key={v.id} tone={v.nextVisit ? (n < 0 ? 'now' : n <= 7 ? 'soon' : undefined) : undefined}
+                    title={v.company} meta={[v.name, v.serviceType, sched]}
+                    when={v.nextVisit ? (n < 0 ? `${Math.abs(n)}d overdue` : `Next ${fmtDate(v.nextVisit,{month:'short',day:'numeric'})}`) : null}
+                    value={v.rate || null}
+                    onOpen={()=>open(v)}
+                    action={v.phone ? (
+                      <a href={`tel:${v.phone}`} onClick={e=>e.stopPropagation()}
+                         aria-label={`Call ${v.company}`} title={`Call ${v.company}`}
+                         className="w-8 h-8 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-gold-300">
+                        <Icon name="phone" size={14}/>
+                      </a>) : undefined} />
+                );
+              })}
+            </Ledger>
           )}
-        </div>
-      );
-    };
-
-    const VendorCard = ({ v, onEdit }) => {
-      const ctx = useContext(Ctx);
-      const nextN = daysUntil(v.nextVisit);
-      const sched = v.schedule?.recurring ? freqLabel(v.schedule.freq) + (v.schedule.dayOfWeek?` · ${v.schedule.dayOfWeek}s`:'') : 'On-demand';
-      return (
-        <div className={phCard(v.placeholder) + ' p-4 md:p-5'}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-xs uppercase tracking-wider text-ink-400">{v.serviceType}</div>
-                {v.placeholder && <PlaceholderBadge/>}
-              </div>
-              <div className="font-display text-lg mt-0.5 truncate">{v.company}</div>
-              <div className="text-ink-300 text-sm">{v.name}</div>
-            </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {v.nextVisit && (
-              <Pill tone={nextN<0?'overdue':nextN<=7?'soon':'info'} dot>
-                {nextN<0?`${Math.abs(nextN)}d overdue`:`Next ${fmtDate(v.nextVisit,{month:'short',day:'numeric'})}`}
-              </Pill>
-            )}
-            <Pill tone="muted">{sched}</Pill>
-            {v.rate && <Pill tone="muted">{v.rate}</Pill>}
-          </div>
-          {v.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2 leading-relaxed">{v.notes}</div>}
-          <div className="divider my-4" />
-          {/* Only offer the channels this vendor actually has — a Call button that
-              dials "tel:undefined" is worse than no button. */}
-          {(v.phone || v.email) ? (
-            <div className="flex items-center gap-2">
-              {v.phone && <a href={`tel:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="phone" size={15}/> Call</a>}
-              {v.phone && <a href={`sms:${v.phone}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="message" size={15}/> Text</a>}
-              {v.email && <a href={`mailto:${v.email}`} className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm"><Icon name="mail" size={15}/> Email</a>}
-            </div>
-          ) : (
-            <button onClick={onEdit}
-              className="w-full py-2 rounded-lg border border-dashed border-ink-600 text-ink-400 hover:text-gold-300 hover:border-gold-400/40 text-xs transition">
-              No phone or email yet — add one
-            </button>
-          )}
-        <LinkChips links={v.links} entityKind="vendors" entityId={v.id} />
         </div>
       );
     };
@@ -5607,6 +5736,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div><label htmlFor="hq-f17">Next visit</label><input id="hq-f17" type="date" value={v.nextVisit||''} onChange={e=>setField('nextVisit', e.target.value)}/></div>
             </div>
             <div><label htmlFor="hq-f18">Notes</label><textarea id="hq-f18" rows="3" value={v.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Gate code, key location, what they're great/bad at…"/></div>
+            {!isNew && <Docs kind="vendors" id={vendor.id} />}
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5652,10 +5782,6 @@ const PortfolioWidget = ({ onOpen }) => {
 
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Big-ticket recurring tasks. Mark complete and the next due date rolls forward automatically.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add task</Btn>
-          </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <div className="inline-flex rounded-xl border border-ink-600 p-0.5 bg-ink-850">
@@ -5687,52 +5813,32 @@ const PortfolioWidget = ({ onOpen }) => {
                   ? <Btn variant="soft" onClick={()=>{setQuery(''); setStatusFilter('all');}}>Clear filters</Btn>
                   : <Btn variant="soft" icon="plus" onClick={()=>open(null)}>Add a task</Btn>} />
             ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {sorted.map(m => <TaskCard key={m.id} m={m} onEdit={()=>open(m)} />)}
-            </div>
+            <Ledger valueWidth="5rem">
+              {sorted.map(m => {
+                const next = maintenanceNextDue(m);
+                const st = maintenanceStatus(m);
+                const n = daysUntil(next);
+                return (
+                  <Row key={m.id}
+                    tone={st.tone === 'overdue' ? 'now' : st.tone === 'soon' ? 'soon' : undefined}
+                    title={m.name}
+                    meta={[freqLabel(m.freq), m.vendorHint, m.lastCompleted ? `last ${fmtDate(m.lastCompleted)}` : null]}
+                    when={next ? (n !== null && n < 0 ? `was due ${fmtDate(next)}` : `due ${fmtDate(next)}`) : st.label}
+                    value={m.estimatedCost ? `~$${m.estimatedCost}` : null}
+                    onOpen={()=>open(m)}
+                    action={
+                      <button onClick={e=>{ e.stopPropagation(); ctx.completeTask(m.id); }}
+                        aria-label={`Mark ${m.name} complete`} title="Mark complete"
+                        className="w-8 h-8 rounded-full grid place-items-center bg-sage-500/10 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20">
+                        <Icon name="check" size={14}/>
+                      </button>} />
+                );
+              })}
+            </Ledger>
             )
           ) : (
             <Timeline tasks={sorted} onPick={(m)=>open(m)} />
           )}
-        </div>
-      );
-    };
-
-    const TaskCard = ({ m, onEdit }) => {
-      const ctx = useContext(Ctx);
-      const next = maintenanceNextDue(m);
-      const status = maintenanceStatus(m);
-      const vendor = ctx.state.vendors.find(v => v.company === m.vendorHint);
-      return (
-        <div className="card p-4 md:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-display text-lg mt-0.5 truncate">{m.name}</div>
-              <div className="text-ink-300 text-sm">{freqLabel(m.freq)}{m.estimatedCost?` · ~$${m.estimatedCost}`:''}</div>
-            </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            <Pill tone={status.tone} dot>{status.label}</Pill>
-            <span className="text-ink-300 text-xs">Last: {fmtDate(m.lastCompleted)}</span>
-            <span className="text-ink-400 text-xs">·</span>
-            <span className={`text-xs ${daysUntil(next) !== null && daysUntil(next) < 0 ? 'text-ember-400' : 'text-ink-300'}`}>
-              {daysUntil(next) !== null && daysUntil(next) < 0 ? `Was due: ${fmtDate(next)}` : `Next: ${fmtDate(next)}`}
-            </span>
-          </div>
-          {(m.notes || vendor || m.vendorHint) && (
-            <div className="mt-3 text-ink-300 text-xs leading-relaxed">
-              {(vendor || m.vendorHint) && <div className="mb-1"><span className="text-ink-400">Vendor:</span> {vendor?.company || m.vendorHint}</div>}
-              {m.notes && <div className="line-clamp-2">{m.notes}</div>}
-            </div>
-          )}
-          <div className="divider my-4"/>
-          <div className="flex items-center gap-2">
-            <button onClick={()=>ctx.completeTask(m.id)}
-              className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-sage-500/10 text-sage-400 hover:bg-sage-500/15 border border-sage-500/25 text-sm">
-              <Icon name="check" size={15}/> Mark complete
-            </button>
-          </div>
         </div>
       );
     };
@@ -5933,10 +6039,6 @@ const PortfolioWidget = ({ onOpen }) => {
 
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Major appliances + equipment, with model numbers and warranties. Tap to edit. Photograph the model plate for anything still marked unknown.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add appliance</Btn>
-          </div>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
@@ -5954,48 +6056,22 @@ const PortfolioWidget = ({ onOpen }) => {
           {filtered.length === 0 ? (
             <Empty icon="cube" title="No appliances match" body="Try clearing the filter, or add a new appliance." cta={<Btn icon="plus" onClick={()=>open(null)}>Add appliance</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {filtered.map(a => <ApplianceCard key={a.id} a={a} onEdit={()=>open(a)} />)}
-            </div>
+            <Ledger valueWidth="6rem">
+              {filtered.map(a => {
+                const wn = daysUntil(a.warrantyExpires);
+                const clean = (x) => (x && !/^\(unknown\)|^\(TBD\)|^\(per /i.test(x)) ? x : '';
+                return (
+                  <Row key={a.id}
+                    tone={a.warrantyExpires ? (wn < 0 ? 'now' : wn <= 90 ? 'soon' : 'ok') : undefined}
+                    title={a.name}
+                    meta={[a.room, clean(a.brand), clean(a.model), a.serial ? `SN ${a.serial}` : null]}
+                    when={a.warrantyExpires ? (wn < 0 ? `expired ${fmtDate(a.warrantyExpires)}` : `warranty thru ${fmtDate(a.warrantyExpires)}`) : null}
+                    value={a.purchasePrice ? `$${a.purchasePrice.toLocaleString()}` : null}
+                    onOpen={()=>open(a)} />
+                );
+              })}
+            </Ledger>
           )}
-        </div>
-      );
-    };
-
-    const ApplianceCard = ({ a, onEdit }) => {
-      const ctx = useContext(Ctx);
-      const wn = daysUntil(a.warrantyExpires);
-      const clean = (s) => (s && !/^\(unknown\)|^\(TBD\)|^\(per /i.test(s)) ? s : '';
-      const brand = clean(a.brand), model = clean(a.model);
-      return (
-        <div className={phCard(a.placeholder) + ' p-4 md:p-5'}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-xs uppercase tracking-wider text-ink-400">{a.room || '—'}</div>
-                {a.placeholder && <PlaceholderBadge/>}
-              </div>
-              <div className="font-display text-lg mt-0.5 truncate">{a.name}</div>
-              {(brand || model) && <div className="text-ink-300 text-sm">{brand} {model && <span className="text-ink-300">· {model}</span>}</div>}
-            </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-          </div>
-          {a.serial && <div className="text-ink-400 text-xs mt-2">SN {a.serial}</div>}
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {a.warrantyExpires && (
-              <Pill tone={wn<0?'overdue':wn<=90?'soon':'ok'} dot>
-                {wn<0?`Expired ${fmtDate(a.warrantyExpires)}`:`Warranty thru ${fmtDate(a.warrantyExpires)}`}
-              </Pill>
-            )}
-            {a.purchaseDate && <Pill tone="muted">Bought {fmtDate(a.purchaseDate)}</Pill>}
-            {a.purchasePrice ? <Pill tone="muted">${a.purchasePrice.toLocaleString()}</Pill> : null}
-            {a.warrantyDismissed && (
-              <button onClick={(e)=>{ e.stopPropagation(); ctx.updateAppliance(a.id, { warrantyDismissed:false }); ctx.showToast('Warranty alerts back on'); }}
-                className="pill pill-muted hover:text-gold-300 transition">alerts off — tap to re-enable</button>
-            )}
-          </div>
-          {a.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-3 leading-relaxed">{a.notes}</div>}
-        <LinkChips links={a.links} entityKind="appliances" entityId={a.id} />
         </div>
       );
     };
@@ -6041,6 +6117,7 @@ const PortfolioWidget = ({ onOpen }) => {
               </select>
             </div>
             <div><label htmlFor="hq-f37">Notes</label><textarea id="hq-f37" rows="3" value={a.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Service history, quirks, install context…"/></div>
+            {!isNew && <Docs kind="appliances" id={appliance.id} />}
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -6067,67 +6144,26 @@ const PortfolioWidget = ({ onOpen }) => {
       const open = (item) => setModal(<InsuranceForm item={item} onClose={()=>setModal(null)} />);
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Every policy in one place. Tap to edit, then drill into the carrier portal via the link.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add policy</Btn>
-          </div>
           {list.length === 0 ? (
             <Empty icon="shield" title="No policies yet" body="Carriers, policy numbers and renewal dates, so a lapse cannot pass unnoticed." cta={<Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {list.map(p => <InsuranceCard key={p.id} p={p} onEdit={()=>open(p)} />)}
-            </div>
+            <Ledger valueWidth="6.5rem">
+              {list.map(p => {
+                const n = daysUntil(p.renewalDate);
+                return (
+                  <Row key={p.id}
+                    tone={!p.renewalDate ? 'soon' : n < 0 ? 'now' : n <= 60 ? 'soon' : undefined}
+                    title={p.carrier}
+                    meta={[p.type, p.property, p.coverageSummary, p.policyNumber ? `policy ${p.policyNumber}` : null]}
+                    when={p.renewalDate ? (n < 0 ? `renewal passed ${fmtDate(p.renewalDate)}` : `renews ${fmtDate(p.renewalDate)}`)
+                                        : 'no renewal date'}
+                    value={p.premium ? `$${p.premium.toLocaleString()}` : null}
+                    valueUnit={p.premium && p.premiumCadence ? ` ${p.premiumCadence}` : null}
+                    onOpen={()=>open(p)} />
+                );
+              })}
+            </Ledger>
           )}
-        </div>
-      );
-    };
-
-    const InsuranceCard = ({ p, onEdit }) => {
-      const n = daysUntil(p.renewalDate);
-      return (
-        <div className={phCard(p.placeholder) + ' p-4 md:p-5'}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-xs uppercase tracking-wider text-ink-400">{p.type}{p.property ? ` · ${p.property}` : ''}</div>
-                {p.placeholder && <PlaceholderBadge/>}
-              </div>
-              <div className="font-display text-lg mt-0.5 truncate">{p.carrier}</div>
-              {p.coverageSummary && <div className="text-ink-300 text-sm">{p.coverageSummary}</div>}
-            </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-          </div>
-          {p.policyNumber && <div className="text-ink-200 text-xs mt-2 font-mono">Policy {p.policyNumber}</div>}
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {p.renewalDate ? (
-              <Pill tone={n<0?'overdue':n<=60?'soon':'info'} dot>
-                {n<0?`Renewal passed ${fmtDate(p.renewalDate)} — confirm`:`Renews ${fmtDate(p.renewalDate)}`}
-              </Pill>
-            ) : (
-              /* Rendering nothing here meant a policy with no end date was
-                 indistinguishable from one that never expires — and a lapse would
-                 have reached no surface in the app. */
-              <Pill tone="soon">no renewal date — a lapse would be invisible</Pill>
-            )}
-            {p.premium ? <Pill tone="muted">${p.premium.toLocaleString()} {p.premiumCadence||''}</Pill> : null}
-          </div>
-          {(p.agentName || p.agentPhone || p.agentEmail) && (
-            <div className="text-ink-300 text-xs mt-3">
-              {p.agentName && <div>{p.agentName}</div>}
-              <div className="flex items-center gap-3 mt-0.5">
-                {p.agentPhone && <a href={`tel:${p.agentPhone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={12}/> {p.agentPhone}</a>}
-                {p.agentEmail && <a href={`mailto:${p.agentEmail}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="mail" size={12}/> email</a>}
-              </div>
-            </div>
-          )}
-          {p.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{p.notes}</div>}
-          {safeUrl(p.documentUrl) && (
-            <>
-              <div className="divider my-4"/>
-              <a href={safeUrl(p.documentUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open carrier portal</a>
-            </>
-          )}
-          <LinkChips links={p.links} entityKind="insurance" entityId={p.id} />
         </div>
       );
     };
@@ -6173,6 +6209,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f49">Document / portal URL</label><input id="hq-f49" value={v.documentUrl||''} onChange={e=>setF('documentUrl', e.target.value)}/></div>
             <div><label htmlFor="hq-f50">Notes</label><textarea id="hq-f50" rows="3" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            {!isNew && <Docs kind="insurance" id={item.id} />}
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -6199,10 +6236,6 @@ const PortfolioWidget = ({ onOpen }) => {
       }, [list]);
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Account numbers (last-4), payment cadence, and login URLs.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add utility</Btn>
-          </div>
           {list.length === 0 ? (
             <Empty icon="zap" title="No utilities yet" body="Account numbers and payment details for both houses, in one place." cta={<Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>} />
           ) : (
@@ -6210,9 +6243,22 @@ const PortfolioWidget = ({ onOpen }) => {
               {Object.entries(grouped).map(([propLabel, items]) => (
                 <div key={propLabel}>
                   <div className="text-xs uppercase text-ink-400 mb-2">{propLabel}</div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {items.map(u => <UtilityCard key={u.id} u={u} onEdit={()=>open(u)} />)}
-                  </div>
+                  <Ledger valueWidth="5.5rem">
+                    {items.map(u => (
+                      <Row key={u.id} tone={u.autopay ? 'ok' : undefined}
+                        title={u.provider}
+                        meta={[u.kind, u.accountNumber, u.autopay ? 'autopay' : (u.autopay === false ? 'manual' : null)]}
+                        when={null}
+                        value={u.monthlyEstimate ? `~$${u.monthlyEstimate}` : null}
+                        valueUnit={u.monthlyEstimate ? '/mo' : null}
+                        onOpen={()=>open(u)}
+                        action={safeUrl(u.loginUrl) ? (
+                          <a href={safeUrl(u.loginUrl)} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
+                             aria-label={`Open ${u.provider} portal`} title="Portal"
+                             className="w-8 h-8 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-gold-300"><Icon name="link" size={14}/></a>
+                        ) : undefined} />
+                    ))}
+                  </Ledger>
                 </div>
               ))}
             </div>
@@ -6220,33 +6266,6 @@ const PortfolioWidget = ({ onOpen }) => {
         </div>
       );
     };
-
-    const UtilityCard = ({ u, onEdit }) => (
-      <div className="card p-4 md:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-wider text-ink-400">{u.kind}</div>
-            <div className="font-display text-lg mt-0.5 truncate">{u.provider}</div>
-            {u.accountNumber && <div className="text-ink-300 text-xs mt-1 font-mono">{u.accountNumber}</div>}
-          </div>
-          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-        </div>
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
-          {u.monthlyEstimate ? <Pill tone="muted">~${u.monthlyEstimate}/mo</Pill> : null}
-          {u.autopay ? <Pill tone="ok" dot>autopay</Pill> : (u.autopay === false ? <Pill tone="muted">manual</Pill> : null)}
-        </div>
-        {u.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{u.notes}</div>}
-        {(u.loginUrl || u.contactPhone) && (
-          <>
-            <div className="divider my-4"/>
-            <div className="flex items-center gap-3 text-sm">
-              {safeUrl(u.loginUrl) && <a href={safeUrl(u.loginUrl)} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
-              {u.contactPhone && <a href={`tel:${u.contactPhone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={14}/> {u.contactPhone}</a>}
-            </div>
-          </>
-        )}
-      </div>
-    );
 
     const UtilityForm = ({ item, onClose }) => {
       const ctx = useContext(Ctx);
@@ -6308,52 +6327,30 @@ const PortfolioWidget = ({ onOpen }) => {
       const open = (item) => setModal(<PropertyForm item={item} onClose={()=>setModal(null)} />);
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Mortgages, HOAs, property taxes, home warranties, security.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add record</Btn>
-          </div>
           {list.length === 0 ? (
             <Empty icon="key" title="No property records yet" body="Mortgages, HOA dues, property taxes and warranties — with their next due dates on Today." cta={<Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {list.map(p => <PropertyCard key={p.id} p={p} onEdit={()=>open(p)} />)}
-            </div>
+            <Ledger valueWidth="6.5rem">
+              {list.map(p => {
+                const n = daysUntil(p.nextDue);
+                return (
+                  <Row key={p.id}
+                    tone={p.nextDue ? (n < 0 ? 'now' : n <= 30 ? 'soon' : undefined) : undefined}
+                    title={p.label}
+                    meta={[(p.kind||'').replace('_',' '), p.property, p.contact]}
+                    when={p.nextDue ? `due ${fmtDate(p.nextDue)}` : null}
+                    value={p.amount ? `$${p.amount.toLocaleString()}` : null}
+                    valueUnit={p.amount && p.cadence ? ` ${p.cadence}` : null}
+                    onOpen={()=>open(p)}
+                    action={safeUrl(p.loginUrl) ? (
+                      <a href={safeUrl(p.loginUrl)} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
+                         aria-label={`Open ${p.label} portal`} title="Portal"
+                         className="w-8 h-8 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-gold-300"><Icon name="link" size={14}/></a>
+                    ) : undefined} />
+                );
+              })}
+            </Ledger>
           )}
-        </div>
-      );
-    };
-
-    const PropertyCard = ({ p, onEdit }) => {
-      const n = daysUntil(p.nextDue);
-      return (
-        <div className={phCard(p.placeholder) + ' p-4 md:p-5'}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-xs uppercase tracking-wider text-ink-400">{(p.kind||'').replace('_',' ')}{p.property ? ` · ${p.property}` : ''}</div>
-                {p.placeholder && <PlaceholderBadge/>}
-              </div>
-              <div className="font-display text-lg mt-0.5 truncate">{p.label}</div>
-              {p.contact && <div className="text-ink-300 text-sm">{p.contact}</div>}
-            </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {p.nextDue && <Pill tone={n<0?'overdue':n<=30?'soon':'info'} dot>Due {fmtDate(p.nextDue)}</Pill>}
-            {p.amount ? <Pill tone="muted">${p.amount.toLocaleString()} {p.cadence||''}</Pill> : (p.cadence ? <Pill tone="muted">{p.cadence}</Pill> : null)}
-          </div>
-          {p.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{p.notes}</div>}
-          {(p.loginUrl || p.phone || p.email) && (
-            <>
-              <div className="divider my-4"/>
-              <div className="flex items-center gap-3 text-sm flex-wrap">
-                {safeUrl(p.loginUrl) && <a href={safeUrl(p.loginUrl)} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
-                {p.phone && <a href={`tel:${p.phone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={14}/> {p.phone}</a>}
-                {p.email && <a href={`mailto:${p.email}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="mail" size={14}/> email</a>}
-              </div>
-            </>
-          )}
-        <LinkChips links={p.links} entityKind="property" entityId={p.id} />
         </div>
       );
     };
@@ -6395,6 +6392,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div><label htmlFor="hq-f68">Next due</label><input id="hq-f68" type="date" value={v.nextDue||''} onChange={e=>setF('nextDue', e.target.value)}/></div>
             </div>
             <div><label htmlFor="hq-f69">Notes</label><textarea id="hq-f69" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            {!isNew && <Docs kind="property" id={item.id} />}
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -6432,127 +6430,96 @@ const PortfolioWidget = ({ onOpen }) => {
                  lapsed: sum(inactive), lapsedRows: inactive, total: sum(active) };
       }, [active, inactive]);
       const monthly = split.total;
+      const [q, setQ] = useState('');
+      const [facet, setFacet] = useState(null);
+      const rows = useMemo(() => {
+        const needle = q.trim().toLowerCase();
+        let r = list;
+        if (facet === 'unconfirmed') r = r.filter(x => x.confidence && x.confidence !== 'confirmed' && subscriptionNextRenewal(x));
+        if (facet === 'lapsed')      r = r.filter(x => !subscriptionNextRenewal(x));
+        if (needle) r = r.filter(x => `${x.name} ${x.category||''} ${x.notes||''}`.toLowerCase().includes(needle));
+        // Soonest renewal first; anything with no live date sinks to the bottom.
+        return [...r].sort((a, b) => {
+          const ra = subscriptionNextRenewal(a), rb = subscriptionNextRenewal(b);
+          if (!ra && !rb) return (a.name||'').localeCompare(b.name||'');
+          if (!ra) return 1;
+          if (!rb) return -1;
+          return ra < rb ? -1 : ra > rb ? 1 : 0;
+        });
+      }, [list, q, facet]);
+      const armed = facet === 'unconfirmed';
       return (
-        <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Recurring spend, surfaced. Tap any line to add cost or renewal date.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add subscription</Btn>
-          </div>
-          {monthly > 0 && (<>
-            <div className="card p-4 md:p-5">
-              <SectionHeader title="Recurring spend"
-                hint={`${active.length} active subscriptions, every cadence normalised to a month.`} />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-xl border border-sage-500/25 bg-sage-500/5 px-3.5 py-3">
-                  <div className="text-2xs uppercase text-ink-400">Confirmed</div>
-                  <div className="font-display text-xl text-sage-400 tabular-nums mt-0.5">${split.confirmed.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
-                  <div className="text-xs text-ink-400 mt-1 tabular-nums">{fmtMoney(split.confirmed * 12)}/yr</div>
-                </div>
-                <div className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
-                  <div className="text-2xs uppercase text-ink-400">Unconfirmed</div>
-                  <div className="font-display text-xl text-gold-400 tabular-nums mt-0.5">${split.unconfirmed.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
-                  <div className="text-xs text-ink-400 mt-1">
-                    {split.unconfirmedRows.length} line{split.unconfirmedRows.length===1?'':'s'}
-                    {split.unconfirmedRows[0] && ` · largest ${split.unconfirmedRows[0].name} ${fmtMoney(perMonth(split.unconfirmedRows[0]))}/mo`}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
-                  <div className="text-2xs uppercase text-ink-400">Suspected cancelled</div>
-                  <div className="font-display text-xl text-ink-200 tabular-nums mt-0.5">${split.lapsed.toFixed(2)}<span className="text-ink-400 text-sm">/mo</span></div>
-                  <div className="text-xs text-ink-400 mt-1">
-                    {split.lapsedRows.length} line{split.lapsedRows.length===1?'':'s'} with no renewal date — excluded from the total
-                  </div>
-                </div>
-              </div>
-              <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
-                Tracked total <span className="text-ink-100 tabular-nums">${monthly.toFixed(2)}/mo</span> ({fmtMoney(monthly*12)}/yr).
-                {split.unconfirmed > 0 && ` ${(split.unconfirmed / monthly * 100).toFixed(0)}% of it rests on questions these records ask themselves — the queue below is sorted by what the answer is worth.`}
-              </div>
-            </div>
-
-            {split.unconfirmedRows.length + split.lapsedRows.length > 0 && (
-              <div className="card p-4 md:p-5">
-                <SectionHeader title="Verify queue" count={split.unconfirmedRows.length + split.lapsedRows.length}
-                  hint="Sorted by annual dollars riding on the answer. Each row writes straight back to the record." />
-                <div className="space-y-2.5">
-                  {[...split.unconfirmedRows, ...split.lapsedRows].map(s => (
-                    <div key={s.id} className="flex items-start justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3 flex-wrap">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-ink-100">
-                          {s.name}
-                          <span className="text-ink-400 font-normal text-xs"> · ${s.cost} {s.cadence}</span>
-                        </div>
-                        <div className="text-xs text-ink-400 mt-0.5">{s.question || s.notes}</div>
-                        <div className="text-xs text-gold-400 mt-1 tabular-nums">
-                          {s.confidence === 'cadence-unconfirmed'
-                            ? `${fmtMoney(perMonth(s) * 12)}/yr if monthly · ${fmtMoney((s.cost||0) * 4)}/yr if quarterly`
-                            : `${fmtMoney(perMonth(s) * 12)}/yr at stake`}
-                        </div>
-                      </div>
-                      <div className="flex gap-1.5 flex-wrap shrink-0">
-                        {safeUrl(s.url) && (
-                          <a href={safeUrl(s.url)} target="_blank" rel="noreferrer"
-                             className="px-2.5 py-1.5 rounded-lg text-xs bg-ink-700 hover:bg-ink-600 text-ink-100 inline-flex items-center gap-1">
-                            <Icon name="link" size={11}/> Check
-                          </a>
-                        )}
-                        {s.confidence === 'cadence-unconfirmed' && (
-                          <button onClick={()=>{ ctx.updateSubscription(s.id, { cadence:'quarterly', confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} set to quarterly`); }}
-                            className="px-2.5 py-1.5 rounded-lg text-xs bg-ink-700 hover:bg-ink-600 text-ink-100">It's quarterly</button>
-                        )}
-                        <button onClick={()=>{ ctx.updateSubscription(s.id, { confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} confirmed`); }}
-                          className="px-2.5 py-1.5 rounded-lg text-xs bg-sage-500/15 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20">Confirm</button>
-                        <button onClick={()=>ctx.deleteWithUndo('subscriptions', s, s.name)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs bg-ember-500/12 text-ember-400 border border-ember-500/25 hover:bg-ember-500/20">Remove</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>)}
+        <div className="space-y-6">
+          {monthly > 0 && (
+            <Readout
+              value={fmtMoney(monthly)} unit="/mo"
+              parts={[
+                `${active.length} active`,
+                `${fmtMoney(monthly * 12)}/yr`,
+                split.unconfirmed > 0 && { text: `${fmtMoney(split.unconfirmed)}/mo unconfirmed`, alert: true,
+                                           onClick: () => setFacet(facet === 'unconfirmed' ? null : 'unconfirmed') },
+                split.lapsedRows.length > 0 && { text: `${split.lapsedRows.length} with no renewal date`,
+                                                 onClick: () => setFacet(facet === 'lapsed' ? null : 'lapsed') },
+              ]} />
+          )}
           {list.length === 0 ? (
             <Empty icon="receipt" title="No subscriptions yet" body="Recurring charges show up on Today once they are here — cost, cadence and where to manage each one." cta={<Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>} />
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {list.map(s => <SubscriptionCard key={s.id} s={s} onEdit={()=>open(s)} />)}
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    const SubscriptionCard = ({ s, onEdit }) => {
-      const nextRenewal = subscriptionNextRenewal(s);
-      const n = daysUntil(nextRenewal);
-      const rolled = nextRenewal && nextRenewal !== s.renewalDate;
-      return (
-        <div className="card p-4 md:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs uppercase tracking-wider text-ink-400">{s.category}</div>
-              <div className="font-display text-lg mt-0.5 truncate">{s.name}</div>
-            </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {s.cost ? <Pill tone="muted">${s.cost} {s.cadence||''}</Pill> : null}
-            {nextRenewal && <Pill tone={n<0?'overdue':n<=7?'soon':'info'} dot>{n<0?`Renewal passed ${fmtDate(nextRenewal)} — confirm`:`Renews ${fmtDate(nextRenewal)}`}</Pill>}
-            {rolled && <span className="text-2xs text-ink-400">projected from {fmtDate(s.renewalDate)}</span>}
-            {s.confidence && s.confidence !== 'confirmed' && (
-              <Pill tone={s.confidence === 'lapsed' ? 'muted' : 'soon'}>{s.question || 'unconfirmed'}</Pill>
+          ) : (<>
+            {list.length > 8 && (
+              <Toolbar query={q} setQuery={setQ} placeholder={`Filter ${list.length} subscriptions`}
+                active={facet} setActive={setFacet}
+                chips={[
+                  split.unconfirmedRows.length > 0 && { id:'unconfirmed', label:'Unconfirmed', count:split.unconfirmedRows.length, alert:true },
+                  split.lapsedRows.length > 0 && { id:'lapsed', label:'Cancelled?', count:split.lapsedRows.length },
+                ].filter(Boolean)} />
             )}
-            {s.confidence === 'confirmed' && s.verifiedAt && (
-              <span className="text-2xs text-ink-400">confirmed {fmtDate(s.verifiedAt)}</span>
+            {rows.length === 0 ? (
+              <p className="text-sm text-ink-400 py-6">Nothing matches that filter.</p>
+            ) : (
+              <Ledger valueWidth="6rem" hasActions={armed}>
+                {rows.map(s => {
+                  const nextRenewal = subscriptionNextRenewal(s);
+                  const n = daysUntil(nextRenewal);
+                  const unconfirmed = s.confidence && s.confidence !== 'confirmed';
+                  const tone = !nextRenewal ? undefined : n < 0 ? 'now' : unconfirmed ? 'soon' : n <= 7 ? 'soon' : undefined;
+                  return (
+                    <Row key={s.id} tone={tone} title={s.name}
+                      meta={[s.category, s.cost ? `$${s.cost} ${s.cadence||''}`.trim() : null,
+                             unconfirmed ? (s.question || 'unconfirmed') : null]}
+                      when={nextRenewal ? (n < 0 ? `Renewal passed ${fmtDate(nextRenewal)}` : `Renews ${fmtDate(nextRenewal)}`)
+                                        : 'no renewal date'}
+                      value={fmtMoney(perMonth(s))} valueUnit="/mo"
+                      onOpen={()=>open(s)}
+                      action={armed ? (
+                        <span className="flex items-center gap-1">
+                          {safeUrl(s.url) && (
+                            <a href={safeUrl(s.url)} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
+                               aria-label={`Open ${s.name} to check`} title="Check"
+                               className="w-8 h-8 rounded-lg grid place-items-center bg-ink-700 hover:bg-ink-600 text-ink-100"><Icon name="link" size={13}/></a>
+                          )}
+                          {s.confidence === 'cadence-unconfirmed' && (
+                            <button onClick={e=>{ e.stopPropagation(); ctx.updateSubscription(s.id, { cadence:'quarterly', confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} set to quarterly`); }}
+                              className="px-2 h-8 rounded-lg text-xs bg-ink-700 hover:bg-ink-600 text-ink-100 whitespace-nowrap">It&rsquo;s quarterly</button>
+                          )}
+                          <button onClick={e=>{ e.stopPropagation(); ctx.updateSubscription(s.id, { confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} confirmed`); }}
+                            aria-label={`Confirm ${s.name}`} title="Confirm"
+                            className="w-8 h-8 rounded-lg grid place-items-center bg-sage-500/15 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20"><Icon name="check" size={13}/></button>
+                          <button onClick={e=>{ e.stopPropagation(); ctx.deleteWithUndo('subscriptions', s, s.name); }}
+                            aria-label={`Remove ${s.name}`} title="Remove"
+                            className="w-8 h-8 rounded-lg grid place-items-center bg-ember-500/12 text-ember-400 border border-ember-500/25 hover:bg-ember-500/20"><Icon name="trash" size={13}/></button>
+                        </span>
+                      ) : undefined} />
+                  );
+                })}
+              </Ledger>
             )}
-          </div>
-          {s.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{s.notes}</div>}
-          {s.url && (
-            <a href={safeUrl(s.url)} target="_blank" rel="noreferrer"
-               className="inline-flex items-center gap-1.5 text-xs text-gold-400 hover:text-gold-300 mt-3">
-              <Icon name="link" size={12}/> Log in / manage
-            </a>
-          )}
+            {monthly > 0 && (
+              <p className="text-xs text-ink-400 leading-relaxed">
+                Tracked total <span className="text-ink-100 tabular-nums">{fmtMoney(monthly)}/mo</span> ({fmtMoney(monthly*12)}/yr).
+                {split.unconfirmed > 0 && ` ${(split.unconfirmed / monthly * 100).toFixed(0)}% of it rests on questions these records ask themselves.`}
+              </p>
+            )}
+          </>)}
         </div>
       );
     };
@@ -6608,46 +6575,24 @@ const PortfolioWidget = ({ onOpen }) => {
       const open = (item) => setModal(<VehicleForm item={item} onClose={()=>setModal(null)} />);
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Cars, VINs, and extended warranties.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>
-          </div>
           {list.length === 0 ? (
             <Empty icon="car" title="No vehicles yet" body="VINs, service contracts and warranty dates, so a claim call takes one tap." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {list.map(v => <VehicleCard key={v.id} v={v} onEdit={()=>open(v)} />)}
-            </div>
+            <Ledger valueWidth="0rem">
+              {list.map(v => {
+                const n = daysUntil(v.warrantyExpires);
+                return (
+                  <Row key={v.id}
+                    tone={v.warrantyExpires ? (n < 0 ? 'now' : n <= 90 ? 'soon' : 'ok') : undefined}
+                    title={`${v.model||''}${v.trim?` ${v.trim}`:''}`.trim() || v.make}
+                    meta={[`${v.year||''} ${v.make||''}`.trim(), v.primaryDriver ? `driver ${v.primaryDriver}` : null,
+                           v.vin ? `VIN ${v.vin}` : null, v.warrantyProvider]}
+                    when={v.warrantyExpires ? (n < 0 ? `expired ${fmtDate(v.warrantyExpires)}` : `warranty thru ${fmtDate(v.warrantyExpires)}`) : null}
+                    onOpen={()=>open(v)} />
+                );
+              })}
+            </Ledger>
           )}
-        </div>
-      );
-    };
-
-    const VehicleCard = ({ v, onEdit }) => {
-      const n = daysUntil(v.warrantyExpires);
-      return (
-        <div className="card p-4 md:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs uppercase tracking-wider text-ink-400">{v.year || ''} {v.make}</div>
-              <div className="font-display text-lg mt-0.5 truncate">{v.model}{v.trim?` ${v.trim}`:''}</div>
-              {v.primaryDriver && <div className="text-ink-300 text-sm">Driver: {v.primaryDriver}</div>}
-            </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-          </div>
-          {v.vin && <div className="text-ink-300 text-xs mt-2 font-mono">VIN {v.vin}</div>}
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {v.warrantyProvider && <Pill tone="muted">{v.warrantyProvider}</Pill>}
-            {v.warrantyExpires && <Pill tone={n<0?'overdue':n<=90?'soon':'ok'} dot>Warranty thru {fmtDate(v.warrantyExpires)}</Pill>}
-          </div>
-          {v.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{v.notes}</div>}
-          {v.warrantyContact && (
-            <>
-              <div className="divider my-4"/>
-              <div className="text-ink-200 text-xs">Warranty contact: {v.warrantyContact.includes('@') ? <a href={`mailto:${v.warrantyContact}`} className="text-gold-400">{v.warrantyContact}</a> : v.warrantyContact}</div>
-            </>
-          )}
-        <LinkChips links={v.links} entityKind="vehicles" entityId={v.id} />
         </div>
       );
     };
@@ -6672,7 +6617,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div><label htmlFor="hq-f80">Trim</label><input id="hq-f80" value={v.trim||''} onChange={e=>setF('trim', e.target.value)}/></div>
               <div><label htmlFor="hq-f81">Color</label><input id="hq-f81" value={v.color||''} onChange={e=>setF('color', e.target.value)}/></div>
             </div>
-            <div><label htmlFor="hq-f82">VIN</label><input id="hq-f82" value={v.vin||''} onChange={e=>setF('vin', e.target.value)} className="font-mono"/></div>
+            <div><label htmlFor="hq-f82">VIN</label><input id="hq-f82" value={v.vin||''} onChange={e=>setF('vin', e.target.value)} className="tnum"/></div>
             <div><label htmlFor="hq-f83">Primary driver</label><input id="hq-f83" value={v.primaryDriver||''} onChange={e=>setF('primaryDriver', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label htmlFor="hq-f84">Warranty provider</label><input id="hq-f84" value={v.warrantyProvider||''} onChange={e=>setF('warrantyProvider', e.target.value)} placeholder="Zurich"/></div>
@@ -6680,6 +6625,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f86">Warranty expires</label><input id="hq-f86" type="date" value={v.warrantyExpires||''} onChange={e=>setF('warrantyExpires', e.target.value)}/></div>
             <div><label htmlFor="hq-f87">Notes</label><textarea id="hq-f87" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            {!isNew && <Docs kind="vehicles" id={item.id} />}
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -6701,44 +6647,26 @@ const PortfolioWidget = ({ onOpen }) => {
       const open = (item) => setModal(<BenefitForm item={item} onClose={()=>setModal(null)} />);
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Health + employer benefits — member IDs and portal links you need at appointments.</p>
-            <Btn className="hidden md:inline-flex" icon="plus" onClick={()=>open(null)}>Add benefit</Btn>
-          </div>
           {list.length === 0 ? (
             <Empty icon="heart" title="No benefits yet" body="Member and group numbers, in a card you can read out at an appointment." cta={<Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {list.map(b => <BenefitCard key={b.id} b={b} onEdit={()=>open(b)} />)}
-            </div>
+            <Ledger valueWidth="0rem">
+              {list.map(b => (
+                <Row key={b.id} title={b.provider}
+                  meta={[b.type, b.memberID ? `member ${b.memberID}` : null, b.groupID ? `group ${b.groupID}` : null]}
+                  when={null}
+                  onOpen={()=>open(b)}
+                  action={safeUrl(b.loginUrl) ? (
+                    <a href={safeUrl(b.loginUrl)} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
+                       aria-label={`Open ${b.provider} portal`} title="Open portal"
+                       className="w-8 h-8 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-gold-300"><Icon name="link" size={14}/></a>
+                  ) : undefined} />
+              ))}
+            </Ledger>
           )}
         </div>
       );
     };
-
-    const BenefitCard = ({ b, onEdit }) => (
-      <div className="card p-4 md:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-wider text-ink-400">{b.type}</div>
-            <div className="font-display text-lg mt-0.5 truncate">{b.provider}</div>
-          </div>
-          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-          {b.memberID && <><div className="text-ink-400">Member ID</div><div className="text-ink-100 font-mono">{b.memberID}</div></>}
-          {b.groupID && <><div className="text-ink-400">Group ID</div><div className="text-ink-100 font-mono">{b.groupID}</div></>}
-        </div>
-        {b.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{b.notes}</div>}
-        {safeUrl(b.loginUrl) && (
-          <>
-            <div className="divider my-4"/>
-            <a href={safeUrl(b.loginUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open portal</a>
-          </>
-        )}
-        <LinkChips links={b.links} entityKind="benefits" entityId={b.id} />
-      </div>
-    );
 
     const BenefitForm = ({ item, onClose }) => {
       const ctx = useContext(Ctx);
@@ -6765,6 +6693,7 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div><label htmlFor="hq-f92">Portal URL</label><input id="hq-f92" value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
             <div><label htmlFor="hq-f93">Notes</label><textarea id="hq-f93" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            {!isNew && <Docs kind="benefits" id={item.id} />}
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-650/92 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -7056,10 +6985,6 @@ const PortfolioWidget = ({ onOpen }) => {
 
       return (
         <div className="space-y-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ink-300 text-sm hidden md:block max-w-2xl">The cellar. Log a bottle when you open it and the counts stay honest.</p>
-            <Btn icon="plus" onClick={()=>openForm(null)}>Add bottle</Btn>
-          </div>
 
           {/* Tonight's pick */}
           {pick && (
@@ -7137,6 +7062,18 @@ const PortfolioWidget = ({ onOpen }) => {
     };
     // Wrapper class fragment — apply to a card div to give it a dashed/dim look
     const phCard = (isPh, base='card') => `${base}${isPh ? ' border-dashed border-gold-400/30 opacity-90' : ''}`;
+
+    const Docs = ({ kind, id }) => {
+      const ctx = useContext(Ctx);
+      if (!id) return null;
+      const live = (ctx.state[kind] || []).find(x => x.id === id);
+      return (
+        <div>
+          <label className="!mb-1.5">Documents</label>
+          <LinkChips links={live && live.links} entityKind={kind} entityId={id} />
+        </div>
+      );
+    };
 
     const LinkChips = ({ links, entityKind, entityId }) => {
       const ctx = useContext(Ctx);
@@ -7335,45 +7272,36 @@ const PortfolioWidget = ({ onOpen }) => {
       return (
         <div className="space-y-8">
           <QuickCaptureBar />
-          <p className="text-ink-300 text-sm hidden md:block max-w-2xl">Direct links to source documents — Box folders, manuals, reference sheets. Click to open in a new tab.</p>
           {cats.length === 0 ? (
             <Empty icon="folder" title="No files yet" body="Document links you add will appear here, grouped by topic." />
-          ) : cats.map(cat => (
-            <section key={cat}>
-              <div className="flex items-baseline justify-between mb-3">
-                <h2 className="font-display text-xl tracking-tight">{cat}</h2>
-                <span className="text-ink-400 text-xs">{grouped[cat].length}</span>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                {grouped[cat].map(f => {
-                  const embeddable = !!toBoxEmbed(f.url);
-                  const Inner = (
-                    <>
-                      <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-ink-300 shrink-0">
-                        <Icon name={f.url.includes('/folder/') ? 'folder' : 'link'} size={18} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-ink-100 group-hover:text-gold-300 truncate">{f.label}</div>
-                        {f.notes && <div className="text-ink-300 text-xs mt-0.5 line-clamp-2">{f.notes}</div>}
-                        <div className="text-ink-400 text-xs mt-1.5 truncate">{(() => { try { return new URL(f.url).hostname; } catch { return f.url; } })()}</div>
-                      </div>
-                    </>
-                  );
-                  return embeddable ? (
-                    <button key={f.id} type="button" onClick={() => ctx.setPreviewFile(f)}
-                       className="card p-4 flex items-start gap-3 hover:border-gold-500/40 transition group text-left">
-                      {Inner}
-                    </button>
-                  ) : (
-                    <a key={f.id} href={safeUrl(f.url)} target="_blank" rel="noreferrer"
-                       className="card p-4 flex items-start gap-3 hover:border-gold-500/40 transition group">
-                      {Inner}
-                    </a>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+          ) : (
+            <Ledger valueWidth="0rem">
+              {cats.map(cat => (
+                <React.Fragment key={cat}>
+                  <div className="lgroup flex items-baseline justify-between px-4 py-1.5 bg-ink-750/95 backdrop-blur
+                                  text-2xs uppercase tracking-wide text-ink-300 border-y border-ink-600/60">
+                    <span>{cat}</span><span className="tabular-nums text-ink-400">{grouped[cat].length}</span>
+                  </div>
+                  {grouped[cat].map(f => {
+                    const embeddable = !!toBoxEmbed(f.url);
+                    const host = (() => { try { return new URL(f.url).hostname; } catch { return f.url; } })();
+                    return (
+                      <Row key={f.id}
+                        title={f.label}
+                        meta={[host, f.notes]}
+                        when={null}
+                        onOpen={() => { if (embeddable) ctx.setPreviewFile(f);
+                                        else { const u = safeUrl(f.url); if (u) window.open(u, '_blank', 'noopener,noreferrer'); } }}
+                        action={
+                          <span aria-hidden className="w-8 h-8 grid place-items-center text-ink-400">
+                            <Icon name={f.url.includes('/folder/') ? 'folder' : 'link'} size={14}/>
+                          </span>} />
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </Ledger>
+          )}
         </div>
       );
     };
