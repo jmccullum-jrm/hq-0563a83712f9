@@ -111,6 +111,18 @@
     }
     kbd { font-family: inherit; }
     button:focus-visible, a:focus-visible { outline: 2px solid #c19654; outline-offset: 2px; border-radius: 8px; }
+    /* 134 hover states and nothing acknowledged a tap on the device this app is most
+       used from. One global rule: every enabled control settles slightly on press.
+       Fast in, slower out, and disabled controls stay put. */
+    button:not(:disabled):active, a:active, [role="button"]:not([aria-disabled="true"]):active {
+      transform: scale(0.975);
+      transition-duration: 60ms;
+    }
+    button, a, [role="button"] { transition: transform 140ms cubic-bezier(.2,.8,.3,1); }
+    @media (prefers-reduced-motion: reduce) {
+      button:not(:disabled):active, a:active, [role="button"]:active { transform: none; }
+      .anim-in { animation: none; }
+    }
     label { font-size: .75rem; color: #8b8478; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
     .modal-backdrop { background: rgba(8,7,5,0.7); backdrop-filter: blur(8px); }
     .modal-shell { background: #161410; border: 1px solid #2a2723; border-radius: 22px; }
@@ -1176,7 +1188,7 @@
       const [view, setView] = useState('dashboard');
       const [modal, setModal] = useState(null);
       const [previewFile, setPreviewFile] = useState(null);
-      const [toast, setToast] = useState(null);
+      const [toasts, setToasts] = useState([]);
       const [paletteOpen, setPaletteOpen] = useState(false);
       // Everything date-derived is computed during render against today(), and nothing
       // re-rendered at midnight — a dashboard left open overnight kept showing
@@ -1201,7 +1213,7 @@
         const okSave = saveState(state);
         if (!okSave && !saveFailedRef.current) {
           saveFailedRef.current = true;
-          showToast("Couldn't save to this device — storage is full. Recent edits may be lost.");
+          showToast("Couldn't save to this device — storage is full. Recent edits may be lost.", null, 'error');
         } else if (okSave) {
           saveFailedRef.current = false;
         }
@@ -1209,11 +1221,18 @@
       useEffect(() => { saveScope(propertyScope); }, [propertyScope]);
 
       const toastTimer = useRef(null);
-      const showToast = (msg, action) => {
-        setToast(action ? { msg, action } : msg);
-        if (toastTimer.current) clearTimeout(toastTimer.current);
-        toastTimer.current = setTimeout(()=>setToast(null), action ? 5000 : 2400);
+      /* A single slot destroyed its own Undo: check two items in a row and the second
+         toast replaced the first, taking the only route back to that completion with
+         it. Toasts queue, each with its own timer, newest at the bottom. Anything
+         carrying an action gets longer, and an error gets longer still. */
+      const showToast = (msg, action, tone) => {
+        const id = uid();
+        const life = tone === 'error' ? 6500 : action ? 5500 : 2600;
+        setToasts(list => [...list.slice(-2), { id, msg, action, tone: tone || (action ? 'action' : 'ok') }]);
+        setTimeout(() => setToasts(list => list.filter(t => t.id !== id)), life);
+        return id;
       };
+      const dismissToast = (id) => setToasts(list => list.filter(t => t.id !== id));
 
       // shared undo core — used by ctx.undoDone and by the toast Undo button
       const undoDoneById = (logId) => {
@@ -1270,7 +1289,7 @@
             if (looksLikeBadKey) { try { localStorage.removeItem(HOUSE_KEY); } catch {} }
             if (manual) showToast(looksLikeBadKey
               ? "Password didn't match — hit Refresh again"
-              : "The updates feed looks malformed — nothing was applied");
+              : "The updates feed looks malformed — nothing was applied", null, 'error');
             return;
           }
           if (pwOverride) { try { localStorage.setItem(HOUSE_KEY, btoa(pw)); } catch {} }
@@ -1313,7 +1332,7 @@
             });
           }
         } catch (e) {
-          if (manual) showToast("Couldn't reach the updates feed");
+          if (manual) showToast("Couldn't reach the updates feed", null, 'error');
         } finally {
           setRefreshing(false);
         }
@@ -1572,7 +1591,7 @@
             {paletteOpen && <CommandPalette onClose={()=>setPaletteOpen(false)} />}
             {modal && <Modal onClose={()=>setModal(null)}>{modal}</Modal>}
             {previewFile && <FilePreviewModal file={previewFile} onClose={()=>setPreviewFile(null)} />}
-            {toast && <Toast toast={toast} onAction={()=>setToast(null)} />}
+            <ToastStack toasts={toasts} onDismiss={dismissToast} />
           </div>
           </ErrorBoundary>
         </Ctx.Provider>
@@ -2011,21 +2030,34 @@
       </div>
     );
 
-    const Toast = ({ toast, onAction }) => {
-      const msg = typeof toast === 'string' ? toast : toast.msg;
-      const action = typeof toast === 'object' ? toast.action : null;
+    /* Every message used to arrive with a green success check, including the failures:
+       "Upload failed", "Couldn't reach the updates feed" and "storage is full" all
+       announced themselves as good news. Tone now picks the icon and the colour. */
+    const TOAST_TONES = {
+      ok:     { icon: 'check', className: 'text-sage-400' },
+      action: { icon: 'check', className: 'text-sage-400' },
+      error:  { icon: 'x',     className: 'text-ember-400' },
+    };
+    const ToastStack = ({ toasts, onDismiss }) => {
+      if (!toasts.length) return null;
       return (
-        <div className="fixed top-4 inset-x-3 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-50 anim-in flex justify-center pointer-events-none">
-          <div className="card px-4 py-2.5 text-sm flex items-center gap-2 shadow-2xl max-w-full pointer-events-auto">
-            <Icon name="check" size={16} className="text-sage-400" />
-            <span>{msg}</span>
-            {action && (
-              <button onClick={()=>{ action.fn(); onAction && onAction(); }}
-                className="ml-1 px-2 py-1 rounded-lg text-gold-400 hover:text-gold-300 text-xs font-medium border border-gold-500/30">
-                {action.label || 'Undo'}
-              </button>
-            )}
-          </div>
+        <div className="fixed top-4 inset-x-3 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none">
+          {toasts.map(t => {
+            const tone = TOAST_TONES[t.tone] || TOAST_TONES.ok;
+            return (
+              <div key={t.id} role="status" aria-live="polite"
+                className="card px-4 py-2.5 text-sm flex items-center gap-2 shadow-2xl max-w-full anim-in pointer-events-auto">
+                <Icon name={tone.icon} size={16} className={tone.className + ' shrink-0'} />
+                <span className="min-w-0">{t.msg}</span>
+                {t.action && (
+                  <button onClick={()=>{ t.action.fn(); onDismiss(t.id); }}
+                    className="ml-1 shrink-0 px-2 py-1 rounded-lg text-gold-400 hover:text-gold-300 text-xs font-medium border border-gold-500/30">
+                    {t.action.label || 'Undo'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     };
@@ -6832,7 +6864,7 @@ const PortfolioWidget = ({ onOpen }) => {
         } else {
           const href = safeUrl(l.url);
           if (href) window.open(href, '_blank', 'noopener,noreferrer');
-          else ctx.showToast?.('That link has no usable web address');
+          else ctx.showToast?.('That link has no usable web address', null, 'error');
         }
       };
       const reset = () => { setAdding(false); setLabel(''); setUrl(''); };
@@ -6966,7 +6998,7 @@ const PortfolioWidget = ({ onOpen }) => {
           const msg = (ex && ex.message) || 'Upload failed';
           setErr(msg);
           if (/401|token|auth/i.test(msg)) { setPending(file); setShowSettings(true); }
-          else ctx.showToast?.(`Upload failed — ${msg.slice(0, 60)}`);
+          else ctx.showToast?.(`Upload failed — ${msg.slice(0, 60)}`, null, 'error');
         } finally { setBusy(false); }
       };
 
