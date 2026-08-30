@@ -752,6 +752,8 @@
       subscriptions: seedSubscriptions,
       benefits: seedBenefits,
       files: seedFiles,
+      dismissedGaps: [],   // gap titles the household has answered
+      lastDigestAt: null,  // so the next digest can say what got done since
       suggestions: seedSuggestions,
       dafValues: seedDafValues,
       ids: seedIds,
@@ -1138,6 +1140,7 @@
         if (!Array.isArray(migrated.wineLog)) migrated.wineLog = [];
         if (!Array.isArray(migrated.completedLog)) migrated.completedLog = [];
         if (!Array.isArray(migrated.dismissedEnds)) migrated.dismissedEnds = [];
+        if (!Array.isArray(migrated.dismissedGaps)) migrated.dismissedGaps = [];
         // One-time: remove deleted placeholders (SV mortgage + SV hot tub) — confirmed N/A by user
         if (Array.isArray(migrated.property))   migrated.property   = migrated.property.filter(p   => p.id !== 'p-ph-mortgage-sv');
         if (Array.isArray(migrated.appliances)) migrated.appliances = migrated.appliances.filter(a => a.id !== 'a-ph-sv-hot-tub');
@@ -1425,6 +1428,11 @@
           showToast(`Added to ${end.module}`, { label: 'Open', fn: () => setView(end.module) });
         },
         dismissLooseEnd: (end) => setState(s => ({ ...s, dismissedEnds: [...(s.dismissedEnds || []), end.key] })),
+        // "Not applicable" used to be a decision you could only record by editing the
+        // source file — the migration history still carries two of them.
+        dismissGap: (title) => setState(s => ({ ...s, dismissedGaps: [...(s.dismissedGaps || []), title] })),
+        restoreGaps: () => setState(s => ({ ...s, dismissedGaps: [] })),
+        markDigestSent: () => setState(s => ({ ...s, lastDigestAt: new Date().toISOString() })),
         addDafValue: dafOps.add, deleteDafValue: dafOps.delete,
         // mark a dashboard item done — applies kind-specific side effect + appends to completedLog
         markDone: (item) => {
@@ -2276,7 +2284,8 @@
           out.push({ icon:'shield', title:'Personal articles floater', property:'',         module:'insurance',  why:'Wine cellar, jewelry, collectibles — typically a rider on home insurance.' });
         }
         // (Sun Valley mortgage and Sun Valley hot tub gap rules dropped — confirmed N/A)
-        return out.slice(0, 10);
+        const answered = new Set(state.dismissedGaps || []);
+        return out.filter(g => !answered.has(g.title)).slice(0, 10);
       }, [state, scope]);
 
       const generateDigest = () => {
@@ -2319,6 +2328,13 @@
         if (warranties.length) {
           lines.push(`Warranties expiring — next 90 days (${warranties.length})`);
           warranties.forEach(a => lines.push(`  • ${a.name} — ${fmtDate(a.warrantyExpires,{month:'short',day:'numeric',year:'numeric'})}`));
+          lines.push('');
+        }
+        const since = state.lastDigestAt;
+        const doneSince = (state.completedLog || []).filter(l => !since || l.completedAt > since);
+        if (doneSince.length) {
+          lines.push(`Done since ${since ? new Date(since).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : 'the start'} (${doneSince.length})`);
+          doneSince.slice(0,12).forEach(l => lines.push(`  • ${l.title}`));
           lines.push('');
         }
         if (drinkNow.length) {
@@ -2575,14 +2591,13 @@
               {gapsOpen && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {gaps.map((g, i) => (
-                  <button key={i} onClick={() => setView(g.module)}
-                     className="card p-4 text-left flex items-start gap-3 hover:border-gold-500/40 transition group">
-                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0 group-hover:bg-ink-600 transition">
+                  <div key={i} className="card p-4 flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-ink-700 grid place-items-center text-gold-400 shrink-0">
                       <Icon name={g.icon} size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className="text-sm font-medium text-ink-100 group-hover:text-gold-300 transition">{g.title}</div>
+                        <div className="text-sm font-medium text-ink-100">{g.title}</div>
                         {g.property && (
                           <span className="text-[10px] uppercase tracking-wider text-ink-400 px-1.5 py-0.5 rounded border border-ink-600">
                             {g.property === '1619 Seattle' ? 'Seattle' : 'Sun Valley'}
@@ -2590,11 +2605,21 @@
                         )}
                       </div>
                       <div className="text-ink-300 text-xs mt-1.5 leading-relaxed">{g.why}</div>
+                      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                        <Btn variant="soft" icon="chevR" onClick={()=>setView(g.module)}>Open {g.module}</Btn>
+                        <button onClick={()=>ctx.dismissGap(g.title)}
+                          className="text-xs text-ink-400 hover:text-ink-200 px-2 py-1.5 rounded-lg">Not applicable</button>
+                      </div>
                     </div>
-                    <Icon name="chevR" size={14} className="text-ink-400 mt-1 md:opacity-0 md:group-hover:opacity-100 transition" />
-                  </button>
+                  </div>
                 ))}
               </div>
+              )}
+              {(state.dismissedGaps || []).length > 0 && gapsOpen && (
+                <button onClick={ctx.restoreGaps}
+                  className="mt-3 text-[11px] text-ink-400 hover:text-gold-300 transition">
+                  {state.dismissedGaps.length} marked not applicable — bring them back
+                </button>
               )}
             </section>
           )}
@@ -4862,16 +4887,20 @@ const PortfolioWidget = ({ onOpen }) => {
 
     const DigestModal = ({ text, onClose }) => {
       const [copied, setCopied] = useState(false);
+      const ctx = useContext(Ctx);
+      // Stamp the send so the next digest can report what was handled in between.
+      const stamp = () => { try { ctx.markDigestSent && ctx.markDigestSent(); } catch {} };
       const copy = async () => {
-        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(()=>setCopied(false), 1500); } catch {}
+        try { await navigator.clipboard.writeText(text); setCopied(true); stamp(); setTimeout(()=>setCopied(false), 1500); } catch {}
       };
       const mailto = () => {
         const datestr = new Date().toLocaleDateString(undefined, { month:'short', day:'numeric' });
         const url = `mailto:?subject=${encodeURIComponent(`Home HQ digest — ${datestr}`)}&body=${encodeURIComponent(text)}`;
+        stamp();
         window.location.href = url;
       };
       const share = () => {
-        navigator.share({ title: 'Home HQ weekly digest', text }).catch(()=>{});
+        navigator.share({ title: 'Home HQ weekly digest', text }).then(stamp).catch(()=>{});
       };
       return (
         <>
