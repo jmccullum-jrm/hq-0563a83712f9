@@ -23,8 +23,8 @@
               700: '#211f1a',
               600: '#2a2723',
               500: '#3a3631',
-              400: '#5a554c',
-              300: '#8b8478',
+              400: '#878072',
+              300: '#a49c8c',
               200: '#bcb5a6',
               100: '#e8e2d4',
               50:  '#f5f0e3',
@@ -642,7 +642,7 @@
       const ctx = useContext(Ctx);
       return (
         <button onClick={() => { try { navigator.clipboard.writeText(text); ctx.showToast('Copied'); } catch {} }}
-          className="text-ink-500 hover:text-gold-300 transition p-0.5" aria-label="Copy"><Icon name="copy" size={11}/></button>
+          className="text-ink-400 hover:text-gold-300 transition p-0.5" aria-label="Copy"><Icon name="copy" size={11}/></button>
       );
     };
 
@@ -1402,14 +1402,14 @@
           <div className="p-4 space-y-3">
             {here.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-ink-500 px-1 pb-2">In this section</div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400 px-1 pb-2">In this section</div>
                 <div className="grid grid-cols-2 gap-2.5">
                   {here.map(t => <Tile key={t.view} t={t} highlight />)}
                 </div>
               </div>
             )}
             <div>
-              {here.length > 0 && <div className="text-[10px] uppercase tracking-[0.16em] text-ink-500 px-1 pb-2">Everything else</div>}
+              {here.length > 0 && <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400 px-1 pb-2">Everything else</div>}
               <div className="grid grid-cols-2 gap-2.5">
                 {rest.map(t => <Tile key={t.view} t={t} />)}
               </div>
@@ -1422,7 +1422,21 @@
     const Shell = ({ view, setView, children }) => {
       const ctx = useContext(Ctx);
       const [moreOpen, setMoreOpen] = useState(false);
+      const moreRef = useRef(null);
       useEffect(() => { window.scrollTo(0, 0); }, [view]);
+      // The primary mobile navigation was a plain div: no role, no Escape, no focus
+      // move, so a keyboard or screen-reader user could neither reach nor leave it.
+      useEffect(() => {
+        if (!moreOpen) return;
+        const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); setMoreOpen(false); } };
+        window.addEventListener('keydown', onKey);
+        const opener = document.activeElement;
+        if (moreRef.current) { try { moreRef.current.focus({ preventScroll: true }); } catch {} }
+        return () => {
+          window.removeEventListener('keydown', onKey);
+          if (opener && opener.focus) { try { opener.focus({ preventScroll: true }); } catch {} }
+        };
+      }, [moreOpen]);
       // Same collector the dashboard list uses, so the greeting can never claim the
       // house is caught up while overdue cards sit right below it.
       const attention = useMemo(
@@ -1552,7 +1566,8 @@
           {/* Mobile "More" sheet */}
           {moreOpen && (
             <div className="md:hidden fixed inset-0 z-40 modal-backdrop flex items-end" onClick={()=>setMoreOpen(false)}>
-              <div className="modal-shell w-full anim-in" onClick={e=>e.stopPropagation()}>
+              <div ref={moreRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="More sections"
+                className="modal-shell w-full anim-in focus:outline-none" onClick={e=>e.stopPropagation()}>
                 <ModalHeader title="More" subtitle="Records & references" onClose={()=>setMoreOpen(false)} />
                 <div className="p-4 grid grid-cols-2 gap-2.5 pb-safe max-h-[70vh] overflow-y-auto">
                   {NAV_SHEET_PRIMARY.map(n => (
@@ -1662,7 +1677,7 @@
           <div className="font-display text-xl tracking-tight">{title}</div>
           {subtitle && <div className="text-ink-300 text-sm mt-0.5">{subtitle}</div>}
         </div>
-        <button onClick={onClose} className="w-9 h-9 rounded-full grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-ink-100">
+        <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-ink-100">
           <Icon name="x" size={18} />
         </button>
       </div>
@@ -1709,20 +1724,20 @@
       if (!s || !needle || needle.length < 2) return [];
       const hit = (...vals) => vals.some(v => v != null && String(v).toLowerCase().includes(needle));
       const out = [];
-      const push = (view, icon, title, sub) => out.push({ view, icon, title, sub });
-      (s.vendors||[]).forEach(x => hit(x.name, x.company, x.serviceType, x.notes, x.phone, x.email) && push('vendors', 'users', x.company || x.name, `Vendor · ${x.serviceType || ''}`));
-      (s.maintenance||[]).forEach(x => hit(x.name, x.notes, x.property) && push('maintenance', 'wrench', x.name, `Maintenance · ${x.property || 'both homes'}`));
-      (s.appliances||[]).forEach(x => hit(x.name, x.brand, x.model, x.serial, x.notes) && push('appliances', 'cube', x.name, `Appliance · ${x.brand || ''} ${x.model || ''}`));
-      (s.insurance||[]).forEach(x => hit(x.carrier, x.type, x.policyNumber, x.coverageSummary, x.notes, x.agentName) && push('insurance', 'shield', `${x.carrier} — ${x.type}`, `Insurance · ${x.policyNumber || ''}`));
-      (s.property||[]).forEach(x => hit(x.name, x.kind, x.notes, x.provider) && push('property', 'key', x.name, `Property · ${x.property || ''}`));
-      (s.utilities||[]).forEach(x => hit(x.name, x.provider, x.account, x.notes) && push('utilities', 'zap', x.provider || x.name, `Utility · ${x.property || ''}`));
-      (s.subscriptions||[]).forEach(x => hit(x.name, x.category, x.notes) && push('subscriptions', 'receipt', x.name, `Subscription · $${x.cost || 0} ${x.cadence || ''}`));
-      (s.vehicles||[]).forEach(x => hit(x.name, x.make, x.model, x.vin, x.plate, x.notes) && push('vehicles', 'car', x.name || `${x.make || ''} ${x.model || ''}`, `Vehicle · ${x.vin || ''}`));
-      (s.benefits||[]).forEach(x => hit(x.name, x.provider, x.notes) && push('benefits', 'heart', x.provider || x.name, `Benefit · ${x.type || ''}`));
-      (s.files||[]).forEach(x => hit(x.name, x.notes, x.folder) && push('files', 'folder', x.name, 'File'));
-      (s.wine||[]).forEach(x => hit(x.name, x.producer, x.region, x.notes, x.label, x.varietal) && push('wine', 'wine', `${x.producer || ''} ${x.label || ''}`.trim() || x.name, `Wine · ${x.vintage || ''} ${x.region || ''}`));
-      (s.suggestions||[]).forEach(x => hit(x.title, x.body) && push('suggestions', 'bulb', x.title, `Suggestion · ${x.priority || ''}${x.done ? ' · done' : ''}`));
-      (s.ids||[]).forEach(x => hit(x.service, x.username, x.category, ...(x.fields||[]).flat()) && push('ids', 'idcard', x.service, `IDs & Logins · ${x.category}`));
+      const push = (view, icon, title, sub, id) => { if (title) out.push({ view, icon, title, sub, id }); };
+      (s.vendors||[]).forEach(x => hit(x.company, x.name, x.serviceType, x.rate, x.notes, x.phone, x.email) && push('vendors', 'users', x.company || x.name, `Vendor · ${x.serviceType || ''}`, x.id));
+      (s.maintenance||[]).forEach(x => hit(x.name, x.notes, x.vendorHint, x.property) && push('maintenance', 'wrench', x.name, `Maintenance · ${x.property || 'both homes'}`, x.id));
+      (s.appliances||[]).forEach(x => hit(x.name, x.brand, x.model, x.serial, x.room, x.notes) && push('appliances', 'cube', x.name, `Appliance · ${[x.brand, x.model, x.room].filter(Boolean).join(' ')}`, x.id));
+      (s.insurance||[]).forEach(x => hit(x.carrier, x.type, x.policyNumber, x.coverageSummary, x.notes, x.agentName, x.agentPhone, x.agentEmail) && push('insurance', 'shield', `${x.carrier} — ${x.type}`, `Insurance · ${x.policyNumber || ''}`, x.id));
+      (s.property||[]).forEach(x => hit(x.label, x.kind, x.contact, x.notes, x.phone, x.email) && push('property', 'key', x.label, `Property · ${[x.kind, x.property].filter(Boolean).join(' · ')}`, x.id));
+      (s.utilities||[]).forEach(x => hit(x.provider, x.kind, x.accountNumber, x.contactPhone, x.notes) && push('utilities', 'zap', x.provider, `Utility · ${[x.kind, x.property].filter(Boolean).join(' · ')}`, x.id));
+      (s.subscriptions||[]).forEach(x => hit(x.name, x.category, x.url, x.notes) && push('subscriptions', 'receipt', x.name, `Subscription · $${x.cost || 0} ${x.cadence || ''}`, x.id));
+      (s.vehicles||[]).forEach(x => hit(x.make, x.model, x.year, x.trim, x.vin, x.primaryDriver, x.warrantyProvider, x.notes) && push('vehicles', 'car', `${x.year || ''} ${x.make || ''} ${x.model || ''}`.trim(), `Vehicle · ${x.vin || x.primaryDriver || ''}`, x.id));
+      (s.benefits||[]).forEach(x => hit(x.provider, x.type, x.memberID, x.groupID, x.notes) && push('benefits', 'heart', x.provider, `Benefit · ${[x.type, x.memberID].filter(Boolean).join(' · ')}`, x.id));
+      (s.files||[]).forEach(x => hit(x.name, x.notes, x.folder) && push('files', 'folder', x.name, 'File', x.id));
+      (s.wine||[]).forEach(x => hit(x.producer, x.label, x.region, x.varietal, x.location, x.vintage, x.notes) && push('wine', 'wine', `${x.producer || ''} ${x.label || ''}`.trim(), `Wine · ${[x.vintage, x.region, x.location].filter(Boolean).join(' · ')}`, x.id));
+      (s.suggestions||[]).forEach(x => hit(x.title, x.body, x.source) && push('suggestions', 'bulb', x.title, `Suggestion · ${x.priority || ''}${x.done ? ' · done' : ''}`, x.id));
+      (s.ids||[]).forEach(x => hit(x.service, x.username, x.category, ...(x.fields||[]).flat()) && push('ids', 'idcard', x.service, `IDs & Logins · ${x.category}`, x.id));
       (s.dafValues||[]).length && hit('daf', 'charitable', 'gift fund', 'donor') && push('portfolio', 'chart', 'Charitable DAF', 'Portfolio · Charitable DAF tab');
       // portfolio: accounts + holdings + outside items
       PORTFOLIO_DATA.accounts.forEach(a => hit(a.name, a.accountNum, a.taxType) && push('portfolio', 'chart', a.name, `Portfolio · ${fmtMoneyK(a.value)}`));
@@ -1731,8 +1746,15 @@
       EDUCATION_529.accounts.forEach(a => hit(a.child, a.fund, '529', 'college') && push('portfolio', 'chart', `${a.child} 529 — ${a.fund}`, 'Portfolio · 529 tab'));
       EQUITY_COMP.grants.forEach(g => hit('anthropic', g.id, g.type, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Anthropic ${g.type} · ${g.id}`, 'Portfolio · Anthropic Equity tab'));
       MERCURY_EQUITY.grants.forEach(g => hit('mercury', 'amanda', 'carta', g.id, g.type, g.subtype, 'equity', 'options', 'rsu') && push('portfolio', 'chart', `Mercury ${g.type} · ${g.id}`, 'Portfolio · Amanda — Mercury Equity tab'));
+      // Key on the record id where there is one: view+title alone hid a record whenever
+      // two of them rendered the same heading (two subscriptions called "Google", say).
       const seen = new Set();
-      return out.filter(r => { const k = r.view + '|' + r.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 20);
+      return out.filter(r => {
+        const k = r.view + '|' + (r.id || r.title);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      }).slice(0, 25);
     };
 
     /* ---------- command palette (⌘K) — search and jump from any view ----------
@@ -1788,11 +1810,13 @@
         else if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, flat.length - 1)); }
         else if (e.key === 'ArrowUp')   { e.preventDefault(); setSel(s => Math.max(s - 1, 0)); }
         else if (e.key === 'Enter')     { e.preventDefault(); if (active) active.run(); }
+        else if (e.key === 'Tab')       { e.preventDefault(); if (inputRef.current) inputRef.current.focus(); }
       };
 
       let idx = -1;
       return (
-        <div className="fixed inset-0 z-[60] modal-backdrop flex items-start justify-center px-3 pt-[8vh] md:pt-[12vh]" onClick={onClose}>
+        <div className="fixed inset-0 z-[60] modal-backdrop flex items-start justify-center px-3 pt-[8vh] md:pt-[12vh]"
+             onClick={onClose} onKeyDown={onKey}>
           <div className="modal-shell w-full max-w-xl anim-in overflow-hidden flex flex-col max-h-[76vh]" onClick={e=>e.stopPropagation()}
                role="dialog" aria-modal="true" aria-label="Search Home HQ">
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-ink-600 shrink-0">
@@ -1800,16 +1824,16 @@
               <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} onKeyDown={onKey}
                 placeholder="Search everything, or jump to a section…"
                 aria-label="Search Home HQ"
-                className="bare-input flex-1 outline-none text-[15px] text-ink-100 placeholder-ink-500" />
+                className="bare-input flex-1 outline-none text-[15px] text-ink-100 placeholder-ink-400" />
               {q && <button onClick={()=>{ setQ(''); inputRef.current && inputRef.current.focus(); }} aria-label="Clear search"
-                className="text-ink-500 hover:text-ink-200 shrink-0"><Icon name="x" size={15}/></button>}
+                className="text-ink-400 hover:text-ink-200 shrink-0"><Icon name="x" size={15}/></button>}
             </div>
             <div className="overflow-y-auto p-2 flex-1">
               {flat.length === 0 ? (
                 <div className="text-ink-400 text-sm px-3 py-6 text-center">No matches for “{q}”.</div>
               ) : groups.map(g => (
                 <div key={g.label} className="mb-1">
-                  <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.16em] text-ink-500">{g.label}</div>
+                  <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">{g.label}</div>
                   {g.items.map(it => {
                     idx += 1;
                     const on = idx === Math.min(sel, flat.length - 1);
@@ -1826,7 +1850,7 @@
                 </div>
               ))}
             </div>
-            <div className="px-4 py-2.5 border-t border-ink-600 text-[10px] text-ink-500 flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2.5 border-t border-ink-600 text-[10px] text-ink-400 flex items-center gap-3 shrink-0">
               <span><kbd className="text-ink-300">↑↓</kbd> navigate</span>
               <span><kbd className="text-ink-300">↵</kbd> open</span>
               <span><kbd className="text-ink-300">esc</kbd> close</span>
@@ -1845,7 +1869,7 @@
         <button onClick={ctx.openPalette}
           className="w-full flex items-center gap-2.5 card px-4 py-3 text-left hover:border-gold-400/40 transition group">
           <Icon name="search" size={16} className="text-ink-400 shrink-0 group-hover:text-gold-400 transition" />
-          <span className="flex-1 text-sm text-ink-500 truncate">Search everything — vendors, policies, holdings, subscriptions, wine…</span>
+          <span className="flex-1 text-sm text-ink-400 truncate">Search everything — vendors, policies, holdings, subscriptions, wine…</span>
           <kbd className="hidden md:inline text-[10px] text-ink-400 border border-ink-600 rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
         </button>
       );
@@ -2077,7 +2101,7 @@
                     <button key={c.id} onClick={()=>setView('subscriptions')}
                       className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-ink-800 text-left transition">
                       <span className="text-sm text-ink-200 truncate flex-1">{c.title}</span>
-                      <span className="text-[11px] text-ink-500 tabular-nums shrink-0">{fmtDate(c.when, {month:'short', day:'numeric'})}</span>
+                      <span className="text-[11px] text-ink-400 tabular-nums shrink-0">{fmtDate(c.when, {month:'short', day:'numeric'})}</span>
                       <span className="text-xs text-ink-100 tabular-nums shrink-0 w-16 text-right">{c.amount ? fmtMoney(c.amount) : '—'}</span>
                     </button>
                   ))}
@@ -2166,7 +2190,7 @@
                       </div>
                       <div className="text-ink-300 text-xs mt-1.5 leading-relaxed">{g.why}</div>
                     </div>
-                    <Icon name="chevR" size={14} className="text-ink-500 mt-1 opacity-0 group-hover:opacity-100 transition" />
+                    <Icon name="chevR" size={14} className="text-ink-400 mt-1 opacity-0 group-hover:opacity-100 transition" />
                   </button>
                 ))}
               </div>
@@ -2635,8 +2659,8 @@ const PriceSettingsModal = ({ priceState, onClose }) => {
         <p className="text-ink-300 text-sm leading-relaxed mb-4">
           Fetches real-time stock + ETF prices from <a href="https://finnhub.io/register" target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 underline">Finnhub</a> (free tier — 60 calls/min, no credit card). Mutual funds and money-market funds stay at the snapshot value. The API key only ever lives in your browser's localStorage — nothing is sent anywhere except Finnhub.
         </p>
-        <label className="text-[11px] uppercase tracking-wider text-ink-400">Finnhub API key</label>
-        <input
+        <label htmlFor="hq-f1" className="text-[11px] uppercase tracking-wider text-ink-400">Finnhub API key</label>
+        <input id="hq-f1"
           type="text"
           autoFocus
           value={draft}
@@ -2685,8 +2709,8 @@ const BoxSettingsModal = ({ onClose, onSaved, kindHighlight }) => {
   const expired = initial.token && initial.expired;
   const folderRow = (key, label, hint) => (
     <div className={`flex items-center gap-2 ${kindHighlight === key ? 'p-2 -mx-2 rounded-lg bg-gold-400/8' : ''}`}>
-      <label className="w-28 text-[11px] uppercase tracking-wider text-ink-400">{label}</label>
-      <input type="text" value={folders[key] || ''}
+      <label htmlFor={`hq-box-${key}`} className="w-28 text-[11px] uppercase tracking-wider text-ink-400">{label}</label>
+      <input id={`hq-box-${key}`} type="text" value={folders[key] || ''}
         onChange={e => update(key, e.target.value)}
         placeholder={hint || '(falls back to Inbox)'}
         className="flex-1 px-2.5 py-1.5 rounded-lg bg-ink-800 border border-ink-600 text-ink-100 text-xs font-mono focus:outline-none focus:border-gold-500/50"/>
@@ -2707,11 +2731,11 @@ const BoxSettingsModal = ({ onClose, onSaved, kindHighlight }) => {
           Lets you snap a photo on mobile (or upload from desktop) and post it straight into Box. The token only ever lives in this browser's localStorage — it's sent only to Box.
         </p>
 
-        <label className="text-[11px] uppercase tracking-wider text-ink-400">
+        <label htmlFor="hq-f2" className="text-[11px] uppercase tracking-wider text-ink-400">
           Box developer token
           {expired && <span className="ml-2 text-ember-400 normal-case tracking-normal">(expired — paste a fresh one)</span>}
         </label>
-        <input type="text" autoFocus value={token} onChange={e => setToken(e.target.value)}
+        <input id="hq-f2" type="text" autoFocus value={token} onChange={e => setToken(e.target.value)}
           placeholder="paste 60-min dev token"
           className="w-full mt-1 px-3 py-2 rounded-xl bg-ink-800 border border-ink-600 text-ink-100 text-sm font-mono focus:outline-none focus:border-gold-500/50"/>
         <div className="text-[11px] text-ink-400 mt-2">
@@ -3101,7 +3125,7 @@ const PortfolioView = () => {
         <div className="card p-4 md:p-5 lg:col-span-2">
           <SectionHeader title="Suggestions" hint="Prepopulated from the 7/31/26 statement — check off as done, or add your own. Also lives in the top bar under Suggestions." />
           <SuggestionsPanel />
-          <div className="text-[10px] text-ink-500 mt-4 pt-3 border-t border-ink-700 leading-relaxed">
+          <div className="text-[10px] text-ink-400 mt-4 pt-3 border-t border-ink-700 leading-relaxed">
             Not tax or investment advice. Run high-priority items past your Merrill advisor / CPA before executing. Estimates based on the July 31, 2026 statement.
           </div>
         </div>
@@ -3386,7 +3410,7 @@ const PortfolioView = () => {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-ink-100 tabular-nums font-medium">{g.qty.toLocaleString()}</div>
-                  <div className="text-[10px] text-ink-500 group-hover/eq:text-gold-300 transition">doc ↗</div>
+                  <div className="text-[10px] text-ink-400 group-hover/eq:text-gold-300 transition">doc ↗</div>
                 </div>
               </a>
             ))}
@@ -3416,7 +3440,7 @@ const PortfolioView = () => {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-ink-100 tabular-nums font-medium">{g.granted.toLocaleString()}</div>
-                    <div className="text-[10px] text-ink-500">{g.pct.toFixed(0)}% vested</div>
+                    <div className="text-[10px] text-ink-400">{g.pct.toFixed(0)}% vested</div>
                   </div>
                 </div>
               </div>
@@ -3473,13 +3497,13 @@ const DafPanel = () => {
           action={<a href="https://bofa.donorfirst.org" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> DAF login</a>} />
         <div className="flex flex-wrap items-end gap-2 mb-4">
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">New balance</label>
-            <input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter') submit(); }} placeholder="$54,000"
-              className="w-32 bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-500 focus:border-gold-400/50 outline-none" />
+            <label htmlFor="hq-f3" className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">New balance</label>
+            <input id="hq-f3" value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter') submit(); }} placeholder="$54,000"
+              className="w-32 bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none" />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">Date</label>
-            <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+            <label htmlFor="hq-f4" className="block text-[10px] uppercase tracking-wider text-ink-400 mb-1">Date</label>
+            <input id="hq-f4" type="date" value={date} onChange={e=>setDate(e.target.value)}
               className="bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 focus:border-gold-400/50 outline-none" />
           </div>
           <button onClick={submit} className="px-3.5 py-2 rounded-full btn-primary text-[12px] font-medium">Log balance</button>
@@ -3493,9 +3517,9 @@ const DafPanel = () => {
                 <span className="text-ink-400 text-[11px] w-24 shrink-0 tabular-nums">{e.date}</span>
                 <span className="text-ink-100 tabular-nums">{fmtMoney(e.value)}</span>
                 {d != null && <span className={`text-[11px] tabular-nums ${d >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>{d >= 0 ? '+' : ''}{fmtMoneyK(d)}</span>}
-                <span className="text-ink-500 text-[11px] flex-1 truncate">{e.note || ''}</span>
+                <span className="text-ink-400 text-[11px] flex-1 truncate">{e.note || ''}</span>
                 <button onClick={() => { if (window.confirm('Delete this entry?')) ctx.deleteDafValue(e.id); }}
-                  className="opacity-0 group-hover/daf:opacity-100 transition text-ink-500 hover:text-ember-400 p-1"><Icon name="x" size={12}/></button>
+                  className="opacity-0 group-hover/daf:opacity-100 transition text-ink-400 hover:text-ember-400 p-1"><Icon name="x" size={12}/></button>
               </div>
             );
           })}
@@ -3529,7 +3553,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                 <div className="text-sm font-medium text-ink-200">{r.name}</div>
                 <div className="text-[11px] text-ink-400 mt-0.5">{r.sub}</div>
               </div>
-              <div className="text-ink-500 text-xs shrink-0">balance needed · log in ↗</div>
+              <div className="text-ink-400 text-xs shrink-0">balance needed · log in ↗</div>
             </a>
           ))}
         </div>
@@ -3556,7 +3580,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                   <div className={`text-sm font-medium ${a.value == null ? 'text-ink-300' : 'text-ink-100'}`}>{a.name}</div>
                   <div className="text-[11px] text-ink-400 mt-0.5">#{a.acct}{a.apy != null ? ` · ${a.apy.toFixed(2)}% APY · $${a.intYtd.toFixed(2)} interest YTD` : ''}</div>
                 </div>
-                <div className={`tabular-nums font-medium ${a.value == null ? 'text-ink-500 text-xs' : 'text-ink-100'}`}>{a.value == null ? 'statement needed' : fmtMoney(a.value)}</div>
+                <div className={`tabular-nums font-medium ${a.value == null ? 'text-ink-400 text-xs' : 'text-ink-100'}`}>{a.value == null ? 'statement needed' : fmtMoney(a.value)}</div>
               </a>
             ))}
           </div>
@@ -3632,7 +3656,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                   <tr key={m.source} className={`border-b border-ink-700/60 ${m.source === ref.source ? 'text-ink-100' : 'text-ink-300'}`}>
                     <td className="py-2 pr-2">
                       {m.source}
-                      {m.kind === 'preferred' && <span className="text-ink-500 text-[10px]"> · preferred</span>}
+                      {m.kind === 'preferred' && <span className="text-ink-400 text-[10px]"> · preferred</span>}
                       {m.source === ref.source && <span className="text-gold-400 text-[10px]"> · reference</span>}
                     </td>
                     <td className="py-2 pr-2 tabular-nums text-ink-400 hidden md:table-cell">{fmtDate(m.asOf)}</td>
@@ -3674,7 +3698,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                     </div>
                     <div className="shrink-0 text-right">
                       <Pill tone="soon">{g.delta > 0 ? '+' : ''}{g.delta.toLocaleString()} sh{tranche}</Pill>
-                      <div className="text-[10px] text-ink-500 mt-1">{g.delta > 0 ? 'Carta ahead' : 'Carta behind'}</div>
+                      <div className="text-[10px] text-ink-400 mt-1">{g.delta > 0 ? 'Carta ahead' : 'Carta behind'}</div>
                     </div>
                   </div>
                 );
@@ -3705,10 +3729,10 @@ const OutsideMerrillPanel = ({ scope }) => {
                     <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
                     <div className="text-[11px] mt-1.5">
                       <span className="text-sage-400">Vested {g.vested.toLocaleString()}</span>
-                      <span className="text-ink-500"> — </span>
+                      <span className="text-ink-400"> — </span>
                       <span className="text-ink-300">Unvested {g.unvested.toLocaleString()}</span>
-                      {g.strike != null && <span className="text-ink-500"> · ${g.strike.toFixed(2)}/sh strike · {fmtMoney(g.vestedExerciseCost)} to exercise what’s vested</span>}
-                      {ref.value.byId[g.id] && <span className="text-ink-500"> · ~{fmtMoneyK(ref.value.byId[g.id].vestedValue)} vested at the {ref.source} mark (indicative)</span>}
+                      {g.strike != null && <span className="text-ink-400"> · ${g.strike.toFixed(2)}/sh strike · {fmtMoney(g.vestedExerciseCost)} to exercise what’s vested</span>}
+                      {ref.value.byId[g.id] && <span className="text-ink-400"> · ~{fmtMoneyK(ref.value.byId[g.id].vestedValue)} vested at the {ref.source} mark (indicative)</span>}
                     </div>
                     <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
                       <div style={{width: g.pct + '%'}} className="bg-sage-400"/>
@@ -3726,7 +3750,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-ink-100 tabular-nums font-medium">{g.vested.toLocaleString()}</div>
-                    <div className="text-[10px] text-ink-500">vested · {g.pct.toFixed(0)}%</div>
+                    <div className="text-[10px] text-ink-400">vested · {g.pct.toFixed(0)}%</div>
                   </div>
                 </div>
               </div>
@@ -3760,7 +3784,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                     <div key={t.date} className="rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2.5">
                       <div className="text-[11px] text-ink-400">{fmtDate(t.date)}</div>
                       <div className="text-ink-100 tabular-nums text-sm font-medium mt-0.5">+{t.shares.toLocaleString()} sh</div>
-                      <div className="text-[10px] text-ink-500 tabular-nums mt-0.5">{t.cumulative.toLocaleString()} cumulative</div>
+                      <div className="text-[10px] text-ink-400 tabular-nums mt-0.5">{t.cumulative.toLocaleString()} cumulative</div>
                     </div>
                   ))}
                 </div>
@@ -3801,9 +3825,9 @@ const OutsideMerrillPanel = ({ scope }) => {
                   <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">{g.detail}</div>
                   <div className="text-[11px] mt-1.5">
                     <span className="text-sage-400">Vested {g.vestedQty.toLocaleString()} · {fmtMoneyK(g.vestedValue)}</span>
-                    <span className="text-ink-500"> — </span>
+                    <span className="text-ink-400"> — </span>
                     <span className="text-ink-300">Unvested {g.unvestedQty.toLocaleString()} · {fmtMoneyK(g.unvestedValue)}</span>
-                    {g.kind === 'option' && <span className="text-ink-500"> · net of ${g.strike.toFixed(2)}/sh exercise ({fmtMoneyK(g.qty * g.strike)} total to exercise)</span>}
+                    {g.kind === 'option' && <span className="text-ink-400"> · net of ${g.strike.toFixed(2)}/sh exercise ({fmtMoneyK(g.qty * g.strike)} total to exercise)</span>}
                   </div>
                   <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
                     <div style={{width: (g.qty ? g.vestedQty/g.qty*100 : 0) + '%'}} className="bg-sage-400"/>
@@ -3811,7 +3835,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-ink-100 tabular-nums font-medium">{fmtMoneyK(g.vestedValue + g.unvestedValue)}</div>
-                  <div className="text-[10px] text-ink-500 group-hover/eq:text-gold-300 transition">doc ↗</div>
+                  <div className="text-[10px] text-ink-400 group-hover/eq:text-gold-300 transition">doc ↗</div>
                 </div>
               </a>
             ))}
@@ -3895,12 +3919,12 @@ const SuggestionRow = ({ s, accent }) => {
         </button>
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-medium ${s.done ? 'text-ink-400 line-through' : 'text-ink-100'}`}>{s.title}</div>
-          {s.body && <div className={`text-[12px] mt-1 leading-relaxed ${s.done ? 'text-ink-500' : 'text-ink-300'}`}>{s.body}</div>}
-          {s.source && <div className="text-[10px] text-ink-500 mt-1">{s.source}</div>}
+          {s.body && <div className={`text-[12px] mt-1 leading-relaxed ${s.done ? 'text-ink-400' : 'text-ink-300'}`}>{s.body}</div>}
+          {s.source && <div className="text-[10px] text-ink-400 mt-1">{s.source}</div>}
         </div>
         <button onClick={() => { if (window.confirm('Delete this suggestion?')) ctx.deleteSuggestion(s.id); }}
           aria-label="Delete suggestion"
-          className="shrink-0 opacity-0 group-hover/sg:opacity-100 transition text-ink-500 hover:text-ember-400 p-1">
+          className="shrink-0 opacity-0 group-hover/sg:opacity-100 transition text-ink-400 hover:text-ember-400 p-1">
           <Icon name="x" size={13} />
         </button>
       </div>
@@ -3924,10 +3948,10 @@ const SuggestionAddForm = ({ onClose }) => {
       <input autoFocus value={title} onChange={e=>setTitle(e.target.value)}
         onKeyDown={e=>{ if (e.key==='Enter') submit(); if (e.key==='Escape') onClose(); }}
         placeholder="What should get done?"
-        className="w-full bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-500 focus:border-gold-400/50 outline-none" />
+        className="w-full bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none" />
       <textarea value={body} onChange={e=>setBody(e.target.value)} rows={2}
         placeholder="Details (optional)"
-        className="w-full bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-[13px] text-ink-100 placeholder-ink-500 focus:border-gold-400/50 outline-none resize-none" />
+        className="w-full bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-[13px] text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none resize-none" />
       <div className="flex items-center justify-between gap-2">
         <div className="inline-flex p-0.5 rounded-full bg-ink-900 border border-ink-600">
           {SUGGESTION_TIERS.map(t => (
@@ -4001,7 +4025,7 @@ const SuggestionsView = () => {
       <div className="card p-4 md:p-5">
         <SuggestionsPanel />
       </div>
-      <div className="text-[10px] text-ink-500 leading-relaxed">
+      <div className="text-[10px] text-ink-400 leading-relaxed">
         Not tax or investment advice. Run high-priority items past your Merrill advisor / CPA before executing.
       </div>
     </div>
@@ -4142,7 +4166,7 @@ const PortfolioWidget = ({ onOpen }) => {
                             {l.sub && <div className="text-ink-400 text-xs mt-0.5 truncate">{l.sub}</div>}
                             <div className="text-ink-400 text-[11px] mt-1">
                               <span className="uppercase tracking-wider">{KIND_LABELS[l.kind]||l.kind}</span> · {when}
-                              {l.originalDue && <span className="text-ink-500"> · was due {fmtDate(l.originalDue,{month:'short',day:'numeric'})}</span>}
+                              {l.originalDue && <span className="text-ink-400"> · was due {fmtDate(l.originalDue,{month:'short',day:'numeric'})}</span>}
                             </div>
                           </div>
                           <button onClick={() => ctx.undoDone(l.id)} title="Undo"
@@ -4170,13 +4194,13 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="text-[11px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
         <div className="flex items-baseline gap-2">
           <div className={`font-display text-3xl md:text-4xl tabular-nums ${
-            empty            ? 'text-ink-500'   :
+            empty            ? 'text-ink-400'   :
             tone==='overdue' ? 'text-ember-400' :
             tone==='soon'    ? 'text-gold-400'  :
             tone==='ok'      ? 'text-sage-400'  :
             'text-ink-100'
           }`}>{value}</div>
-          {hint && <div className={empty ? 'text-ink-500 text-xs' : 'text-ink-400 text-xs'}>{hint}</div>}
+          {hint && <div className={empty ? 'text-ink-400 text-xs' : 'text-ink-400 text-xs'}>{hint}</div>}
         </div>
         </>
       );
@@ -4267,8 +4291,8 @@ const PortfolioWidget = ({ onOpen }) => {
         <>
           <ModalHeader title="One-time setup" subtitle="Enter the household password so this device can read the updates feed." onClose={onClose} />
           <div className="p-5 md:p-6">
-            <label>Household password</label>
-            <input type="password" autoFocus value={pw} onChange={e=>setPw(e.target.value)}
+            <label htmlFor="hq-f5">Household password</label>
+            <input id="hq-f5" type="password" autoFocus value={pw} onChange={e=>setPw(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && pw) onSubmit(pw); }} placeholder="Password" />
             <div className="text-ink-400 text-xs mt-3 leading-relaxed">Saved on this device only — you won't be asked again.</div>
           </div>
@@ -4472,19 +4496,19 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew?'Add vendor':'Edit vendor'} subtitle={isNew?'Takes about 30 seconds.':v.company} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Service type</label><input value={v.serviceType} onChange={e=>setField('serviceType',e.target.value)} placeholder="e.g. House Cleaner"/></div>
-              <div><label>Company</label><input value={v.company} onChange={e=>setField('company',e.target.value)} placeholder="Castillo Cleaning"/></div>
+              <div><label htmlFor="hq-f6">Service type</label><input id="hq-f6" value={v.serviceType} onChange={e=>setField('serviceType',e.target.value)} placeholder="e.g. House Cleaner"/></div>
+              <div><label htmlFor="hq-f7">Company</label><input id="hq-f7" value={v.company} onChange={e=>setField('company',e.target.value)} placeholder="Castillo Cleaning"/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Contact name</label><input value={v.name} onChange={e=>setField('name',e.target.value)} placeholder="Maria Castillo"/></div>
-              <div><label>Rate</label><input value={v.rate} onChange={e=>setField('rate',e.target.value)} placeholder="$220 / visit"/></div>
+              <div><label htmlFor="hq-f8">Contact name</label><input id="hq-f8" value={v.name} onChange={e=>setField('name',e.target.value)} placeholder="Maria Castillo"/></div>
+              <div><label htmlFor="hq-f9">Rate</label><input id="hq-f9" value={v.rate} onChange={e=>setField('rate',e.target.value)} placeholder="$220 / visit"/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Phone</label><input type="tel" inputMode="tel" value={v.phone} onChange={e=>setField('phone',e.target.value)} placeholder="+1 415 555 0000"/></div>
-              <div><label>Email</label><input type="email" inputMode="email" value={v.email} onChange={e=>setField('email',e.target.value)} placeholder="email@…"/></div>
+              <div><label htmlFor="hq-f10">Phone</label><input id="hq-f10" type="tel" inputMode="tel" value={v.phone} onChange={e=>setField('phone',e.target.value)} placeholder="+1 415 555 0000"/></div>
+              <div><label htmlFor="hq-f11">Email</label><input id="hq-f11" type="email" inputMode="email" value={v.email} onChange={e=>setField('email',e.target.value)} placeholder="email@…"/></div>
             </div>
-            <div><label>Property</label>
-              <select value={v.property||''} onChange={e=>setField('property', e.target.value)}>
+            <div><label htmlFor="hq-f12">Property</label>
+              <select id="hq-f12" value={v.property||''} onChange={e=>setField('property', e.target.value)}>
                 <option value="">Both / unassigned</option>
                 <option value="1619 Seattle">1619 Seattle</option>
                 <option value="4322 Sun Valley">4322 Sun Valley</option>
@@ -4492,22 +4516,23 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
             <div className="card-soft p-3.5">
               <div className="flex items-center justify-between">
-                <label className="!mb-0">Recurring schedule</label>
-                <button type="button" onClick={()=>setV(prev => ({...prev, schedule: {...prev.schedule, recurring: !prev.schedule.recurring, freq: prev.schedule.freq || {count:1, unit:'months'}}}))}
+                <label className="!mb-0" id="hq-sched-label">Recurring schedule</label>
+                <button type="button" role="switch" aria-checked={!!v.schedule.recurring} aria-labelledby="hq-sched-label"
+                  onClick={()=>setV(prev => ({...prev, schedule: {...prev.schedule, recurring: !prev.schedule.recurring, freq: prev.schedule.freq || {count:1, unit:'months'}}}))}
                   className={`w-11 h-6 rounded-full relative transition ${v.schedule.recurring?'bg-gold-500':'bg-ink-600'}`}>
                   <span className={`absolute top-0.5 ${v.schedule.recurring?'left-[1.4rem]':'left-0.5'} w-5 h-5 rounded-full bg-ink-100 transition-all`}></span>
                 </button>
               </div>
               {v.schedule.recurring && (
                 <div className="grid grid-cols-3 gap-2 mt-3">
-                  <div><label>Every</label><input type="number" min="1" value={v.schedule.freq?.count || 1} onChange={e=>setFreq('count', Math.max(1, +e.target.value))}/></div>
-                  <div><label>Unit</label>
-                    <select value={v.schedule.freq?.unit || 'months'} onChange={e=>setFreq('unit', e.target.value)}>
+                  <div><label htmlFor="hq-f13">Every</label><input id="hq-f13" type="number" min="1" value={v.schedule.freq?.count || 1} onChange={e=>setFreq('count', Math.max(1, +e.target.value))}/></div>
+                  <div><label htmlFor="hq-f14">Unit</label>
+                    <select id="hq-f14" value={v.schedule.freq?.unit || 'months'} onChange={e=>setFreq('unit', e.target.value)}>
                       <option value="days">days</option><option value="weeks">weeks</option><option value="months">months</option><option value="years">years</option>
                     </select>
                   </div>
-                  <div><label>Day (opt.)</label>
-                    <select value={v.schedule.dayOfWeek} onChange={e=>setSched('dayOfWeek', e.target.value)}>
+                  <div><label htmlFor="hq-f15">Day (opt.)</label>
+                    <select id="hq-f15" value={v.schedule.dayOfWeek} onChange={e=>setSched('dayOfWeek', e.target.value)}>
                       <option value="">—</option>
                       {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=><option key={d} value={d}>{d}</option>)}
                     </select>
@@ -4516,10 +4541,10 @@ const PortfolioWidget = ({ onOpen }) => {
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Last visit</label><input type="date" value={v.lastVisit||''} onChange={e=>setField('lastVisit', e.target.value)}/></div>
-              <div><label>Next visit</label><input type="date" value={v.nextVisit||''} onChange={e=>setField('nextVisit', e.target.value)}/></div>
+              <div><label htmlFor="hq-f16">Last visit</label><input id="hq-f16" type="date" value={v.lastVisit||''} onChange={e=>setField('lastVisit', e.target.value)}/></div>
+              <div><label htmlFor="hq-f17">Next visit</label><input id="hq-f17" type="date" value={v.nextVisit||''} onChange={e=>setField('nextVisit', e.target.value)}/></div>
             </div>
-            <div><label>Notes</label><textarea rows="3" value={v.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Gate code, key location, what they're great/bad at…"/></div>
+            <div><label htmlFor="hq-f18">Notes</label><textarea id="hq-f18" rows="3" value={v.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Gate code, key location, what they're great/bad at…"/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -4668,35 +4693,35 @@ const PortfolioWidget = ({ onOpen }) => {
         <>
           <ModalHeader title={isNew?'Add maintenance task':'Edit task'} subtitle={isNew?'Recurring big-ticket items.':t.name} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
-            <div><label>Task name</label><input value={t.name} onChange={e=>setField('name', e.target.value)} placeholder="e.g. Gutter cleaning"/></div>
+            <div><label htmlFor="hq-f19">Task name</label><input id="hq-f19" value={t.name} onChange={e=>setField('name', e.target.value)} placeholder="e.g. Gutter cleaning"/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Every</label><input type="number" min="1" value={t.freq.count} onChange={e=>setFreq('count', Math.max(1, +e.target.value))}/></div>
-              <div><label>Unit</label>
-                <select value={t.freq.unit} onChange={e=>setFreq('unit', e.target.value)}>
+              <div><label htmlFor="hq-f20">Every</label><input id="hq-f20" type="number" min="1" value={t.freq.count} onChange={e=>setFreq('count', Math.max(1, +e.target.value))}/></div>
+              <div><label htmlFor="hq-f21">Unit</label>
+                <select id="hq-f21" value={t.freq.unit} onChange={e=>setFreq('unit', e.target.value)}>
                   <option value="days">days</option><option value="weeks">weeks</option><option value="months">months</option><option value="years">years</option>
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Last completed</label><input type="date" value={t.lastCompleted||''} onChange={e=>setField('lastCompleted', e.target.value)}/></div>
-              <div><label>Est. cost ($)</label><input type="number" min="0" value={t.estimatedCost||0} onChange={e=>setField('estimatedCost', +e.target.value)}/></div>
+              <div><label htmlFor="hq-f22">Last completed</label><input id="hq-f22" type="date" value={t.lastCompleted||''} onChange={e=>setField('lastCompleted', e.target.value)}/></div>
+              <div><label htmlFor="hq-f23">Est. cost ($)</label><input id="hq-f23" type="number" min="0" value={t.estimatedCost||0} onChange={e=>setField('estimatedCost', +e.target.value)}/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Preferred vendor</label>
-                <select value={t.vendorHint||''} onChange={e=>setField('vendorHint', e.target.value)}>
+              <div><label htmlFor="hq-f24">Preferred vendor</label>
+                <select id="hq-f24" value={t.vendorHint||''} onChange={e=>setField('vendorHint', e.target.value)}>
                   <option value="">— none —</option>
                   {vendors.map(v => <option key={v.id} value={v.company}>{v.company} · {v.serviceType}</option>)}
                 </select>
               </div>
-              <div><label>Property</label>
-                <select value={t.property||''} onChange={e=>setField('property', e.target.value)}>
+              <div><label htmlFor="hq-f25">Property</label>
+                <select id="hq-f25" value={t.property||''} onChange={e=>setField('property', e.target.value)}>
                   <option value="">Both / unassigned</option>
                   <option value="1619 Seattle">1619 Seattle</option>
                   <option value="4322 Sun Valley">4322 Sun Valley</option>
                 </select>
               </div>
             </div>
-            <div><label>Notes</label><textarea rows="3" value={t.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Anything specific (paint code, sealant brand, prep, etc.)"/></div>
+            <div><label htmlFor="hq-f26">Notes</label><textarea id="hq-f26" rows="3" value={t.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Anything specific (paint code, sealant brand, prep, etc.)"/></div>
             {!isNew && (
               <div className="card-soft p-3 flex items-center justify-between">
                 <div className="text-ink-300 text-xs">Next due: <span className="text-ink-100">{fmtDate(maintenanceNextDue(t))}</span></div>
@@ -4754,7 +4779,7 @@ const PortfolioWidget = ({ onOpen }) => {
                 </div>
                 <div className="flex-1 min-h-[2rem] border-l border-dashed border-ink-600 pl-4 py-1">
                   {buckets[i].length === 0 ? (
-                    <div className="text-ink-500 text-xs italic">—</div>
+                    <div className="text-ink-400 text-xs italic">—</div>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
                       {buckets[i].map(t => {
@@ -4912,30 +4937,30 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew?'Add appliance':'Edit appliance'} subtitle={isNew?'Capture the basics — fill in the rest later.':a.name} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Name</label><input value={a.name} onChange={e=>setField('name', e.target.value)} placeholder="Refrigerator"/></div>
-              <div><label>Room / location</label><input value={a.room} onChange={e=>setField('room', e.target.value)} placeholder="Kitchen — 1619"/></div>
+              <div><label htmlFor="hq-f27">Name</label><input id="hq-f27" value={a.name} onChange={e=>setField('name', e.target.value)} placeholder="Refrigerator"/></div>
+              <div><label htmlFor="hq-f28">Room / location</label><input id="hq-f28" value={a.room} onChange={e=>setField('room', e.target.value)} placeholder="Kitchen — 1619"/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Brand</label><input value={a.brand} onChange={e=>setField('brand', e.target.value)} placeholder="Samsung"/></div>
-              <div><label>Model</label><input value={a.model} onChange={e=>setField('model', e.target.value)} placeholder="RS28A500ASR/AA"/></div>
+              <div><label htmlFor="hq-f29">Brand</label><input id="hq-f29" value={a.brand} onChange={e=>setField('brand', e.target.value)} placeholder="Samsung"/></div>
+              <div><label htmlFor="hq-f30">Model</label><input id="hq-f30" value={a.model} onChange={e=>setField('model', e.target.value)} placeholder="RS28A500ASR/AA"/></div>
             </div>
-            <div><label>Serial</label><input value={a.serial} onChange={e=>setField('serial', e.target.value)} placeholder=""/></div>
+            <div><label htmlFor="hq-f31">Serial</label><input id="hq-f31" value={a.serial} onChange={e=>setField('serial', e.target.value)} placeholder=""/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Purchase date</label><input type="date" value={a.purchaseDate||''} onChange={e=>setField('purchaseDate', e.target.value)}/></div>
-              <div><label>Price ($)</label><input type="number" min="0" value={a.purchasePrice||0} onChange={e=>setField('purchasePrice', +e.target.value)}/></div>
+              <div><label htmlFor="hq-f32">Purchase date</label><input id="hq-f32" type="date" value={a.purchaseDate||''} onChange={e=>setField('purchaseDate', e.target.value)}/></div>
+              <div><label htmlFor="hq-f33">Price ($)</label><input id="hq-f33" type="number" min="0" value={a.purchasePrice||0} onChange={e=>setField('purchasePrice', +e.target.value)}/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Warranty expires</label><input type="date" value={a.warrantyExpires||''} onChange={e=>setField('warrantyExpires', e.target.value)}/></div>
-              <div><label>Manual URL</label><input value={a.manualUrl||''} onChange={e=>setField('manualUrl', e.target.value)} placeholder="https://…"/></div>
+              <div><label htmlFor="hq-f34">Warranty expires</label><input id="hq-f34" type="date" value={a.warrantyExpires||''} onChange={e=>setField('warrantyExpires', e.target.value)}/></div>
+              <div><label htmlFor="hq-f35">Manual URL</label><input id="hq-f35" value={a.manualUrl||''} onChange={e=>setField('manualUrl', e.target.value)} placeholder="https://…"/></div>
             </div>
-            <div><label>Property</label>
-              <select value={a.property||''} onChange={e=>setField('property', e.target.value)}>
+            <div><label htmlFor="hq-f36">Property</label>
+              <select id="hq-f36" value={a.property||''} onChange={e=>setField('property', e.target.value)}>
                 <option value="">Both / unassigned</option>
                 <option value="1619 Seattle">1619 Seattle</option>
                 <option value="4322 Sun Valley">4322 Sun Valley</option>
               </select>
             </div>
-            <div><label>Notes</label><textarea rows="3" value={a.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Service history, quirks, install context…"/></div>
+            <div><label htmlFor="hq-f37">Notes</label><textarea id="hq-f37" rows="3" value={a.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Service history, quirks, install context…"/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5031,34 +5056,34 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew?'Add policy':'Edit policy'} subtitle={isNew?'':v.carrier} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Type</label>
-                <select value={v.type} onChange={e=>setF('type', e.target.value)}>
+              <div><label htmlFor="hq-f38">Type</label>
+                <select id="hq-f38" value={v.type} onChange={e=>setF('type', e.target.value)}>
                   {INS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div><label>Property (optional)</label><input value={v.property||''} onChange={e=>setF('property', e.target.value)} placeholder="1619 Seattle"/></div>
+              <div><label htmlFor="hq-f39">Property (optional)</label><input id="hq-f39" value={v.property||''} onChange={e=>setF('property', e.target.value)} placeholder="1619 Seattle"/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Carrier</label><input value={v.carrier} onChange={e=>setF('carrier', e.target.value)}/></div>
-              <div><label>Policy #</label><input value={v.policyNumber||''} onChange={e=>setF('policyNumber', e.target.value)}/></div>
+              <div><label htmlFor="hq-f40">Carrier</label><input id="hq-f40" value={v.carrier} onChange={e=>setF('carrier', e.target.value)}/></div>
+              <div><label htmlFor="hq-f41">Policy #</label><input id="hq-f41" value={v.policyNumber||''} onChange={e=>setF('policyNumber', e.target.value)}/></div>
             </div>
-            <div><label>Coverage summary</label><input value={v.coverageSummary||''} onChange={e=>setF('coverageSummary', e.target.value)}/></div>
+            <div><label htmlFor="hq-f42">Coverage summary</label><input id="hq-f42" value={v.coverageSummary||''} onChange={e=>setF('coverageSummary', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Premium ($)</label><input type="number" min="0" value={v.premium||0} onChange={e=>setF('premium', +e.target.value)}/></div>
-              <div><label>Cadence</label>
-                <select value={v.premiumCadence||'annual'} onChange={e=>setF('premiumCadence', e.target.value)}>
+              <div><label htmlFor="hq-f43">Premium ($)</label><input id="hq-f43" type="number" min="0" value={v.premium||0} onChange={e=>setF('premium', +e.target.value)}/></div>
+              <div><label htmlFor="hq-f44">Cadence</label>
+                <select id="hq-f44" value={v.premiumCadence||'annual'} onChange={e=>setF('premiumCadence', e.target.value)}>
                   <option value="annual">annual</option><option value="semiannual">semi-annual</option><option value="monthly">monthly</option>
                 </select>
               </div>
             </div>
-            <div><label>Renewal date</label><input type="date" value={v.renewalDate||''} onChange={e=>setF('renewalDate', e.target.value)}/></div>
-            <div><label>Agent name</label><input value={v.agentName||''} onChange={e=>setF('agentName', e.target.value)}/></div>
+            <div><label htmlFor="hq-f45">Renewal date</label><input id="hq-f45" type="date" value={v.renewalDate||''} onChange={e=>setF('renewalDate', e.target.value)}/></div>
+            <div><label htmlFor="hq-f46">Agent name</label><input id="hq-f46" value={v.agentName||''} onChange={e=>setF('agentName', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Agent phone</label><input value={v.agentPhone||''} onChange={e=>setF('agentPhone', e.target.value)}/></div>
-              <div><label>Agent email</label><input value={v.agentEmail||''} onChange={e=>setF('agentEmail', e.target.value)}/></div>
+              <div><label htmlFor="hq-f47">Agent phone</label><input id="hq-f47" value={v.agentPhone||''} onChange={e=>setF('agentPhone', e.target.value)}/></div>
+              <div><label htmlFor="hq-f48">Agent email</label><input id="hq-f48" value={v.agentEmail||''} onChange={e=>setF('agentEmail', e.target.value)}/></div>
             </div>
-            <div><label>Document / portal URL</label><input value={v.documentUrl||''} onChange={e=>setF('documentUrl', e.target.value)}/></div>
-            <div><label>Notes</label><textarea rows="3" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            <div><label htmlFor="hq-f49">Document / portal URL</label><input id="hq-f49" value={v.documentUrl||''} onChange={e=>setF('documentUrl', e.target.value)}/></div>
+            <div><label htmlFor="hq-f50">Notes</label><textarea id="hq-f50" rows="3" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5147,21 +5172,21 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew?'Add utility':'Edit utility'} subtitle={isNew?'':v.provider} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Kind</label>
-                <select value={v.kind} onChange={e=>setF('kind', e.target.value)}>
+              <div><label htmlFor="hq-f51">Kind</label>
+                <select id="hq-f51" value={v.kind} onChange={e=>setF('kind', e.target.value)}>
                   {UTIL_KINDS.map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
-              <div><label>Property</label><input value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
+              <div><label htmlFor="hq-f52">Property</label><input id="hq-f52" value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
             </div>
-            <div><label>Provider</label><input value={v.provider} onChange={e=>setF('provider', e.target.value)}/></div>
+            <div><label htmlFor="hq-f53">Provider</label><input id="hq-f53" value={v.provider} onChange={e=>setF('provider', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Account #</label><input value={v.accountNumber||''} onChange={e=>setF('accountNumber', e.target.value)}/></div>
-              <div><label>Avg / mo ($)</label><input type="number" min="0" value={v.monthlyEstimate||0} onChange={e=>setF('monthlyEstimate', +e.target.value)}/></div>
+              <div><label htmlFor="hq-f54">Account #</label><input id="hq-f54" value={v.accountNumber||''} onChange={e=>setF('accountNumber', e.target.value)}/></div>
+              <div><label htmlFor="hq-f55">Avg / mo ($)</label><input id="hq-f55" type="number" min="0" value={v.monthlyEstimate||0} onChange={e=>setF('monthlyEstimate', +e.target.value)}/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Login URL</label><input value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
-              <div><label>Contact phone</label><input value={v.contactPhone||''} onChange={e=>setF('contactPhone', e.target.value)}/></div>
+              <div><label htmlFor="hq-f56">Login URL</label><input id="hq-f56" value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
+              <div><label htmlFor="hq-f57">Contact phone</label><input id="hq-f57" value={v.contactPhone||''} onChange={e=>setF('contactPhone', e.target.value)}/></div>
             </div>
             <div className="card-soft p-3.5 flex items-center justify-between">
               <label className="!mb-0">Autopay enabled</label>
@@ -5170,7 +5195,7 @@ const PortfolioWidget = ({ onOpen }) => {
                 <span className={`absolute top-0.5 ${v.autopay===true?'left-[1.4rem]':v.autopay===false?'left-3':'left-0.5'} w-5 h-5 rounded-full bg-ink-100 transition-all`}></span>
               </button>
             </div>
-            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            <div><label htmlFor="hq-f58">Notes</label><textarea id="hq-f58" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5257,30 +5282,30 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew?'Add property record':'Edit'} subtitle={isNew?'':v.label} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Kind</label>
-                <select value={v.kind} onChange={e=>setF('kind', e.target.value)}>
+              <div><label htmlFor="hq-f59">Kind</label>
+                <select id="hq-f59" value={v.kind} onChange={e=>setF('kind', e.target.value)}>
                   {PROP_KINDS.map(k => <option key={k} value={k}>{k.replace('_',' ')}</option>)}
                 </select>
               </div>
-              <div><label>Property (optional)</label><input value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
+              <div><label htmlFor="hq-f60">Property (optional)</label><input id="hq-f60" value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
             </div>
-            <div><label>Label</label><input value={v.label} onChange={e=>setF('label', e.target.value)}/></div>
-            <div><label>Contact</label><input value={v.contact||''} onChange={e=>setF('contact', e.target.value)}/></div>
+            <div><label htmlFor="hq-f61">Label</label><input id="hq-f61" value={v.label} onChange={e=>setF('label', e.target.value)}/></div>
+            <div><label htmlFor="hq-f62">Contact</label><input id="hq-f62" value={v.contact||''} onChange={e=>setF('contact', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Phone</label><input value={v.phone||''} onChange={e=>setF('phone', e.target.value)}/></div>
-              <div><label>Email</label><input value={v.email||''} onChange={e=>setF('email', e.target.value)}/></div>
+              <div><label htmlFor="hq-f63">Phone</label><input id="hq-f63" value={v.phone||''} onChange={e=>setF('phone', e.target.value)}/></div>
+              <div><label htmlFor="hq-f64">Email</label><input id="hq-f64" value={v.email||''} onChange={e=>setF('email', e.target.value)}/></div>
             </div>
-            <div><label>Portal URL</label><input value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
+            <div><label htmlFor="hq-f65">Portal URL</label><input id="hq-f65" value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
             <div className="grid grid-cols-3 gap-3">
-              <div><label>Amount ($)</label><input type="number" min="0" value={v.amount||0} onChange={e=>setF('amount', +e.target.value)}/></div>
-              <div><label>Cadence</label>
-                <select value={v.cadence||'monthly'} onChange={e=>setF('cadence', e.target.value)}>
+              <div><label htmlFor="hq-f66">Amount ($)</label><input id="hq-f66" type="number" min="0" value={v.amount||0} onChange={e=>setF('amount', +e.target.value)}/></div>
+              <div><label htmlFor="hq-f67">Cadence</label>
+                <select id="hq-f67" value={v.cadence||'monthly'} onChange={e=>setF('cadence', e.target.value)}>
                   <option value="monthly">monthly</option><option value="quarterly">quarterly</option><option value="annual">annual</option>
                 </select>
               </div>
-              <div><label>Next due</label><input type="date" value={v.nextDue||''} onChange={e=>setF('nextDue', e.target.value)}/></div>
+              <div><label htmlFor="hq-f68">Next due</label><input id="hq-f68" type="date" value={v.nextDue||''} onChange={e=>setF('nextDue', e.target.value)}/></div>
             </div>
-            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            <div><label htmlFor="hq-f69">Notes</label><textarea id="hq-f69" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5357,7 +5382,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {s.cost ? <Pill tone="muted">${s.cost} {s.cadence||''}</Pill> : null}
             {nextRenewal && <Pill tone={n<0?'overdue':n<=7?'soon':'info'} dot>{n<0?`Renewal passed ${fmtDate(nextRenewal)} — confirm`:`Renews ${fmtDate(nextRenewal)}`}</Pill>}
-            {rolled && <span className="text-[10px] text-ink-500">projected from {fmtDate(s.renewalDate)}</span>}
+            {rolled && <span className="text-[10px] text-ink-400">projected from {fmtDate(s.renewalDate)}</span>}
           </div>
           {s.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{s.notes}</div>}
           {s.url && (
@@ -5381,25 +5406,25 @@ const PortfolioWidget = ({ onOpen }) => {
         <>
           <ModalHeader title={isNew?'Add subscription':'Edit'} subtitle={isNew?'':v.name} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
-            <div><label>Name</label><input value={v.name} onChange={e=>setF('name', e.target.value)}/></div>
+            <div><label htmlFor="hq-f70">Name</label><input id="hq-f70" value={v.name} onChange={e=>setF('name', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Category</label>
-                <select value={v.category} onChange={e=>setF('category', e.target.value)}>
+              <div><label htmlFor="hq-f71">Category</label>
+                <select id="hq-f71" value={v.category} onChange={e=>setF('category', e.target.value)}>
                   {SUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div><label>Cadence</label>
-                <select value={v.cadence||'monthly'} onChange={e=>setF('cadence', e.target.value)}>
+              <div><label htmlFor="hq-f72">Cadence</label>
+                <select id="hq-f72" value={v.cadence||'monthly'} onChange={e=>setF('cadence', e.target.value)}>
                   <option value="monthly">monthly</option><option value="annual">annual</option>
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Cost ($)</label><input type="number" min="0" step="0.01" value={v.cost||0} onChange={e=>setF('cost', +e.target.value)}/></div>
-              <div><label>Renewal date</label><input type="date" value={v.renewalDate||''} onChange={e=>setF('renewalDate', e.target.value)}/></div>
+              <div><label htmlFor="hq-f73">Cost ($)</label><input id="hq-f73" type="number" min="0" step="0.01" value={v.cost||0} onChange={e=>setF('cost', +e.target.value)}/></div>
+              <div><label htmlFor="hq-f74">Renewal date</label><input id="hq-f74" type="date" value={v.renewalDate||''} onChange={e=>setF('renewalDate', e.target.value)}/></div>
             </div>
-            <div><label>Login URL</label><input value={v.url||''} onChange={e=>setF('url', e.target.value)} placeholder="https://…"/></div>
-            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            <div><label htmlFor="hq-f75">Login URL</label><input id="hq-f75" value={v.url||''} onChange={e=>setF('url', e.target.value)} placeholder="https://…"/></div>
+            <div><label htmlFor="hq-f76">Notes</label><textarea id="hq-f76" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5476,22 +5501,22 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew?'Add vehicle':'Edit vehicle'} subtitle={isNew?'':`${v.make} ${v.model}`} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div><label>Year</label><input type="number" value={v.year||''} onChange={e=>setF('year', e.target.value?+e.target.value:'')}/></div>
-              <div><label>Make</label><input value={v.make||''} onChange={e=>setF('make', e.target.value)}/></div>
-              <div><label>Model</label><input value={v.model||''} onChange={e=>setF('model', e.target.value)}/></div>
+              <div><label htmlFor="hq-f77">Year</label><input id="hq-f77" type="number" value={v.year||''} onChange={e=>setF('year', e.target.value?+e.target.value:'')}/></div>
+              <div><label htmlFor="hq-f78">Make</label><input id="hq-f78" value={v.make||''} onChange={e=>setF('make', e.target.value)}/></div>
+              <div><label htmlFor="hq-f79">Model</label><input id="hq-f79" value={v.model||''} onChange={e=>setF('model', e.target.value)}/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Trim</label><input value={v.trim||''} onChange={e=>setF('trim', e.target.value)}/></div>
-              <div><label>Color</label><input value={v.color||''} onChange={e=>setF('color', e.target.value)}/></div>
+              <div><label htmlFor="hq-f80">Trim</label><input id="hq-f80" value={v.trim||''} onChange={e=>setF('trim', e.target.value)}/></div>
+              <div><label htmlFor="hq-f81">Color</label><input id="hq-f81" value={v.color||''} onChange={e=>setF('color', e.target.value)}/></div>
             </div>
-            <div><label>VIN</label><input value={v.vin||''} onChange={e=>setF('vin', e.target.value)} className="font-mono"/></div>
-            <div><label>Primary driver</label><input value={v.primaryDriver||''} onChange={e=>setF('primaryDriver', e.target.value)}/></div>
+            <div><label htmlFor="hq-f82">VIN</label><input id="hq-f82" value={v.vin||''} onChange={e=>setF('vin', e.target.value)} className="font-mono"/></div>
+            <div><label htmlFor="hq-f83">Primary driver</label><input id="hq-f83" value={v.primaryDriver||''} onChange={e=>setF('primaryDriver', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Warranty provider</label><input value={v.warrantyProvider||''} onChange={e=>setF('warrantyProvider', e.target.value)} placeholder="Zurich"/></div>
-              <div><label>Warranty contact</label><input value={v.warrantyContact||''} onChange={e=>setF('warrantyContact', e.target.value)} placeholder="email or phone"/></div>
+              <div><label htmlFor="hq-f84">Warranty provider</label><input id="hq-f84" value={v.warrantyProvider||''} onChange={e=>setF('warrantyProvider', e.target.value)} placeholder="Zurich"/></div>
+              <div><label htmlFor="hq-f85">Warranty contact</label><input id="hq-f85" value={v.warrantyContact||''} onChange={e=>setF('warrantyContact', e.target.value)} placeholder="email or phone"/></div>
             </div>
-            <div><label>Warranty expires</label><input type="date" value={v.warrantyExpires||''} onChange={e=>setF('warrantyExpires', e.target.value)}/></div>
-            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            <div><label htmlFor="hq-f86">Warranty expires</label><input id="hq-f86" type="date" value={v.warrantyExpires||''} onChange={e=>setF('warrantyExpires', e.target.value)}/></div>
+            <div><label htmlFor="hq-f87">Notes</label><textarea id="hq-f87" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5564,19 +5589,19 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew?'Add benefit':'Edit benefit'} subtitle={isNew?'':v.provider} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Type</label>
-                <select value={v.type} onChange={e=>setF('type', e.target.value)}>
+              <div><label htmlFor="hq-f88">Type</label>
+                <select id="hq-f88" value={v.type} onChange={e=>setF('type', e.target.value)}>
                   {BENEFIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div><label>Provider</label><input value={v.provider} onChange={e=>setF('provider', e.target.value)}/></div>
+              <div><label htmlFor="hq-f89">Provider</label><input id="hq-f89" value={v.provider} onChange={e=>setF('provider', e.target.value)}/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Member ID</label><input value={v.memberID||''} onChange={e=>setF('memberID', e.target.value)}/></div>
-              <div><label>Group ID</label><input value={v.groupID||''} onChange={e=>setF('groupID', e.target.value)}/></div>
+              <div><label htmlFor="hq-f90">Member ID</label><input id="hq-f90" value={v.memberID||''} onChange={e=>setF('memberID', e.target.value)}/></div>
+              <div><label htmlFor="hq-f91">Group ID</label><input id="hq-f91" value={v.groupID||''} onChange={e=>setF('groupID', e.target.value)}/></div>
             </div>
-            <div><label>Portal URL</label><input value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
-            <div><label>Notes</label><textarea rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
+            <div><label htmlFor="hq-f92">Portal URL</label><input id="hq-f92" value={v.loginUrl||''} onChange={e=>setF('loginUrl', e.target.value)}/></div>
+            <div><label htmlFor="hq-f93">Notes</label><textarea id="hq-f93" rows="2" value={v.notes||''} onChange={e=>setF('notes', e.target.value)}/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
@@ -5718,8 +5743,8 @@ const PortfolioWidget = ({ onOpen }) => {
                 ? 'That was the last bottle — it moves out of the cellar once you log it.'
                 : `${left} bottle${left===1?'':'s'} left after this one.`}
             </div>
-            <div><label>How was it? (optional)</label>
-              <textarea rows="3" autoFocus value={note} onChange={e=>setNote(e.target.value)}
+            <div><label htmlFor="hq-f94">How was it? (optional)</label>
+              <textarea id="hq-f94" rows="3" autoFocus value={note} onChange={e=>setNote(e.target.value)}
                 placeholder="Tasting note — how it showed, what you had it with…"/>
             </div>
             <div><label>Rating (optional)</label><RatingPicker value={rating} onChange={setRating} /></div>
@@ -5762,24 +5787,24 @@ const PortfolioWidget = ({ onOpen }) => {
           <ModalHeader title={isNew ? 'Add a bottle' : 'Edit bottle'} subtitle={isNew ? 'Takes about 30 seconds.' : `${w.producer} ${w.label}`} onClose={onClose} />
           <div className="p-5 md:p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Producer</label><input value={w.producer} onChange={e=>setField('producer', e.target.value)} placeholder="Caymus"/></div>
-              <div><label>Label / cuvée</label><input value={w.label} onChange={e=>setField('label', e.target.value)} placeholder="Napa Valley Cabernet"/></div>
+              <div><label htmlFor="hq-f95">Producer</label><input id="hq-f95" value={w.producer} onChange={e=>setField('producer', e.target.value)} placeholder="Caymus"/></div>
+              <div><label htmlFor="hq-f96">Label / cuvée</label><input id="hq-f96" value={w.label} onChange={e=>setField('label', e.target.value)} placeholder="Napa Valley Cabernet"/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label>Varietal</label><input value={w.varietal} onChange={e=>setField('varietal', e.target.value)} placeholder="Cabernet Sauvignon"/></div>
-              <div><label>Region</label><input value={w.region} onChange={e=>setField('region', e.target.value)} placeholder="Napa Valley"/></div>
+              <div><label htmlFor="hq-f97">Varietal</label><input id="hq-f97" value={w.varietal} onChange={e=>setField('varietal', e.target.value)} placeholder="Cabernet Sauvignon"/></div>
+              <div><label htmlFor="hq-f98">Region</label><input id="hq-f98" value={w.region} onChange={e=>setField('region', e.target.value)} placeholder="Napa Valley"/></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><label>Vintage</label><input type="number" inputMode="numeric" value={w.vintage} onChange={e=>setField('vintage', e.target.value)} placeholder="2018"/></div>
-              <div><label>Qty</label><input type="number" min="0" inputMode="numeric" value={w.qty} onChange={e=>setField('qty', e.target.value)}/></div>
-              <div><label>Price ($)</label><input type="number" min="0" inputMode="decimal" value={w.price} onChange={e=>setField('price', e.target.value)}/></div>
+              <div><label htmlFor="hq-f99">Vintage</label><input id="hq-f99" type="number" inputMode="numeric" value={w.vintage} onChange={e=>setField('vintage', e.target.value)} placeholder="2018"/></div>
+              <div><label htmlFor="hq-f100">Qty</label><input id="hq-f100" type="number" min="0" inputMode="numeric" value={w.qty} onChange={e=>setField('qty', e.target.value)}/></div>
+              <div><label htmlFor="hq-f101">Price ($)</label><input id="hq-f101" type="number" min="0" inputMode="decimal" value={w.price} onChange={e=>setField('price', e.target.value)}/></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><label>Drink from</label><input type="number" inputMode="numeric" value={w.drinkStart} onChange={e=>setField('drinkStart', e.target.value)} placeholder="2024"/></div>
-              <div><label>Drink until</label><input type="number" inputMode="numeric" value={w.drinkEnd} onChange={e=>setField('drinkEnd', e.target.value)} placeholder="2030"/></div>
-              <div><label>Location</label><input value={w.location} onChange={e=>setField('location', e.target.value)} placeholder="Cellar A2"/></div>
+              <div><label htmlFor="hq-f102">Drink from</label><input id="hq-f102" type="number" inputMode="numeric" value={w.drinkStart} onChange={e=>setField('drinkStart', e.target.value)} placeholder="2024"/></div>
+              <div><label htmlFor="hq-f103">Drink until</label><input id="hq-f103" type="number" inputMode="numeric" value={w.drinkEnd} onChange={e=>setField('drinkEnd', e.target.value)} placeholder="2030"/></div>
+              <div><label htmlFor="hq-f104">Location</label><input id="hq-f104" value={w.location} onChange={e=>setField('location', e.target.value)} placeholder="Cellar A2"/></div>
             </div>
-            <div><label>Notes</label><textarea rows="3" value={w.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Where it came from, what to pair it with…"/></div>
+            <div><label htmlFor="hq-f105">Notes</label><textarea id="hq-f105" rows="3" value={w.notes||''} onChange={e=>setField('notes', e.target.value)} placeholder="Where it came from, what to pair it with…"/></div>
           </div>
           <div className="px-5 md:px-6 py-4 border-t border-ink-600 flex items-center justify-between gap-2 sticky bottom-0 bg-ink-850/95 backdrop-blur">
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Remove</Btn> : <span/>}
@@ -6254,7 +6279,7 @@ const PortfolioWidget = ({ onOpen }) => {
               className="btn-primary w-full mt-4 px-3.5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
               {busy ? 'Unlocking…' : 'View dashboard'}
             </button>
-            <div className="text-ink-500 text-[11px] mt-5 leading-relaxed">
+            <div className="text-ink-400 text-[11px] mt-5 leading-relaxed">
               This is a private view of the McCullum household dashboard. Edits you make are saved on this device only.
             </div>
           </form>
