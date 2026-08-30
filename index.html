@@ -154,14 +154,25 @@
       if (n < 365) return `in ${Math.round(n/30)} mo`;
       return `in ${(n/365).toFixed(1)} yr`;
     };
+    /* Month arithmetic that clamps to the end of short months. Bare setMonth() overflows:
+       Jan 31 + 1 month lands on Mar 3, Aug 31 + 1 month on Oct 1, and a yearly task
+       anchored on Feb 29 drifts to Mar 1 — after which every future date is wrong. */
+    const addMonthsClamped = (iso, n) => {
+      const d = parseDate(iso);
+      if (!d) return null;
+      const x = new Date(d.getFullYear(), d.getMonth() + n, 1);
+      const lastDay = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
+      x.setDate(Math.min(d.getDate(), lastDay));
+      return toISO(x);
+    };
     const addInterval = (iso, freq) => {
       const d = parseDate(iso); if (!d || !freq) return null;
       const n = freq.count || 1;
+      if (freq.unit === 'months') return addMonthsClamped(iso, n);
+      if (freq.unit === 'years')  return addMonthsClamped(iso, n * 12);
       const x = new Date(d);
       if (freq.unit === 'days') x.setDate(x.getDate()+n);
       else if (freq.unit === 'weeks') x.setDate(x.getDate()+n*7);
-      else if (freq.unit === 'months') x.setMonth(x.getMonth()+n);
-      else if (freq.unit === 'years') x.setFullYear(x.getFullYear()+n);
       return toISO(x);
     };
     const freqLabel = (f) => {
@@ -383,11 +394,31 @@
         return JSON.parse(raw);
       } catch { return null; }
     };
+    /* Returns false when the write failed (quota, private mode). The caller surfaces
+       that: silently swallowing it meant every edit after a full quota was lost with
+       no indication, and the user kept typing into a dashboard that had stopped saving. */
     const saveState = (state) => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+      catch (e) { return false; }
     };
     const loadScope = () => {
       try { return localStorage.getItem(SCOPE_KEY) || 'both'; } catch { return 'both'; }
+    };
+
+    /* Ids of seeded records the user has deleted. Without this the migration's
+       merge-new-seed-rows-by-id step hands every deleted seed record straight back
+       on the next load, so deleting a subscription or vendor appeared to work and
+       silently undid itself. */
+    const TOMBSTONE_KEY = 'homehq.deleted.v1';
+    const loadTombstones = () => {
+      try { const raw = localStorage.getItem(TOMBSTONE_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
+    };
+    const addTombstone = (id) => {
+      if (!id) return;
+      try {
+        const list = loadTombstones();
+        if (!list.includes(id)) localStorage.setItem(TOMBSTONE_KEY, JSON.stringify([...list, id].slice(-2000)));
+      } catch {}
     };
     const saveScope = (scope) => {
       try { localStorage.setItem(SCOPE_KEY, scope); } catch {}
@@ -880,28 +911,26 @@
         });
         if (!Array.isArray(migrated.wineLog)) migrated.wineLog = [];
         if (!Array.isArray(migrated.completedLog)) migrated.completedLog = [];
-        // One-time: drop UHC, ensure Blue Cross CA is present
-        if (Array.isArray(migrated.benefits)) {
-          const hasUHC = migrated.benefits.some(b => b.id === 'b-uhc');
-          const hasBCCA = migrated.benefits.some(b => b.id === 'b-bcca');
-          if (hasUHC || !hasBCCA) {
-            migrated.benefits = migrated.benefits.filter(b => b.id !== 'b-uhc');
-            if (!hasBCCA) {
-              const seedBCCA = (initialState.benefits || []).find(b => b.id === 'b-bcca');
-              if (seedBCCA) migrated.benefits = [seedBCCA, ...migrated.benefits];
-            }
-          }
-        }
         // One-time: remove deleted placeholders (SV mortgage + SV hot tub) — confirmed N/A by user
         if (Array.isArray(migrated.property))   migrated.property   = migrated.property.filter(p   => p.id !== 'p-ph-mortgage-sv');
         if (Array.isArray(migrated.appliances)) migrated.appliances = migrated.appliances.filter(a => a.id !== 'a-ph-sv-hot-tub');
-        // Merge in NEW seed entries (e.g. placeholders) by id — preserves user edits to existing items
+        // Merge in NEW seed entries (e.g. placeholders) by id — preserves user edits to
+        // existing items. Anything the user deliberately deleted is tombstoned, otherwise
+        // this step silently resurrected it on the next load and deletion never stuck.
+        const tombstoned = new Set(loadTombstones());
         ['vendors','maintenance','appliances','insurance','vehicles','property','benefits','utilities','subscriptions','files','suggestions','dafValues','ids'].forEach(k => {
           const baseList = initialState[k] || [];
-          if (!baseList.length) return;
-          const have = new Set((migrated[k]||[]).map(x => x.id));
-          const newOnes = baseList.filter(x => !have.has(x.id));
-          if (newOnes.length) migrated[k] = [...(migrated[k]||[]), ...newOnes];
+          if (baseList.length) {
+            const have = new Set((migrated[k]||[]).map(x => x.id));
+            const newOnes = baseList.filter(x => !have.has(x.id) && !tombstoned.has(x.id));
+            if (newOnes.length) migrated[k] = [...(migrated[k]||[]), ...newOnes];
+          }
+          // Final sweep: a seed row also arrives via the `{...initialState, ...saved}`
+          // spread whenever the saved blob lacks that key entirely, which the merge
+          // step above never sees. Filtering the result covers both routes.
+          if (tombstoned.size && Array.isArray(migrated[k])) {
+            migrated[k] = migrated[k].filter(x => !tombstoned.has(x.id));
+          }
         });
         // Backfill `property` field on maintenance/appliances if user is on an older save without it
         if (Array.isArray(migrated.maintenance)) {
@@ -921,7 +950,16 @@
       const [paletteOpen, setPaletteOpen] = useState(false);
       const [propertyScope, setPropertyScope] = useState(loadScope);
 
-      useEffect(() => { saveState(state); }, [state]);
+      const saveFailedRef = useRef(false);
+      useEffect(() => {
+        const okSave = saveState(state);
+        if (!okSave && !saveFailedRef.current) {
+          saveFailedRef.current = true;
+          showToast("Couldn't save to this device — storage is full. Recent edits may be lost.");
+        } else if (okSave) {
+          saveFailedRef.current = false;
+        }
+      }, [state]);
       useEffect(() => { saveScope(propertyScope); }, [propertyScope]);
 
       const toastTimer = useRef(null);
@@ -1033,7 +1071,7 @@
       const mk = (key) => ({
         add:    (item)        => setState(s => ({...s, [key]:[{...item, id:uid()}, ...(s[key]||[])]})),
         update: (id, patch)   => setState(s => ({...s, [key]: (s[key]||[]).map(x => x.id===id?{...x,...patch}:x)})),
-        delete: (id)          => setState(s => ({...s, [key]: (s[key]||[]).filter(x => x.id!==id)})),
+        delete: (id)          => { addTombstone(id); setState(s => ({...s, [key]: (s[key]||[]).filter(x => x.id!==id)})); },
       });
       const insOps  = mk('insurance');
       const vehOps  = mk('vehicles');
@@ -1053,11 +1091,11 @@
         // vendors
         addVendor: (v) => setState(s => ({...s, vendors:[{...v, id:uid()}, ...s.vendors]})),
         updateVendor: (id, patch) => setState(s => ({...s, vendors: s.vendors.map(v => v.id===id?{...v,...patch}:v)})),
-        deleteVendor: (id) => setState(s => ({...s, vendors: s.vendors.filter(v => v.id!==id)})),
+        deleteVendor: (id) => { addTombstone(id); setState(s => ({...s, vendors: s.vendors.filter(v => v.id!==id)})); },
         // maintenance
         addTask: (t) => setState(s => ({...s, maintenance:[{...t, id:uid()}, ...s.maintenance]})),
         updateTask: (id, patch) => setState(s => ({...s, maintenance: s.maintenance.map(t => t.id===id?{...t,...patch}:t)})),
-        deleteTask: (id) => setState(s => ({...s, maintenance: s.maintenance.filter(t => t.id!==id)})),
+        deleteTask: (id) => { addTombstone(id); setState(s => ({...s, maintenance: s.maintenance.filter(t => t.id!==id)})); },
         completeTask: (id) => {
           const logId = uid();
           // Name is read from the current state, not mutated out of the updater —
@@ -1085,7 +1123,7 @@
         // appliances
         addAppliance: (a) => setState(s => ({...s, appliances:[{...a, id:uid()}, ...s.appliances]})),
         updateAppliance: (id, patch) => setState(s => ({...s, appliances: s.appliances.map(a => a.id===id?{...a,...patch}:a)})),
-        deleteAppliance: (id) => setState(s => ({...s, appliances: s.appliances.filter(a => a.id!==id)})),
+        deleteAppliance: (id) => { addTombstone(id); setState(s => ({...s, appliances: s.appliances.filter(a => a.id!==id)})); },
         // wine
         addBottle: (w) => setState(s => ({...s, wine:[{...w, id:uid()}, ...s.wine]})),
         // "we opened a bottle" — decrement qty + append a tasting entry to wineLog
@@ -1103,7 +1141,7 @@
           showToast(`Logged: ${w.producer} ${w.label}`);
         },
         updateBottle: (id, patch) => setState(s => ({...s, wine: s.wine.map(w => w.id===id?{...w,...patch}:w)})),
-        deleteBottle: (id) => setState(s => ({...s, wine: s.wine.filter(w => w.id!==id)})),
+        deleteBottle: (id) => { addTombstone(id); setState(s => ({...s, wine: s.wine.filter(w => w.id!==id)})); },
         // new modules
         addInsurance: insOps.add, updateInsurance: insOps.update, deleteInsurance: insOps.delete,
         addVehicle: vehOps.add, updateVehicle: vehOps.update, deleteVehicle: vehOps.delete,
@@ -1123,6 +1161,16 @@
             cadence === 'monthly'   ? {count:1, unit:'months'} :
             cadence === 'quarterly' ? {count:3, unit:'months'} :
             (cadence === 'annual' || cadence === 'yearly') ? {count:1, unit:'years'} : null;
+          // Advance by whole cadences until the date is in the future.
+          const rollForwardPast = (iso, freq) => {
+            let d = iso;
+            for (let i = 0; i < 600 && d && d <= nowISO; i++) {
+              const next = addInterval(d, freq);
+              if (!next || next <= d) break;
+              d = next;
+            }
+            return d;
+          };
           setState(s => {
             const prevValue = item.kind === 'maint'
               ? (((s.maintenance||[]).find(t => t.id === item.id) || {}).lastCompleted || '')
@@ -1150,17 +1198,18 @@
               // dismiss the warranty alert without changing the warrantyExpires field
               next.appliances = (s.appliances||[]).map(a => a.id === item.id ? { ...a, warrantyDismissed: true } : a);
             } else if (item.kind === 'property') {
-              // roll by cadence when known; otherwise clear
+              // Roll forward past today, not by a single cadence: a due date three cycles
+              // stale used to advance one cycle and stay overdue, so it never cleared.
               next.property = (s.property||[]).map(p => {
                 if (p.id !== item.id) return p;
                 const f = cadenceFreq(p.cadence);
-                return { ...p, nextDue: (f && p.nextDue) ? addInterval(p.nextDue, f) : '' };
+                return { ...p, nextDue: (f && p.nextDue) ? rollForwardPast(p.nextDue, f) : '' };
               });
             } else if (item.kind === 'sub') {
               next.subscriptions = (s.subscriptions||[]).map(x => {
                 if (x.id !== item.id) return x;
                 const f = cadenceFreq(x.cadence);
-                return { ...x, renewalDate: (f && x.renewalDate) ? addInterval(x.renewalDate, f) : '' };
+                return { ...x, renewalDate: (f && x.renewalDate) ? rollForwardPast(x.renewalDate, f) : '' };
               });
             }
             return next;
@@ -2284,17 +2333,6 @@ const MERCURY_EQUITY = {
       detail:'Vesting schedule not in the Carta export — the vested count is Carta’s reported figure, not computed here. Nothing settled yet.' },
   ],
   notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet. Share counts are hard facts; the dollar figures are indicative — they come from secondary-market marks, not a 409A, so they read high. The vested figure feeds the household total and carries that caveat with it.',
-};
-
-/* Month arithmetic that clamps to the end of short months — a Jan-31 vesting
-   anchor lands on Feb 28, not Mar 3 the way a bare setMonth() rolls it. */
-const addMonthsClamped = (iso, n) => {
-  const d = parseDate(iso);
-  if (!d) return null;
-  const x = new Date(d.getFullYear(), d.getMonth() + n, 1);
-  const lastDay = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
-  x.setDate(Math.min(d.getDate(), lastDay));
-  return toISO(x);
 };
 
 /* Every tranche a cliff-then-monthly schedule produces: [{date, shares, cumulative}]. */
@@ -4376,11 +4414,16 @@ const PortfolioWidget = ({ onOpen }) => {
       const ctx = useContext(Ctx);
       const isNew = !vendor;
       const scopeDefault = ctx.propertyScope && ctx.propertyScope !== 'both' ? ctx.propertyScope : '';
-      const [v, setV] = useState(vendor || {
+      // Merge over defaults rather than substituting them only for a brand-new vendor:
+      // every seeded vendor predates the `schedule` field, and reading v.schedule.recurring
+      // on one took the entire app down to the ErrorBoundary.
+      const [v, setV] = useState(() => ({
         name:'', company:'', serviceType:'', phone:'', email:'', rate:'', property:scopeDefault,
-        schedule:{ recurring:false, freq:{count:1, unit:'months'}, dayOfWeek:'' },
-        lastVisit:'', nextVisit:'', notes:''
-      });
+        lastVisit:'', nextVisit:'', notes:'',
+        ...(vendor || {}),
+        schedule: { recurring:false, freq:{count:1, unit:'months'}, dayOfWeek:'',
+                    ...((vendor && vendor.schedule) || {}) },
+      }));
       const setField = (k, val) => setV(prev => ({...prev, [k]: val}));
       const setSched = (k, val) => setV(prev => ({...prev, schedule: {...prev.schedule, [k]: val}}));
       const setFreq = (k, val) => setV(prev => ({...prev, schedule: {...prev.schedule, freq: {...(prev.schedule.freq || {count:1, unit:'months'}), [k]: val}}}));
