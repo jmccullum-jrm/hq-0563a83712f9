@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#070a12" />
   <title>Home HQ — Shared</title>
+  <!-- Icons. iOS masks apple-touch-icon itself, so the PNG is full-bleed and opaque;
+       a transparent or pre-rounded source is what renders as a black tile. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="manifest" href="./site.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Home HQ" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -434,6 +443,27 @@
 
 
     /* ---------- icons (inline SVG, hairline weight) ---------- */
+    /* The Home HQ mark: a house ruled like a ledger. Same geometry as the
+       home-screen icon, so the app and its icon read as one object. */
+    const Mark = ({ size = 32, className = '' }) => (
+      <svg viewBox="0 0 512 512" width={size} height={size} className={className}
+           role="img" aria-label="Home HQ">
+        <defs>
+          <linearGradient id="hqg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#28345a"/><stop offset="1" stopColor="#080d19"/>
+          </linearGradient>
+          <linearGradient id="hqb" x1="0.1" y1="0" x2="0.7" y2="1">
+            <stop offset="0" stopColor="#e2bc55"/><stop offset="1" stopColor="#b8861f"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="116" fill="url(#hqg)"/>
+        <path d="M256 96 L412 226 v186 a16 16 0 0 1-16 16 H116 a16 16 0 0 1-16-16 V226 Z" fill="url(#hqb)"/>
+        <g stroke="#0a0f1c" strokeWidth="26" strokeLinecap="round">
+          <path d="M154 298 H298"/><path d="M154 358 H358"/>
+        </g>
+      </svg>
+    );
+
     const Icon = ({ name, size=18, className='' }) => {
       const props = { width:size, height:size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth: size <= 14 ? 2 : size >= 22 ? 1.5 : 1.6, strokeLinecap:'round', strokeLinejoin:'round', className };
       const paths = {
@@ -2029,7 +2059,7 @@
           <aside className="hidden md:flex md:flex-col md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-ink-600 bg-ink-900/80 backdrop-blur">
             <div className="px-6 pt-7 pb-5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold">H</div>
+                <Mark size={32} className="shrink-0" />
                 <div className="font-display text-lg tracking-tight">Home HQ</div>
               </div>
             </div>
@@ -2059,7 +2089,7 @@
             <header className="px-5 md:px-6 lg:px-10 pt-safe md:pt-10"><div className="max-w-[1160px] mx-auto">
               <div className="md:hidden flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold">H</div>
+                  <Mark size={32} className="shrink-0" />
                   <div className="font-display text-base tracking-tight">Home HQ</div>
                 </div>
                 <div className="text-xs uppercase tracking-wider text-ink-400">{nice}</div>
