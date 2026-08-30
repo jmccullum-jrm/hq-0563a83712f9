@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0908" />
+  <meta name="theme-color" content="#070a12" />
   <title>Home HQ — Shared</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,30 +15,30 @@
         extend: {
           colors: {
             ink: {
-              950: '#0a0907',
-              900: '#0a0908',
-              850: '#141210',
-              800: '#181612',
-              750: '#1d1b16',
-              700: '#211f1a',
-              650: '#232019',
-              600: '#2a2723',
-              500: '#3a3631',
-              450: '#6b6558',
-              400: '#948c7e',
-              300: '#a49c8c',
-              200: '#bcb5a6',
-              100: '#e8e2d4',
-              50:  '#f5f0e3',
+              950: '#04060b',
+              900: '#070a12',
+              850: '#0c111a',
+              800: '#131a2b',
+              750: '#181f33',
+              700: '#1b2338',
+              650: '#222a45',
+              600: '#2d3757',
+              500: '#4a5876',
+              450: '#71809f',
+              400: '#a8b3d2',
+              300: '#bac4e0',
+              200: '#ccd5ec',
+              100: '#e8edf9',
+              50:  '#f7faff',
             },
             gold: {
-              300: '#e6c895',
-              400: '#d4a96a',
-              500: '#c19654',
-              600: '#a07a3e',
+              300: '#dbb245',
+              400: '#d3a03a',
+              500: '#bd8c2c',
+              600: '#95701f',
             },
-            sage:   { 400: '#8aa78b', 500: '#6f8c70' },
-            ember:  { 400: '#e07856', 500: '#c9603f' },
+            sage:   { 400: '#569f92', 500: '#3f7d72' },
+            ember:  { 400: '#ffc0a0', 500: '#e07a52' },
           },
           fontFamily: {
             display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
@@ -65,12 +65,12 @@
     }
   </script>
   <style>
-    html, body { color: #e8e2d4; -webkit-font-smoothing: antialiased; }
+    html, body { color: #e8edf9; -webkit-font-smoothing: antialiased; }
     /* A single warm wash in the app's own accent, so the page has a direction of light.
        This replaces .grain, whose 0.012 alpha at 0.35 opacity worked out to one 8-bit
        level on one pixel in nine — invisible, in exchange for a full-viewport layer. */
     html, body {
-      background: radial-gradient(120% 55% at 50% -8%, rgba(212,169,106,.05), transparent 62%), #0a0908;
+      background: radial-gradient(120% 55% at 50% -8%, rgba(211,160,58,.05), transparent 62%), #070a12;
       background-attachment: fixed;
     }
     body { font-family: 'Inter', system-ui, sans-serif; font-feature-settings: "ss01","cv11"; }
@@ -78,26 +78,26 @@
     /* Scrollbar */
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #2a2723; border-radius: 999px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3a3631; }
+    ::-webkit-scrollbar-thumb { background: #2d3757; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a5876; }
     /* Card */
     .card {
-      background: linear-gradient(180deg, #26221c 0%, #211e18 100%);
-      border: 1px solid #322d26;
+      background: linear-gradient(180deg, #253052 0%, #1e2742 100%);
+      border: 1px solid #3d4a70;
       border-radius: 18px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 3px rgba(0,0,0,.4);
     }
     /* A raised tap target, for the tiles that were using .card-soft — a recessed well —
        to mean the opposite of what it means everywhere else. */
     .card-raised {
-      background: #2e2922;
-      border: 1px solid #3a352c;
+      background: #38456b;
+      border: 1px solid #46537a;
       border-radius: 16px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
     .card-soft {
-      background: #171512;
-      border: 1px solid #262219;
+      background: #101725;
+      border: 1px solid #1b2440;
       border-radius: 16px;
     }
     /* Grid and flex items default to min-width:auto, so a wide table sitting inside
@@ -105,27 +105,27 @@
        of scrolling within it. This is what made Portfolio scroll sideways on phones. */
     .card, .card-soft { min-width: 0; }
     .btn-primary {
-      background: linear-gradient(180deg,#d4a96a,#c19654);
-      color: #1a140a;
+      background: linear-gradient(180deg,#d3a03a,#bd8c2c);
+      color: #0b1120;
       font-weight: 600;
     }
     .btn-primary:hover { filter: brightness(1.06); }
-    .btn-ghost { background: transparent; color: #e8e2d4; }
-    .btn-ghost:hover { background: #211f1a; }
+    .btn-ghost { background: transparent; color: #e8edf9; }
+    .btn-ghost:hover { background: #1b2338; }
     .pill { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .55rem; border-radius: 999px; font-size: 11px; font-weight: 500; line-height: 1; }
-    .pill-overdue { background: rgba(224,120,86,0.12); color: #e9886a; border: 1px solid rgba(224,120,86,0.28); }
-    .pill-soon    { background: rgba(212,169,106,0.12); color: #e6c895; border: 1px solid rgba(212,169,106,0.25); }
-    .pill-ok      { background: rgba(138,167,139,0.12); color: #a6c1a7; border: 1px solid rgba(138,167,139,0.25); }
-    .pill-info    { background: #211f1a; color: #a49c8c; border: 1px solid #2a2723; }
-    .pill-muted   { background: #211f1a; color: #8b8478; border: 1px solid #2a2723; }
+    .pill-overdue { background: rgba(255,192,160,0.12); color: #ffdcd0; border: 1px solid rgba(255,192,160,0.28); }
+    .pill-soon    { background: rgba(211,160,58,0.12); color: #dbb245; border: 1px solid rgba(211,160,58,0.25); }
+    .pill-ok      { background: rgba(86,159,146,0.12); color: #8fc4b9; border: 1px solid rgba(86,159,146,0.25); }
+    .pill-info    { background: #1b2338; color: #bac4e0; border: 1px solid #2d3757; }
+    .pill-muted   { background: #1b2338; color: #a1acc9; border: 1px solid #2d3757; }
     .tnum { font-variant-numeric: tabular-nums slashed-zero; letter-spacing: .045em; }
-    .divider { height: 1px; background: linear-gradient(90deg, transparent, #2a2723, transparent); }
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, #2d3757, transparent); }
     /* ---- The ledger: one surface, records ruled off each other ----
        Replaces the 3-up grids of cards. A status rail is one dead-straight
        vertical line down the sheet, broken only where something needs you —
        unlike a pill, which sits at a different x on every row. */
-    .ledger { background: linear-gradient(180deg, #26221c 0%, #211e18 100%);
-              border: 1px solid #322d26; border-radius: 18px;
+    .ledger { background: linear-gradient(180deg, #253052 0%, #1e2742 100%);
+              border: 1px solid #3d4a70; border-radius: 18px;
               box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 3px rgba(0,0,0,.4);
               overflow: hidden; }
     .lrow { position: relative; width: 100%; text-align: left; min-height: 56px;
@@ -139,9 +139,9 @@
       .ledger[data-act="1"] .lrow > .lrow-when { display: none; }
     }
     .lrow + .lrow::before { content:''; position:absolute; left:16px; right:0; top:0;
-                            height:1px; background:#322d26; }
+                            height:1px; background:#3d4a70; }
     .lrow:hover { background: rgba(255,255,255,.022); }
-    .lrow:focus-visible { outline: 2px solid #d4a96a; outline-offset: -2px; }
+    .lrow:focus-visible { outline: 2px solid #d3a03a; outline-offset: -2px; }
     /* The global press-scale (175) shrinks the whole row and reads as a glitch. */
     .lrow:active { transform: none; }
     .lgroup { position: sticky; top: 0; z-index: 10; }
@@ -152,9 +152,9 @@
     .lexp > * { overflow: hidden; }
     @media (prefers-reduced-motion: reduce) { .lexp { transition: none; } }
     .lrail { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
-    .lrail-now  { background: #e07856; }
-    .lrail-soon { background: #d4a96a; }
-    .lrail-ok   { background: rgba(138,167,139,.45); }
+    .lrail-now  { background: #ffc0a0; }
+    .lrail-soon { background: #d3a03a; }
+    .lrail-ok   { background: rgba(86,159,146,.45); }
     /* Row rules are the only thing separating tap targets now; keep them
        when the OS overrides our colours entirely. */
     @media (forced-colors: active) {
@@ -163,7 +163,7 @@
       .lrail { forced-color-adjust: none; }
     }
     input, select, textarea {
-      background: #131210 !important; border: 1px solid #2a2723 !important; color: #e8e2d4 !important;
+      background: #0b101b !important; border: 1px solid #2d3757 !important; color: #e8edf9 !important;
       border-radius: 12px; padding: .65rem .85rem; width: 100%; font-size: 16px; min-height: 44px;
     }
     /* 16px is the threshold below which iOS Safari zooms the page on focus; the old
@@ -173,14 +173,14 @@
       input, select, textarea { font-size: .95rem; }
     }
     input[type="checkbox"], input[type="radio"] { min-height: 0; width: auto; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #c19654 !important; box-shadow: 0 0 0 3px rgba(193,150,84,.18); }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #bd8c2c !important; box-shadow: 0 0 0 3px rgba(189,140,44,.18); }
     /* Chromeless field for the command palette — the rules above are !important. */
     .bare-input, .bare-input:focus {
       background: transparent !important; border: none !important; box-shadow: none !important;
       padding: 0 !important; min-height: 0 !important; border-radius: 0;
     }
     kbd { font-family: inherit; }
-    button:focus-visible, a:focus-visible { outline: 2px solid #c19654; outline-offset: 2px; border-radius: 8px; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #bd8c2c; outline-offset: 2px; border-radius: 8px; }
     /* 134 hover states and nothing acknowledged a tap on the device this app is most
        used from. One global rule: every enabled control settles slightly on press.
        Fast in, slower out, and disabled controls stay put. */
@@ -193,11 +193,11 @@
       button:not(:disabled):active, a:active, [role="button"]:active { transform: none; }
       .anim-in { animation: none; }
     }
-    label { font-size: .75rem; color: #8b8478; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
+    label { font-size: .75rem; color: #a1acc9; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
     .modal-backdrop { background: rgba(8,7,5,0.7); backdrop-filter: blur(8px); }
     .modal-shell {
-      background: #2e2922;
-      border: 1px solid #3d372e;
+      background: #38456b;
+      border: 1px solid #47557d;
       /* A sheet on a phone is flush to the edge it rises from; a dialog floats. */
       border-radius: 22px 22px 0 0;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 64px -16px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5);
@@ -2233,7 +2233,7 @@
       const y = (v) => height - pad - ((v - min) / span) * (height - pad * 2);
       const d = nums.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
       const area = `${d} L${x(nums.length - 1).toFixed(1)},${height} L${x(0).toFixed(1)},${height} Z`;
-      const stroke = tone === 'sage' ? '#8aa78b' : tone === 'ember' ? '#e07856' : '#d4a96a';
+      const stroke = tone === 'sage' ? '#569f92' : tone === 'ember' ? '#ffc0a0' : '#d3a03a';
       const rising = nums[nums.length - 1] >= nums[0];
       return (
         <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
@@ -2253,7 +2253,7 @@
       const nums = (values || []).map(v => (typeof v === 'number' && isFinite(v)) ? v : 0);
       if (!nums.length) return null;
       const max = Math.max(...nums) || 1;
-      const fill = tone === 'sage' ? '#8aa78b' : '#d4a96a';
+      const fill = tone === 'sage' ? '#569f92' : '#d3a03a';
       return (
         <div className="flex items-end gap-[3px]" style={{ height }} role="img"
           aria-label={`${nums.filter(Boolean).length} of ${nums.length} periods have a value`}>
@@ -2261,7 +2261,7 @@
             <div key={i} className="flex-1 min-w-[3px] rounded-sm transition-[height]"
               title={labels && labels[i] ? `${labels[i]} · ${fmtMoney(v)}` : undefined}
               style={{ height: v ? `${Math.max(8, (v / max) * 100)}%` : '2px',
-                       background: v ? fill : '#2a2723', opacity: v ? 0.85 : 1 }} />
+                       background: v ? fill : '#2d3757', opacity: v ? 0.85 : 1 }} />
           ))}
         </div>
       );
@@ -2484,7 +2484,7 @@
           variant==='primary' ? 'btn-primary' :
           variant==='soft'    ? 'bg-ink-700 hover:bg-ink-600 text-ink-100' :
           variant==='ghost'   ? 'btn-ghost border border-ink-600' :
-          variant==='danger'  ? 'bg-ember-500/15 text-ember-400 hover:bg-ember-500/20 border border-ember-500/30' :
+          variant==='danger'  ? 'bg-ember-500/15 text-ember-500 hover:bg-ember-500/20 border border-ember-500/30' :
           ''
         } ${rest.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${rest.className||''}`}>
         {icon && <Icon name={icon} size={16} />}
@@ -3367,27 +3367,27 @@ const mercuryValueRange = (v) => {
 };
 
 const PORTFOLIO_AC_COLORS = {
-  'Equity':              '#d4a96a',  // gold-400
-  'Cash & Equivalents':  '#5a554c',  // ink-400
-  'Fixed Income':        '#8aa78b',  // sage-400
-  'Alternatives':        '#e07856',  // ember-400
-  'Commodities (Gold)':  '#a07a3e',  // gold-600
-  'Other':               '#3a3631',
+  'Equity':              '#d3a03a',  // gold-400
+  'Cash & Equivalents':  '#5f6d90',  // ink-400
+  'Fixed Income':        '#569f92',  // sage-400
+  'Alternatives':        '#ffc0a0',  // ember-400
+  'Commodities (Gold)':  '#95701f',  // gold-600
+  'Other':               '#4a5876',
 };
 const PORTFOLIO_AC_ORDER = ['Equity','Cash & Equivalents','Fixed Income','Alternatives','Commodities (Gold)','Other'];
 const PORTFOLIO_TT_COLORS = {
-  'Taxable':         '#d4a96a',
-  'Traditional IRA': '#8aa78b',
-  'Roth IRA':        '#e07856',
-  'UTMA':            '#a07a3e',
+  'Taxable':         '#d3a03a',
+  'Traditional IRA': '#569f92',
+  'Roth IRA':        '#ffc0a0',
+  'UTMA':            '#95701f',
 };
 const PORTFOLIO_ST_COLORS = {
-  'Stock':          '#d4a96a',
-  'ETF':            '#8aa78b',
-  'Mutual Fund':    '#e07856',
-  'Cash/MMF':       '#5a554c',
-  'Private Equity': '#a07a3e',
-  'Option':         '#8a7f6f',
+  'Stock':          '#d3a03a',
+  'ETF':            '#569f92',
+  'Mutual Fund':    '#ffc0a0',
+  'Cash/MMF':       '#5f6d90',
+  'Private Equity': '#95701f',
+  'Option':         '#8996b8',
 };
 const PORTFOLIO_GRADES = [
   ['Diversification',   'C+', 'soon',    '227 positions, but 2 stocks still = 32% of everything'],
@@ -4093,7 +4093,7 @@ const PortfolioView = () => {
           <div className="flex h-7 rounded overflow-hidden">
             {ac.map(x => {
               const p = x.pct*100;
-              return <div key={x.key} style={{width: p+'%', background: PORTFOLIO_AC_COLORS[x.key]||'#5a554c'}}
+              return <div key={x.key} style={{width: p+'%', background: PORTFOLIO_AC_COLORS[x.key]||'#5f6d90'}}
                 className="text-2xs text-ink-900 px-1.5 flex items-center font-medium overflow-hidden whitespace-nowrap"
                 title={`${x.key} ${p.toFixed(1)}%`}>
                 {p > 8 ? `${x.key} ${p.toFixed(0)}%` : ''}
@@ -4103,7 +4103,7 @@ const PortfolioView = () => {
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-300">
             {ac.map(x => (
               <span key={x.key} className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{background: PORTFOLIO_AC_COLORS[x.key]||'#5a554c'}}/>
+                <span className="w-2 h-2 rounded-sm" style={{background: PORTFOLIO_AC_COLORS[x.key]||'#5f6d90'}}/>
                 {x.key} {(x.pct*100).toFixed(1)}%
               </span>
             ))}
@@ -4144,7 +4144,7 @@ const PortfolioView = () => {
                 <div key={x.key} className="flex items-center gap-2.5 text-xs">
                   <div className="w-24 text-ink-300">{x.key}</div>
                   <div className="flex-1 h-2.5 rounded bg-ink-700/50 overflow-hidden">
-                    <div style={{width: w+'%', background: PORTFOLIO_ST_COLORS[x.key]||'#5a554c'}} className="h-full"/>
+                    <div style={{width: w+'%', background: PORTFOLIO_ST_COLORS[x.key]||'#5f6d90'}} className="h-full"/>
                   </div>
                   <div className="w-28 text-right tabular-nums text-ink-300">
                     {fmtMoneyK(x.value)} · {(x.pct*100).toFixed(1)}%
@@ -6532,7 +6532,7 @@ const PortfolioWidget = ({ onOpen }) => {
                           <button onClick={e=>{ e.stopPropagation(); ctx.updateSubscription(s.id, { confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} confirmed`); }}
                             className="px-2 py-1 rounded-lg text-xs bg-sage-500/15 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20">Confirm</button>
                           <button onClick={e=>{ e.stopPropagation(); ctx.deleteWithUndo('subscriptions', s, s.name); }}
-                            className="px-2 py-1 rounded-lg text-xs bg-ember-500/12 text-ember-400 border border-ember-500/25 hover:bg-ember-500/20">Remove</button>
+                            className="px-2 py-1 rounded-lg text-xs bg-ember-500/12 text-ember-500 border border-ember-500/25 hover:bg-ember-500/20">Remove</button>
                         </>
                       ) : undefined} />
                   );
@@ -7414,7 +7414,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {err && <div className="text-ember-400 text-xs mt-2">{err}</div>}
             <label className="flex items-center gap-2 mt-4 text-ink-300 text-xs cursor-pointer select-none">
               <input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}
-                style={{width:'1rem', height:'1rem', minHeight:0, accentColor:'#c19654'}} />
+                style={{width:'1rem', height:'1rem', minHeight:0, accentColor:'#bd8c2c'}} />
               Stay unlocked on this device
             </label>
             <button type="submit" disabled={busy || !pw}
