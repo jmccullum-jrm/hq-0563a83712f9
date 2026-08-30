@@ -4527,6 +4527,111 @@ const SUGGESTION_TIERS = [
   { key:'low',  label:'Lower priority — housekeeping',       chip:'text-ink-300 border-ink-600 bg-ink-800',            accent:'border-l-ink-500' },
 ];
 
+/* The suggestions are prose written from a statement scan: every figure in them is
+   asserted rather than derived, so nobody can tell whether one is still true. Where
+   the app holds the underlying rows, show them — and let the arithmetic disagree with
+   the prose out loud, which for the harvest suggestion it does.
+   Deliberately no tax rates: filing status, other income and the applicable brackets
+   are nowhere in this file, and a confident wrong tax number is worse than prose. */
+const SuggestionEvidence = ({ id }) => {
+  const ctx = useContext(Ctx);
+  const d = PORTFOLIO_DATA;
+
+  if (id === 'sg-harvest-2026') {
+    const rows = (d.taxableLosers || []).slice().sort((a, b) => (a.unrealizedGL || 0) - (b.unrealizedGL || 0));
+    if (!rows.length) return null;
+    const total = rows.reduce((s2, r) => s2 + (r.unrealizedGL || 0), 0);
+    return (
+      <EvidenceBlock title={`${rows.length} taxable positions at a loss · ${fmtMoney(total)} harvestable`}
+        note="Counted from the snapshot's own rows, taxable accounts only. The suggestion's prose says ~$8K.">
+        <table className="w-full text-[11px]">
+          <tbody>
+            {rows.slice(0, 8).map((r, i) => (
+              <tr key={i} className="border-b border-ink-700/50">
+                <td className="py-1 text-ink-100">{r.symbol}</td>
+                <td className="py-1 text-ink-400 hidden sm:table-cell">{r.account}</td>
+                <td className="py-1 text-right tabular-nums text-ink-300">{fmtMoney(r.value)}</td>
+                <td className="py-1 text-right tabular-nums text-ember-400">{fmtMoney(r.unrealizedGL)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length > 8 && <div className="text-[10px] text-ink-400 mt-1.5">and {rows.length - 8} smaller positions.</div>}
+      </EvidenceBlock>
+    );
+  }
+
+  if (id === 'sg-pltr-glidepath') {
+    const pos = ((d.keyPositions || {}).PLTR || [])[0];
+    if (!pos) return null;
+    const gainPerShare = pos.price - (pos.costBasis / pos.quantity);
+    const THRESHOLD = 270000;                       // the figure the suggestion itself names
+    const sellable = Math.floor(THRESHOLD / gainPerShare);
+    return (
+      <EvidenceBlock title="Computed from the position, not asserted"
+        note="Gains arithmetic only — no tax rate is applied, because filing status and other income aren't in this app.">
+        <Line k="Shares held" v={pos.quantity.toLocaleString()} />
+        <Line k="Cost basis / share" v={'$' + (pos.costBasis / pos.quantity).toFixed(2)} />
+        <Line k="Gain / share at the snapshot price" v={'$' + gainPerShare.toFixed(2)} />
+        <Line k={`Shares sellable under the ~${fmtMoneyK(THRESHOLD)} threshold the note names`}
+          v={`${sellable.toLocaleString()} sh ≈ ${fmtMoney(sellable * pos.price)} of proceeds`} />
+        <Line k="Unrealized gain on the whole position" v={fmtMoney(pos.unrealizedGL)} />
+      </EvidenceBlock>
+    );
+  }
+
+  if (id === 'sg-amzn-daf') {
+    const amzn = ((d.keyPositions || {}).AMZN || []).filter(x => /Legacy|Growth/i.test(x.account || ''));
+    const pltr = ((d.keyPositions || {}).PLTR || [])[0];
+    if (!amzn.length || !pltr) return null;
+    const val = amzn.reduce((s2, x) => s2 + (x.value || 0), 0);
+    const gl = amzn.reduce((s2, x) => s2 + (x.unrealizedGL || 0), 0);
+    const daf = (ctx.state.dafValues || []).filter(x => x.value != null).sort((a, b) => (a.date||'').localeCompare(b.date||'')).pop();
+    return (
+      <EvidenceBlock title="What a gift would move"
+        note="Fair-market values at the snapshot price. No deduction rate is applied.">
+        <Line k="AMZN held in taxable" v={`${fmtMoney(val)} · ${fmtMoney(gl)} unrealized gain`} />
+        <Line k="1,000 PLTR shares at the snapshot price" v={fmtMoney(1000 * pltr.price)} />
+        <Line k="Current DAF balance" v={daf ? `${fmtMoney(daf.value)} (logged ${fmtDate(daf.date)})` : 'nothing logged yet'} />
+      </EvidenceBlock>
+    );
+  }
+
+  if (id === 'sg-bofa-cash') {
+    const c = cashAtRest();
+    const mms = BANKING.accounts.find(a => /Money Market Savings/i.test(a.name));
+    return (
+      <EvidenceBlock title={`${fmtMoney(c.total)} at rest across ${c.rows.length} accounts`}
+        note="The suggestion names one $883K account; the pile is wider. Full detail under the Cash & Banking tab.">
+        <Line k="Earning now" v={`${fmtMoney(c.currentInterest)}/yr`} />
+        <Line k="At a 3.7% money-market rate" v={`${fmtMoney(c.targetInterest)}/yr`} />
+        <Line k="Gap" v={`${fmtMoney(c.gap)}/yr · ${fmtMoney(c.perDay)}/day`} />
+        {mms && mms.intYtd != null && (
+          <Line k={`Interest actually posted through ${fmtDate(BANKING.asOf, {month:'short', day:'numeric'})}`}
+            v={`${fmtMoney(mms.intYtd)} — annualises to ${fmtMoney(mms.intYtd * 365 / 211)}, under the stated ${mms.apy}%`} />
+        )}
+      </EvidenceBlock>
+    );
+  }
+
+  return null;
+};
+
+const Line = ({ k, v }) => (
+  <div className="flex items-baseline justify-between gap-3 py-1 border-b border-ink-700/50 last:border-0">
+    <span className="text-[11px] text-ink-400">{k}</span>
+    <span className="text-[11px] text-ink-100 tabular-nums text-right">{v}</span>
+  </div>
+);
+
+const EvidenceBlock = ({ title, note, children }) => (
+  <div className="mt-2.5 rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2.5">
+    <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400 mb-1.5">{title}</div>
+    {children}
+    {note && <div className="text-[10px] text-ink-400 mt-2 leading-relaxed">{note}</div>}
+  </div>
+);
+
 const SuggestionRow = ({ s, accent }) => {
   const ctx = useContext(Ctx);
   return (
@@ -4543,7 +4648,8 @@ const SuggestionRow = ({ s, accent }) => {
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-medium ${s.done ? 'text-ink-400 line-through' : 'text-ink-100'}`}>{s.title}</div>
           {s.body && <div className={`text-[12px] mt-1 leading-relaxed ${s.done ? 'text-ink-400' : 'text-ink-300'}`}>{s.body}</div>}
-          {s.source && <div className="text-[10px] text-ink-400 mt-1">{s.source}</div>}
+          {!s.done && <SuggestionEvidence id={s.id} />}
+          {s.source && <div className="text-[10px] text-ink-400 mt-1.5">{s.source}</div>}
         </div>
         <button onClick={() => { if (window.confirm('Delete this suggestion?')) ctx.deleteSuggestion(s.id); }}
           aria-label="Delete suggestion"
