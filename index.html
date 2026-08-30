@@ -483,6 +483,9 @@
     const loadTombstones = () => {
       try { const raw = localStorage.getItem(TOMBSTONE_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
     };
+    const removeTombstone = (id) => {
+      try { localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(loadTombstones().filter(x => x !== id))); } catch {}
+    };
     const addTombstone = (id) => {
       if (!id) return;
       try {
@@ -1492,6 +1495,35 @@
           showToast(`Added to ${end.module}`, { label: 'Open', fn: () => setView(end.module) });
         },
         dismissLooseEnd: (end) => setState(s => ({ ...s, dismissedEnds: [...(s.dismissedEnds || []), end.key] })),
+        /* Deleting is undoable, so it does not need a confirm dialog in front of it.
+           A modal that interrupts you to ask "are you sure?" is the wrong trade when
+           the answer can simply be reversible — and window.confirm cannot be styled,
+           cannot be dismissed by the app, and looks like the browser, not the app. */
+        deleteWithUndo: (kind, record, label) => {
+          if (!record || !record.id) return;
+          setState(s => {
+            const list = s[kind] || [];
+            const idx = list.findIndex(x => x.id === record.id);
+            const next = list.filter(x => x.id !== record.id);
+            record.__idx = idx < 0 ? next.length : idx;
+            return { ...s, [kind]: next };
+          });
+          addTombstone(record.id);
+          showToast(`Deleted ${label || 'record'}`, {
+            label: 'Undo',
+            fn: () => {
+              removeTombstone(record.id);
+              setState(s => {
+                const list = s[kind] || [];
+                if (list.some(x => x.id === record.id)) return s;
+                const restored = [...list];
+                const { __idx, ...clean } = record;
+                restored.splice(Math.min(__idx == null ? restored.length : __idx, restored.length), 0, clean);
+                return { ...s, [kind]: restored };
+              });
+            },
+          });
+        },
         // "Not applicable" used to be a decision you could only record by editing the
         // source file — the migration history still carries two of them.
         dismissGap: (title) => setState(s => ({ ...s, dismissedGaps: [...(s.dismissedGaps || []), title] })),
@@ -1673,8 +1705,11 @@
        appliances are all empty in practice, while subscriptions (23 rows) and the
        ID sheet (~30) are what you reach for standing at a counter. */
     const NAV_MOBILE_IDS = ['dashboard','subscriptions','ids','portfolio'];
+    /* The bar gets short names — "Subscriptions" and "IDs & Logins" crowd their
+       neighbours at 390px — while the sidebar and the sheet keep the full ones. */
+    const NAV_SHORT = { subscriptions:'Spend', ids:'IDs', portfolio:'Money', dashboard:'Today' };
     const NAV_MOBILE = [
-      ...NAV_ALL.filter(n => NAV_MOBILE_IDS.includes(n.id)),
+      ...NAV_ALL.filter(n => NAV_MOBILE_IDS.includes(n.id)).map(n => ({ ...n, label: NAV_SHORT[n.id] || n.label })),
       { id:'_more', label:'More', icon:'more' },
     ];
     // Anything not on the bottom bar has to be reachable from the sheet.
@@ -2002,6 +2037,31 @@
     };
 
     /* ---------- shared UI ---------- */
+    /* The header every record card shares. The ten disagreed on the title face (nine
+       serif, TaskCard sans), the subtitle tone (ink-200 on some, ink-300 on others)
+       and the eyebrow markup — the kind of drift nobody notices in one card and
+       everybody feels across ten. */
+    const CardHeader = ({ eyebrow, title, subtitle, badge, onEdit, editLabel = 'Edit' }) => (
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {(eyebrow || badge) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {eyebrow && <div className="text-2xs uppercase text-ink-400">{eyebrow}</div>}
+              {badge}
+            </div>
+          )}
+          <div className="font-display text-lg mt-0.5 truncate">{title}</div>
+          {subtitle && <div className="text-ink-300 text-sm truncate">{subtitle}</div>}
+        </div>
+        {onEdit && (
+          <button onClick={onEdit} aria-label={editLabel} title={editLabel}
+            className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0">
+            <Icon name="edit" size={15}/>
+          </button>
+        )}
+      </div>
+    );
+
     const SectionHeader = ({ title, count, action, hint }) => (
       <div className="flex items-end justify-between gap-3 mb-4">
         <div className="min-w-0">
@@ -2091,7 +2151,7 @@
     const ToastStack = ({ toasts, onDismiss }) => {
       if (!toasts.length) return null;
       return (
-        <div className="fixed top-4 inset-x-3 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none">
+        <div className="fixed inset-x-3 bottom-[calc(var(--bar)+env(safe-area-inset-bottom)+5rem)] md:bottom-auto md:top-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none">
           {toasts.map(t => {
             const tone = TOAST_TONES[t.tone] || TOAST_TONES.ok;
             return (
@@ -2432,11 +2492,11 @@
             /* The work block leads the page, so when there is none it still needs to
                say so — otherwise Today opens on a lone counter. Money dates and
                charges have their own sections below and are not work. */
-            <div className="card px-5 py-4 flex items-center gap-3.5">
+            <div className="card px-5 py-4 flex items-center gap-3.5 flex-wrap sm:flex-nowrap">
               <div className="w-9 h-9 rounded-xl bg-sage-400/12 grid place-items-center text-sage-400 shrink-0">
                 <Icon name="check" size={17} />
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-0 min-w-[10rem]">
                 <div className="text-sm text-ink-100">Nothing needs you</div>
                 <div className="text-xs text-ink-400">No overdue items and the next 30 days are clear.</div>
               </div>
@@ -2709,7 +2769,7 @@
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="text-sm font-medium text-ink-100">{g.title}</div>
                         {g.property && (
-                          <span className="text-2xs uppercase tracking-wider text-ink-400 px-1.5 py-0.5 rounded border border-ink-600">
+                          <span className="text-2xs uppercase text-ink-400 px-1.5 py-0.5 rounded border border-ink-600">
                             {g.property === '1619 Seattle' ? 'Seattle' : 'Sun Valley'}
                           </span>
                         )}
@@ -2744,7 +2804,7 @@
                   <button key={w.id} onClick={()=>setView('wine')} className="card p-4 text-left hover:border-gold-400/40 transition">
                     <div className="text-xs uppercase tracking-wider text-ink-400 mb-1">{w.region}</div>
                     <div className="font-display text-base leading-snug">{w.producer}</div>
-                    <div className="text-ink-200 text-sm">{w.label}</div>
+                    <div className="text-ink-300 text-sm">{w.label}</div>
                     <div className="text-ink-300 text-xs mt-1">{w.vintage} · {w.varietal}</div>
                     <div className="mt-3 flex items-center justify-between">
                       <Pill tone="ok" dot>peak {w.drinkStart}–{w.drinkEnd}</Pill>
@@ -2953,7 +3013,7 @@ const MERCURY_EQUITY = {
       granted:5644, vested:705, settled:0, vesting:null,
       detail:'Vesting schedule not in the Carta export — the vested count is Carta’s reported figure, not computed here. Nothing settled yet.' },
   ],
-  notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet. Share counts are hard facts; the dollar figures are indicative — they come from secondary-market marks, not a 409A, so they read high. The vested figure feeds the household total and carries that caveat with it.',
+  notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet.',
 };
 
 /* Every tranche a cliff-then-monthly schedule produces: [{date, shares, cumulative}]. */
@@ -4081,8 +4141,8 @@ const PortfolioView = () => {
             ))}
           </div>
           <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
-            {MERCURY_EQUITY.company} via {MERCURY_EQUITY.source}, {fmtDate(MERCURY_EQUITY.asOf)}. Vested counts are computed from each grant’s schedule; dollars are priced off
-            the {mercuryRange.ref.source} secondary mark (${mercuryRange.ref.price.toFixed(2)}/sh, {fmtDate(mercuryRange.ref.asOf)}) — an upper bound, not a 409A, and the household total inherits that caveat.
+            {MERCURY_EQUITY.company} via {MERCURY_EQUITY.source}, {fmtDate(MERCURY_EQUITY.asOf)}. Counts computed from each grant’s schedule; dollars at the
+            {mercuryRange.ref.source} mark, ${mercuryRange.ref.price.toFixed(2)}/sh.
             {mercury.discrepancies.length > 0 && ' Carta’s stored vested figure disagrees on ' + mercury.discrepancies.map(g => g.id).join(', ') + ' — see the tab.'}
           </div>
         </div>
@@ -4155,17 +4215,24 @@ const CashAtRestCard = () => {
           </tbody>
         </table>
       </div>
-      <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+      <div className="mt-3 pt-3 border-t border-ink-700 space-y-2">
         {(() => {
           const mms = BANKING.accounts.find(a => /Money Market Savings/i.test(a.name));
           if (!mms || mms.intYtd == null) return null;
-          const days = 211;   // 1 Jan to the 29 Jul statement date
-          const annualised = mms.intYtd * 365 / days;
-          return `Reality check: ${fmtMoney(mms.intYtd)} of interest on ${fmtMoney(mms.value)} through ${fmtDate(BANKING.asOf)} annualises to about ${fmtMoney(annualised)} — ${(annualised / mms.value * 100).toFixed(3)}%, below even the ${mms.apy}% the statement claims. `;
+          const annualised = mms.intYtd * 365 / 211;   // 1 Jan to the 29 Jul statement date
+          return (
+            <p className="text-xs text-ember-400/90 leading-relaxed">
+              The posted rate is optimistic: {fmtMoney(mms.intYtd)} of interest on {fmtMoney(mms.value)} through {fmtDate(BANKING.asOf)}
+              annualises to about {fmtMoney(annualised)} — {(annualised / mms.value * 100).toFixed(3)}%, under half the {mms.apy}% the statement claims.
+              {foregone > 0 && ` Since that statement the gap has cost about ${fmtMoney(foregone)}.`}
+            </p>
+          );
         })()}
-        Rates marked ? are not in the statement data and are assumed at {CASH_SWEEP_APY}%. The Merrill sweep is a same-account switch into a money-market fund;
-        the bank balance is a Preferred Deposit or T-bill decision. Washington has no income tax, so a Treasury's state exemption is worth nothing here — pick on yield.
-        {foregone > 0 && ` Since the ${fmtDate(BANKING.asOf)} statement, the gap has cost about ${fmtMoney(foregone)}.`}
+        <p className="text-xs text-ink-400 leading-relaxed">
+          Two different decisions: the Merrill sweep is a same-account switch into a money-market fund; the bank balance is a Preferred
+          Deposit or T-bill move. Washington has no income tax, so a Treasury's state exemption is worth nothing here — pick on yield.
+        </p>
+        <p className="text-xs text-ink-400">Rates marked ? are not in the statement data and are assumed at {CASH_SWEEP_APY}%.</p>
       </div>
     </div>
   );
@@ -4211,12 +4278,12 @@ const DafPanel = () => {
           action={<a href="https://bofa.donorfirst.org" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> DAF login</a>} />
         <div className="flex flex-wrap items-end gap-2 mb-4">
           <div>
-            <label htmlFor="hq-f3" className="block text-2xs uppercase tracking-wider text-ink-400 mb-1">New balance</label>
+            <label htmlFor="hq-f3" className="block text-2xs uppercase text-ink-400 mb-1">New balance</label>
             <input id="hq-f3" value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter') submit(); }} placeholder="$54,000"
               className="w-32 bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 placeholder-ink-400 focus:border-gold-400/50 outline-none" />
           </div>
           <div>
-            <label htmlFor="hq-f4" className="block text-2xs uppercase tracking-wider text-ink-400 mb-1">Date</label>
+            <label htmlFor="hq-f4" className="block text-2xs uppercase text-ink-400 mb-1">Date</label>
             <input id="hq-f4" type="date" value={date} onChange={e=>setDate(e.target.value)}
               className="bg-ink-900 border border-ink-600 rounded-lg px-3 py-2 text-sm text-ink-100 focus:border-gold-400/50 outline-none" />
           </div>
@@ -4232,7 +4299,7 @@ const DafPanel = () => {
                 <span className="text-ink-100 tabular-nums">{fmtMoney(e.value)}</span>
                 {d != null && <span className={`text-xs tabular-nums ${d >= 0 ? 'text-sage-400' : 'text-ember-400'}`}>{d >= 0 ? '+' : ''}{fmtMoneyK(d)}</span>}
                 <span className="text-ink-400 text-xs flex-1 truncate">{e.note || ''}</span>
-                <button onClick={() => { if (window.confirm('Delete this entry?')) ctx.deleteDafValue(e.id); }}
+                <button onClick={() => ctx.deleteWithUndo('dafValues', e, 'balance entry')}
                   className="md:opacity-0 md:group-hover/daf:opacity-100 transition text-ink-400 hover:text-ember-400 p-2 -m-1"><Icon name="x" size={12}/></button>
               </div>
             );
@@ -4324,10 +4391,8 @@ const OutsideMerrillPanel = ({ scope }) => {
           <PortfolioStat label="Cost to exercise all" value={fmtMoney(v.exerciseCost)} />
         </div>
         <div className="text-xs text-ink-400 -mt-1">
-          {MERCURY_EQUITY.holder} · {MERCURY_EQUITY.source} export as of {fmtDate(MERCURY_EQUITY.asOf)}. Share counts are computed from the vesting schedules;
-          dollar figures below are indicative — priced off secondary-market marks, not a 409A, so they read high.
-          The vested figure at the {ref.source} mark ({fmtMoney(range.ref.value.vestedValue)}) is what feeds the household total.
-          {v.vestedExerciseCost ? ` Exercising just the vested portion costs ${fmtMoney(v.vestedExerciseCost)}.` : ''}
+          {MERCURY_EQUITY.holder} · {MERCURY_EQUITY.source} export as of {fmtDate(MERCURY_EQUITY.asOf)}. Share counts are computed from the vesting schedules.
+          {v.vestedExerciseCost ? ` Exercising the vested portion costs ${fmtMoney(v.vestedExerciseCost)}.` : ''}
         </div>
 
         {/* Indicative value — secondary marks, deliberately kept separate from the share-count facts above. */}
@@ -4383,16 +4448,23 @@ const OutsideMerrillPanel = ({ scope }) => {
               </tbody>
             </table>
           </div>
-          <div className="text-xs text-ember-400/90 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
-            These are preferred and secondary prices, not a 409A. A 409A values <em>common</em> stock and sits materially below them, because preferred
-            carries liquidation preferences and protections common doesn’t — so treat every figure here as an upper bound, not a valuation.
-            The per-share numbers come from secondary marketplaces working back from headline valuation and an estimated share count, not from a filing.
-            The vested figure at the {ref.source} mark is included in the household total, so that total carries the same upper-bound caveat until a real 409A replaces it.
-          </div>
-          <div className="text-xs text-ink-400 mt-2 leading-relaxed">
-            For the real number: Carta shows the current common FMV on the holdings page and in the exercise flow. Drop it in and this section prices properly.
-            {opt && <>The {opt.id} strike of ${opt.strike.toFixed(2)} was itself the 409A in force at the {fmtDate(opt.issued)} grant date — the company has since gone from a $3.5B Series C to $5.2B.</>}
-          </div>
+          <details className="mt-3 pt-3 border-t border-ink-700 group/why">
+            <summary className="text-xs text-ink-300 cursor-pointer list-none flex items-center gap-1.5 hover:text-gold-300">
+              <Icon name="chevR" size={11} className="transition-transform group-open/why:rotate-90" />
+              Why these are an upper bound, and where the real number lives
+            </summary>
+            <div className="text-xs text-ink-400 mt-2.5 leading-relaxed space-y-2">
+              <p>
+                A 409A values <em>common</em> stock. These marks are preferred and secondary prices, which sit materially above it because
+                preferred carries liquidation preferences and protections common doesn’t — so every figure here is a ceiling, not a valuation.
+                The per-share numbers come from secondary marketplaces working back from a headline valuation and an estimated share count, not from a filing.
+              </p>
+              <p>
+                Carta shows the current common FMV on the holdings page and in the exercise flow. Drop it in and this section prices properly.
+                {opt && <> The {opt.id} strike of ${opt.strike.toFixed(2)} was itself the 409A in force at the {fmtDate(opt.issued)} grant date — the company has since gone from a $3.5B Series C to $5.2B.</>}
+              </p>
+            </div>
+          </details>
         </div>
 
         {v.discrepancies.length > 0 && (
@@ -4787,7 +4859,7 @@ const SuggestionRow = ({ s, accent }) => {
           {!s.done && <SuggestionEvidence id={s.id} />}
           {s.source && <div className="text-2xs text-ink-400 mt-1.5">{s.source}</div>}
         </div>
-        <button onClick={() => { if (window.confirm('Delete this suggestion?')) ctx.deleteSuggestion(s.id); }}
+        <button onClick={() => ctx.deleteWithUndo('suggestions', s, 'suggestion')}
           aria-label="Delete suggestion"
           className="shrink-0 md:opacity-0 md:group-hover/sg:opacity-100 transition text-ink-400 hover:text-ember-400 p-2 -m-1">
           <Icon name="x" size={13} />
@@ -4921,21 +4993,21 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="text-xs mt-1"><span className="text-gold-300 tabular-nums font-medium">{fmtMoney(householdTotal())}</span> <span className="text-ink-400">household — incl. bank cash, 529s & vested equity comp</span></div>
         </div>
         <div className="rounded-xl border border-gold-400/40 bg-gold-400/8 px-3 py-2 grid place-items-center text-center shrink-0">
-          <div className="text-2xs uppercase tracking-wider text-ink-400">Grade</div>
+          <div className="text-2xs uppercase text-ink-400">Grade</div>
           <div className="font-display text-2xl text-gold-400 leading-none">{d.grade?.overall || 'B−'}</div>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div>
-          <div className="text-2xs uppercase tracking-wider text-ink-400">Concentration</div>
+          <div className="text-2xs uppercase text-ink-400">Concentration</div>
           <div className={`tabular-nums mt-0.5 ${conc > 25 ? 'text-ember-400' : 'text-ink-100'}`}>{conc.toFixed(0)}% PLTR+AMZN</div>
         </div>
         <div>
-          <div className="text-2xs uppercase tracking-wider text-ink-400">Idle cash</div>
+          <div className="text-2xs uppercase text-ink-400">Idle cash</div>
           <div className={`tabular-nums mt-0.5 ${cashP > 8 ? 'text-gold-400' : 'text-ink-100'}`}>{fmtMoneyK(idle.total)} · {cashP.toFixed(0)}%</div>
         </div>
         <div>
-          <div className="text-2xs uppercase tracking-wider text-ink-400">Suggestions</div>
+          <div className="text-2xs uppercase text-ink-400">Suggestions</div>
           <div className="tabular-nums mt-0.5 text-ink-100">{suggOpen} open{suggDone ? ` · ${suggDone} done` : ''}</div>
         </div>
       </div>
@@ -5197,7 +5269,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {applied.length === 0 ? (
               <div className="text-center py-6">
                 <div className="w-11 h-11 rounded-xl bg-sage-400/10 grid place-items-center text-sage-400 mx-auto mb-3"><Icon name="check" size={20}/></div>
-                <div className="text-ink-200 text-sm">You're up to date.</div>
+                <div className="text-ink-300 text-sm">You're up to date.</div>
                 <div className="text-ink-400 text-xs mt-1">
                   {skipped > 0
                     ? `${skipped} update${skipped===1?'':'s'} in the scan didn't match anything here — they'll be retried on the next refresh.`
@@ -5307,8 +5379,8 @@ const PortfolioWidget = ({ onOpen }) => {
                 <div className="text-xs uppercase tracking-wider text-ink-400">{v.serviceType}</div>
                 {v.placeholder && <PlaceholderBadge/>}
               </div>
-              <div className="font-display text-lg leading-tight mt-0.5">{v.company}</div>
-              <div className="text-ink-200 text-sm">{v.name}</div>
+              <div className="font-display text-lg mt-0.5 truncate">{v.company}</div>
+              <div className="text-ink-300 text-sm">{v.name}</div>
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
@@ -5367,9 +5439,7 @@ const PortfolioWidget = ({ onOpen }) => {
         ctx.showToast(isNew?'Vendor added':'Vendor updated');
         onClose();
       };
-      const remove = () => {
-        if (window.confirm(`Delete ${vendor.company}?`)) { ctx.deleteVendor(vendor.id); ctx.showToast('Vendor deleted'); onClose(); }
-      };
+      const remove = () => { ctx.deleteWithUndo('vendors', vendor, vendor.company || vendor.name); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add vendor':'Edit vendor'} subtitle={isNew?'Takes about 30 seconds.':v.company} onClose={onClose} />
@@ -5524,8 +5594,8 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="card p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-sm font-medium leading-snug">{m.name}</div>
-              <div className="text-ink-300 text-xs mt-0.5">{freqLabel(m.freq)}{m.estimatedCost?` · ~$${m.estimatedCost}`:''}</div>
+              <div className="font-display text-lg mt-0.5 truncate">{m.name}</div>
+              <div className="text-ink-300 text-sm">{freqLabel(m.freq)}{m.estimatedCost?` · ~$${m.estimatedCost}`:''}</div>
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
@@ -5566,7 +5636,7 @@ const PortfolioWidget = ({ onOpen }) => {
         ctx.showToast(isNew?'Task added':'Task updated');
         onClose();
       };
-      const remove = () => { if (window.confirm(`Delete ${task.name}?`)) { ctx.deleteTask(task.id); ctx.showToast('Task deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('maintenance', task, task.name); onClose(); };
       const vendors = ctx.state.vendors;
       return (
         <>
@@ -5774,8 +5844,8 @@ const PortfolioWidget = ({ onOpen }) => {
                 <div className="text-xs uppercase tracking-wider text-ink-400">{a.room || '—'}</div>
                 {a.placeholder && <PlaceholderBadge/>}
               </div>
-              <div className="font-display text-lg leading-tight mt-0.5">{a.name}</div>
-              {(brand || model) && <div className="text-ink-200 text-sm">{brand} {model && <span className="text-ink-300">· {model}</span>}</div>}
+              <div className="font-display text-lg mt-0.5 truncate">{a.name}</div>
+              {(brand || model) && <div className="text-ink-300 text-sm">{brand} {model && <span className="text-ink-300">· {model}</span>}</div>}
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
@@ -5810,7 +5880,7 @@ const PortfolioWidget = ({ onOpen }) => {
         ctx.showToast(isNew?'Appliance added':'Appliance updated');
         onClose();
       };
-      const remove = () => { if (window.confirm(`Delete ${appliance.name}?`)) { ctx.deleteAppliance(appliance.id); ctx.showToast('Appliance deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('appliances', appliance, appliance.name); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add appliance':'Edit appliance'} subtitle={isNew?'Capture the basics — fill in the rest later.':a.name} onClose={onClose} />
@@ -5871,7 +5941,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>
           </div>
           {list.length === 0 ? (
-            <Empty icon="shield" title="No policies yet" body="Add your first policy." cta={<Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>} />
+            <Empty icon="shield" title="No policies yet" body="Carriers, policy numbers and renewal dates, so a lapse cannot pass unnoticed." cta={<Btn icon="plus" onClick={()=>open(null)}>Add policy</Btn>} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(p => <InsuranceCard key={p.id} p={p} onEdit={()=>open(p)} />)}
@@ -5891,7 +5961,7 @@ const PortfolioWidget = ({ onOpen }) => {
                 <div className="text-xs uppercase tracking-wider text-ink-400">{p.type}{p.property ? ` · ${p.property}` : ''}</div>
                 {p.placeholder && <PlaceholderBadge/>}
               </div>
-              <div className="font-display text-lg leading-tight mt-0.5">{p.carrier}</div>
+              <div className="font-display text-lg mt-0.5 truncate">{p.carrier}</div>
               {p.coverageSummary && <div className="text-ink-300 text-sm">{p.coverageSummary}</div>}
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
@@ -5938,7 +6008,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const [v, setV] = useState(item || { type:'home', carrier:'', policyNumber:'', agentName:'', agentPhone:'', agentEmail:'', premium:0, premiumCadence:'annual', renewalDate:'', coverageSummary:'', documentUrl:'', property:scopeDefault, notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addInsurance(v); else ctx.updateInsurance(item.id, v); ctx.showToast(isNew?'Policy added':'Policy updated'); onClose(); };
-      const remove = () => { if (window.confirm(`Delete ${item.carrier}?`)) { ctx.deleteInsurance(item.id); ctx.showToast('Policy deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('insurance', item, `${item.carrier} ${item.type}`.trim()); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add policy':'Edit policy'} subtitle={isNew?'':v.carrier} onClose={onClose} />
@@ -6003,7 +6073,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>
           </div>
           {list.length === 0 ? (
-            <Empty icon="zap" title="No utilities yet" body="Add your first utility account." cta={<Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>} />
+            <Empty icon="zap" title="No utilities yet" body="Account numbers and payment details for both houses, in one place." cta={<Btn icon="plus" onClick={()=>open(null)}>Add utility</Btn>} />
           ) : (
             <div className="space-y-6">
               {Object.entries(grouped).map(([propLabel, items]) => (
@@ -6025,7 +6095,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-wider text-ink-400">{u.kind}</div>
-            <div className="font-display text-lg leading-tight mt-0.5">{u.provider}</div>
+            <div className="font-display text-lg mt-0.5 truncate">{u.provider}</div>
             {u.accountNumber && <div className="text-ink-300 text-xs mt-1 font-mono">{u.accountNumber}</div>}
           </div>
           <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
@@ -6054,7 +6124,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const [v, setV] = useState(item || { kind:'electric', provider:'', accountNumber:'', monthlyEstimate:0, autopay:null, loginUrl:'', contactPhone:'', property:scopeDefault, notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addUtility(v); else ctx.updateUtility(item.id, v); ctx.showToast(isNew?'Utility added':'Utility updated'); onClose(); };
-      const remove = () => { if (window.confirm(`Delete ${item.provider}?`)) { ctx.deleteUtility(item.id); ctx.showToast('Deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('utilities', item, item.provider); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add utility':'Edit utility'} subtitle={isNew?'':v.provider} onClose={onClose} />
@@ -6112,7 +6182,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>
           </div>
           {list.length === 0 ? (
-            <Empty icon="key" title="No property records yet" body="Add your first property record." cta={<Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>} />
+            <Empty icon="key" title="No property records yet" body="Mortgages, HOA dues, property taxes and warranties — with their next due dates on Today." cta={<Btn icon="plus" onClick={()=>open(null)}>Add record</Btn>} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(p => <PropertyCard key={p.id} p={p} onEdit={()=>open(p)} />)}
@@ -6132,7 +6202,7 @@ const PortfolioWidget = ({ onOpen }) => {
                 <div className="text-xs uppercase tracking-wider text-ink-400">{(p.kind||'').replace('_',' ')}{p.property ? ` · ${p.property}` : ''}</div>
                 {p.placeholder && <PlaceholderBadge/>}
               </div>
-              <div className="font-display text-lg leading-tight mt-0.5">{p.label}</div>
+              <div className="font-display text-lg mt-0.5 truncate">{p.label}</div>
               {p.contact && <div className="text-ink-300 text-sm">{p.contact}</div>}
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
@@ -6164,7 +6234,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const [v, setV] = useState(item || { kind:'mortgage', label:'', contact:'', phone:'', email:'', loginUrl:'', amount:0, cadence:'monthly', nextDue:'', property:scopeDefault, notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addProperty(v); else ctx.updateProperty(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
-      const remove = () => { if (window.confirm(`Delete ${item.label}?`)) { ctx.deleteProperty(item.id); ctx.showToast('Deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('property', item, item.label); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add property record':'Edit'} subtitle={isNew?'':v.label} onClose={onClose} />
@@ -6301,8 +6371,8 @@ const PortfolioWidget = ({ onOpen }) => {
                         )}
                         <button onClick={()=>{ ctx.updateSubscription(s.id, { confidence:'confirmed', verifiedAt: toISO(today()) }); ctx.showToast(`${s.name} confirmed`); }}
                           className="px-2.5 py-1.5 rounded-lg text-xs bg-sage-500/15 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20">Confirm</button>
-                        <button onClick={()=>{ if (window.confirm(`Delete ${s.name}? It won't come back on reload.`)) { ctx.deleteSubscription(s.id); ctx.showToast(`${s.name} deleted`); } }}
-                          className="px-2.5 py-1.5 rounded-lg text-xs bg-ember-500/12 text-ember-400 border border-ember-500/25 hover:bg-ember-500/20">Cancelled</button>
+                        <button onClick={()=>ctx.deleteWithUndo('subscriptions', s, s.name)}
+                          className="px-2.5 py-1.5 rounded-lg text-xs bg-ember-500/12 text-ember-400 border border-ember-500/25 hover:bg-ember-500/20">Remove</button>
                       </div>
                     </div>
                   ))}
@@ -6311,7 +6381,7 @@ const PortfolioWidget = ({ onOpen }) => {
             )}
           </>)}
           {list.length === 0 ? (
-            <Empty icon="receipt" title="No subscriptions yet" body="Add your first subscription." cta={<Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>} />
+            <Empty icon="receipt" title="No subscriptions yet" body="Recurring charges show up on Today once they are here — cost, cadence and where to manage each one." cta={<Btn icon="plus" onClick={()=>open(null)}>Add subscription</Btn>} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(s => <SubscriptionCard key={s.id} s={s} onEdit={()=>open(s)} />)}
@@ -6330,7 +6400,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-ink-400">{s.category}</div>
-              <div className="font-display text-lg leading-tight mt-0.5">{s.name}</div>
+              <div className="font-display text-lg mt-0.5 truncate">{s.name}</div>
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
@@ -6362,7 +6432,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const [v, setV] = useState(item || { name:'', category:'streaming', cost:0, cadence:'monthly', renewalDate:'', url:'', notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addSubscription(v); else ctx.updateSubscription(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
-      const remove = () => { if (window.confirm(`Delete ${item.name}?`)) { ctx.deleteSubscription(item.id); ctx.showToast('Deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('subscriptions', item, item.name); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add subscription':'Edit'} subtitle={isNew?'':v.name} onClose={onClose} />
@@ -6412,7 +6482,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>
           </div>
           {list.length === 0 ? (
-            <Empty icon="car" title="No vehicles yet" body="Add your first car." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>} />
+            <Empty icon="car" title="No vehicles yet" body="VINs, service contracts and warranty dates, so a claim call takes one tap." cta={<Btn icon="plus" onClick={()=>open(null)}>Add vehicle</Btn>} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(v => <VehicleCard key={v.id} v={v} onEdit={()=>open(v)} />)}
@@ -6429,7 +6499,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-ink-400">{v.year || ''} {v.make}</div>
-              <div className="font-display text-lg leading-tight mt-0.5">{v.model}{v.trim?` ${v.trim}`:''}</div>
+              <div className="font-display text-lg mt-0.5 truncate">{v.model}{v.trim?` ${v.trim}`:''}</div>
               {v.primaryDriver && <div className="text-ink-300 text-sm">Driver: {v.primaryDriver}</div>}
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
@@ -6457,7 +6527,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const [v, setV] = useState(item || { year:'', make:'', model:'', trim:'', vin:'', color:'', primaryDriver:'', warrantyProvider:'', warrantyContact:'', warrantyExpires:'', insurancePolicyId:'', notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addVehicle(v); else ctx.updateVehicle(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
-      const remove = () => { if (window.confirm(`Delete ${item.make} ${item.model}?`)) { ctx.deleteVehicle(item.id); ctx.showToast('Deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('vehicles', item, `${item.make||''} ${item.model||''}`.trim()); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add vehicle':'Edit vehicle'} subtitle={isNew?'':`${v.make} ${v.model}`} onClose={onClose} />
@@ -6505,7 +6575,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>
           </div>
           {list.length === 0 ? (
-            <Empty icon="heart" title="No benefits yet" body="Add your first benefit." cta={<Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>} />
+            <Empty icon="heart" title="No benefits yet" body="Member and group numbers, in a card you can read out at an appointment." cta={<Btn icon="plus" onClick={()=>open(null)}>Add benefit</Btn>} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {list.map(b => <BenefitCard key={b.id} b={b} onEdit={()=>open(b)} />)}
@@ -6520,7 +6590,7 @@ const PortfolioWidget = ({ onOpen }) => {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-wider text-ink-400">{b.type}</div>
-            <div className="font-display text-lg leading-tight mt-0.5">{b.provider}</div>
+            <div className="font-display text-lg mt-0.5 truncate">{b.provider}</div>
           </div>
           <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
         </div>
@@ -6545,7 +6615,7 @@ const PortfolioWidget = ({ onOpen }) => {
       const [v, setV] = useState(item || { type:'medical', provider:'', memberID:'', groupID:'', loginUrl:'', notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addBenefit(v); else ctx.updateBenefit(item.id, v); ctx.showToast(isNew?'Added':'Updated'); onClose(); };
-      const remove = () => { if (window.confirm(`Delete ${item.provider}?`)) { ctx.deleteBenefit(item.id); ctx.showToast('Deleted'); onClose(); } };
+      const remove = () => { ctx.deleteWithUndo('benefits', item, item.provider); onClose(); };
       return (
         <>
           <ModalHeader title={isNew?'Add benefit':'Edit benefit'} subtitle={isNew?'':v.provider} onClose={onClose} />
@@ -6740,9 +6810,7 @@ const PortfolioWidget = ({ onOpen }) => {
         onClose();
       };
       const remove = () => {
-        if (window.confirm(`Remove ${w.producer} ${w.label} from the cellar?`)) {
-          ctx.deleteBottle(bottle.id); ctx.showToast('Bottle removed'); onClose();
-        }
+        ctx.deleteWithUndo('wine', w, `${w.producer||''} ${w.label||''}`.trim());
       };
       return (
         <>
@@ -6788,8 +6856,8 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-ink-400">{w.region || '—'}</div>
-              <div className="font-display text-lg leading-tight mt-0.5">{w.producer}</div>
-              <div className="text-ink-200 text-sm">{w.label}</div>
+              <div className="font-display text-lg mt-0.5 truncate">{w.producer}</div>
+              <div className="text-ink-300 text-sm">{w.label}</div>
               <div className="text-ink-300 text-xs mt-1">{w.vintage} · {w.varietal}</div>
             </div>
             <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
