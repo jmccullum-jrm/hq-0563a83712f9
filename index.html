@@ -3496,18 +3496,32 @@ const PortfolioView = () => {
   const mercury = mercuryVesting();
   const mercuryRange = mercuryValueRange(mercury);
 
+  /* Fifteen scopes in one horizontally-scrolling row with the scrollbar hidden meant
+     seven of them — every account held outside Merrill, including both equity
+     positions — were off the right edge with nothing to suggest they existed. They
+     wrap into two labelled groups now: the brokerage accounts, and everything held
+     elsewhere. Nothing is hidden at any width. */
+  const scopePill = (a, label) => (
+    <button key={a} onClick={() => setScope(a)}
+       className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
+         scope === a
+           ? 'bg-gradient-to-b from-gold-400 to-gold-500 border-gold-500 text-ink-900'
+           : 'border-ink-600 text-ink-200 hover:bg-ink-800 hover:border-ink-500'
+       }`}>
+      {label}
+    </button>
+  );
   const pillsRow = (
-    <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
-      {accounts.map(a => (
-        <button key={a} onClick={() => setScope(a)}
-           className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
-             scope === a
-               ? 'bg-gradient-to-b from-gold-400 to-gold-500 border-gold-500 text-ink-900'
-               : 'border-ink-600 text-ink-200 hover:bg-ink-800'
-           }`}>
-          {a === '__all__' ? 'All Accounts' : a}
-        </button>
-      ))}
+    <div className="space-y-2">
+      <div className="flex gap-2 flex-wrap items-center">
+        {scopePill('__all__', 'All Accounts')}
+        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-400 pl-1 pr-0.5">Merrill</span>
+        {d.accounts.map(a => scopePill(a.name, a.name))}
+      </div>
+      <div className="flex gap-2 flex-wrap items-center">
+        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-400 pr-0.5">Held elsewhere</span>
+        {OUTSIDE_SCOPES.map(a => scopePill(a, a))}
+      </div>
     </div>
   );
 
