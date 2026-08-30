@@ -195,15 +195,22 @@
       if (!url) return null;
       try {
         const u = new URL(url);
-        if (!u.hostname.endsWith('box.com')) return null;
+        // Dotted suffix, not a bare one: 'dropbox.com'.endsWith('box.com') is true.
+        if (u.hostname !== 'box.com' && u.hostname !== 'app.box.com' && !u.hostname.endsWith('.box.com')) return null;
         const m = u.pathname.match(/^\/s\/([^/]+)/);
         if (m) return `https://app.box.com/embed/s/${m[1]}`;
       } catch {}
       return null;
     };
 
-    const isBoxLink = (url) => {
-      try { return new URL(url).hostname.endsWith('box.com'); } catch { return false; }
+    /* Only ever put http(s) in an href. These URLs come from records the user (or the
+       updates feed) supplies, and a javascript: URL in one would run on click. */
+    const safeUrl = (url) => {
+      if (!url) return null;
+      try {
+        const u = new URL(String(url), window.location.href);
+        return (u.protocol === 'http:' || u.protocol === 'https:') ? u.href : null;
+      } catch { return null; }
     };
 
     /* ---------- Box upload (per-section + catchall folders) ---------- */
@@ -684,7 +691,7 @@
                     <div key={x.id} className="card p-4 md:p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="font-display text-base leading-tight">{x.service}</div>
-                        {x.url && <a href={x.url} target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1 shrink-0"><Icon name="link" size={12}/> Log in</a>}
+                        {safeUrl(x.url) && <a href={safeUrl(x.url)} target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1 shrink-0"><Icon name="link" size={12}/> Log in</a>}
                       </div>
                       <div className="mt-2.5 space-y-1 text-xs">
                         {(x.fields||[]).map(([k,v],i) => {
@@ -1038,9 +1045,15 @@
           }
           let payload;
           try { payload = await decryptBlob(doc.blob, pw); }
-          catch {
-            try { localStorage.removeItem(HOUSE_KEY); } catch {}
-            if (manual) showToast("Password didn't match — hit Refresh again");
+          catch (ex) {
+            // Only a genuine decryption failure means the stored key is wrong. A
+            // malformed or truncated feed used to clear it too, silently logging the
+            // device out of updates until someone retyped the household password.
+            const looksLikeBadKey = !!doc.blob && typeof doc.blob === 'string';
+            if (looksLikeBadKey) { try { localStorage.removeItem(HOUSE_KEY); } catch {} }
+            if (manual) showToast(looksLikeBadKey
+              ? "Password didn't match — hit Refresh again"
+              : "The updates feed looks malformed — nothing was applied");
             return;
           }
           if (pwOverride) { try { localStorage.setItem(HOUSE_KEY, btoa(pw)); } catch {} }
@@ -2397,10 +2410,11 @@ const equityVesting = () => {
 };
 
 /* ---------- Amanda — Mercury Technologies equity (Carta) ---------- */
-/* Share counts only. No 409A / preferred price on hand for Mercury, so nothing
-   here is valued in dollars and nothing rolls into householdTotal() — unlike the
-   Anthropic block above, which has a per-share valuation to price against.
-   Add a `MERCURY_FMV` here the day Carta shows one. */
+/* No 409A on hand for Mercury, so the dollar figures below are priced off public
+   secondary-market marks (see MERCURY_MARKS) rather than a real common valuation.
+   The vested figure at the reference mark DOES feed householdTotal(), and every
+   surface that shows it says the number is indicative. Replace MERCURY_MARKS with a
+   MERCURY_FMV the day Carta shows a real one. */
 const MERCURY_EQUITY = {
   holder: 'Amanda',
   company: 'Mercury Technologies',
@@ -2436,8 +2450,18 @@ const vestingTranches = (vs, granted) => {
     cum += shares;
     out.push({ date, shares, cumulative: cum });
   }
-  // Remainder from an uneven schedule lands on the stated fully-vested date.
-  if (cum < granted && vs.fullyVestedDate) out.push({ date: vs.fullyVestedDate, shares: granted - cum, cumulative: granted });
+  // Remainder from an uneven schedule. Merge it into the last tranche when that
+  // already falls on the fully-vested date, rather than emitting a second tranche
+  // for the same day (duplicate key, date counted twice in the upcoming list).
+  if (cum < granted && vs.fullyVestedDate) {
+    const last = out[out.length - 1];
+    if (last && last.date === vs.fullyVestedDate) {
+      last.shares += granted - cum;
+      last.cumulative = granted;
+    } else {
+      out.push({ date: vs.fullyVestedDate, shares: granted - cum, cumulative: granted });
+    }
+  }
   return out;
 };
 
@@ -3653,7 +3677,9 @@ const OutsideMerrillPanel = ({ scope }) => {
   }
   if (scope === 'Amanda — Mercury Equity') {
     const v = mercuryVesting();
-    const opt = v.grants.find(g => g.vesting) || null;
+    // Identified by the field that defines it rather than by position: indexing
+    // grants[0] threw the moment the array was reordered or the option grant removed.
+    const opt = v.grants.find(g => g.strike != null) || v.grants.find(g => g.vesting) || null;
     const nowISO = toISO(today());
     const upcoming = opt ? opt.tranches.filter(t => t.date > nowISO).slice(0, 6) : [];
     const vestRel = (d) => !d ? '—' : (d <= nowISO ? 'vested' : fmtRelative(d));
@@ -3663,7 +3689,8 @@ const OutsideMerrillPanel = ({ scope }) => {
       <div className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <PortfolioStat label="Granted" value={v.granted.toLocaleString() + ' sh'} />
-          <PortfolioStat label="Vested · computed" value={v.vested.toLocaleString() + ' sh'} tone="ok" />
+          <PortfolioStat label={v.grants.some(g => g.computedVested == null) ? 'Vested' : 'Vested · computed'}
+            value={v.vested.toLocaleString() + ' sh'} tone="ok" />
           <PortfolioStat label="Unvested" value={v.unvested.toLocaleString() + ' sh'} />
           <PortfolioStat label="Cost to exercise all" value={fmtMoney(v.exerciseCost)} />
         </div>
@@ -3677,7 +3704,7 @@ const OutsideMerrillPanel = ({ scope }) => {
         {/* Indicative value — secondary marks, deliberately kept separate from the share-count facts above. */}
         <div className="card p-4 md:p-5">
           <SectionHeader title="Indicative value"
-            hint={`No 409A on hand, so this is priced off public secondary-market marks. Options at the spread over the $${v.grants[0].strike.toFixed(2)} strike, RSUs at the full mark.`}
+            hint={`No 409A on hand, so this is priced off public secondary-market marks.${opt ? ` Options at the spread over the $${opt.strike.toFixed(2)} strike,` : ''} RSUs at the full mark.`}
             action={<Pill tone="soon">indicative</Pill>} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
@@ -3735,7 +3762,7 @@ const OutsideMerrillPanel = ({ scope }) => {
           </div>
           <div className="text-[11px] text-ink-400 mt-2 leading-relaxed">
             For the real number: Carta shows the current common FMV on the holdings page and in the exercise flow. Drop it in and this section prices properly.
-            The {v.grants[0].id} strike of ${v.grants[0].strike.toFixed(2)} was itself the 409A in force at the {fmtDate(v.grants[0].issued)} grant date — the company has since gone from a $3.5B Series C to $5.2B.
+            {opt && <>The {opt.id} strike of ${opt.strike.toFixed(2)} was itself the 409A in force at the {fmtDate(opt.issued)} grant date — the company has since gone from a $3.5B Series C to $5.2B.</>}
           </div>
         </div>
 
@@ -3871,7 +3898,11 @@ const OutsideMerrillPanel = ({ scope }) => {
           <PortfolioStat label="Valuation / share" value={'$' + EQUITY_FMV.price.toFixed(2)} />
         </div>
         <div className="text-[11px] text-ink-400 -mt-1">
-          Options are valued net of the $176.57/sh exercise cost — $412.44/sh spread at the $589.01 valuation. RSUs at full value (no exercise cost).
+          {(() => {
+            const o = EQUITY_COMP.grants.find(g => g.strike != null);
+            if (!o) return 'RSUs at full value (no exercise cost).';
+            return `Options are valued net of the $${o.strike.toFixed(2)}/sh exercise cost — $${(EQUITY_FMV.price - o.strike).toFixed(2)}/sh spread at the $${EQUITY_FMV.price.toFixed(2)} valuation. RSUs at full value (no exercise cost).`;
+          })()}
         </div>
         <div className="card p-4 md:p-5">
           <SectionHeader title="Grants" hint={EQUITY_COMP.issuer + ` — valued at $${EQUITY_FMV.price.toFixed(2)}/sh (options at spread). Click a grant to open the agreement in Box.`} />
@@ -5040,7 +5071,10 @@ const PortfolioWidget = ({ onOpen }) => {
     };
 
     /* ===================== INSURANCE ===================== */
-    const INS_TYPES = ['home','auto','umbrella','life','flood','earthquake','other'];
+    /* A <select> whose options cannot represent the stored value silently rewrites it
+       on save — the seeded Zurich and Protective policies all carried types not on
+       this list. The stored value is always offered. */
+    const INS_TYPES = ['home','auto','umbrella','life','flood','earthquake','extended warranty','term life','other'];
     const InsuranceView = () => {
       const ctx = useContext(Ctx);
       const { state, setModal } = ctx;
@@ -5099,10 +5133,10 @@ const PortfolioWidget = ({ onOpen }) => {
             </div>
           )}
           {p.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{p.notes}</div>}
-          {p.documentUrl && (
+          {safeUrl(p.documentUrl) && (
             <>
               <div className="divider my-4"/>
-              <a href={p.documentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open carrier portal</a>
+              <a href={safeUrl(p.documentUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open carrier portal</a>
             </>
           )}
           <LinkChips links={p.links} entityKind="insurance" entityId={p.id} />
@@ -5125,7 +5159,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="grid grid-cols-2 gap-3">
               <div><label htmlFor="hq-f38">Type</label>
                 <select id="hq-f38" value={v.type} onChange={e=>setF('type', e.target.value)}>
-                  {INS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  {[...new Set([...(v.type ? [v.type] : []), ...INS_TYPES])].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div><label htmlFor="hq-f39">Property (optional)</label><PropertySelect id="hq-f39" value={v.property} onChange={val=>setF('property', val)}/></div>
@@ -5218,7 +5252,7 @@ const PortfolioWidget = ({ onOpen }) => {
           <>
             <div className="divider my-4"/>
             <div className="flex items-center gap-3 text-sm">
-              {u.loginUrl && <a href={u.loginUrl} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
+              {safeUrl(u.loginUrl) && <a href={safeUrl(u.loginUrl)} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
               {u.contactPhone && <a href={`tel:${u.contactPhone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={14}/> {u.contactPhone}</a>}
             </div>
           </>
@@ -5325,7 +5359,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <>
               <div className="divider my-4"/>
               <div className="flex items-center gap-3 text-sm flex-wrap">
-                {p.loginUrl && <a href={p.loginUrl} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
+                {safeUrl(p.loginUrl) && <a href={safeUrl(p.loginUrl)} target="_blank" rel="noreferrer" className="text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={14}/> Portal</a>}
                 {p.phone && <a href={`tel:${p.phone}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="phone" size={14}/> {p.phone}</a>}
                 {p.email && <a href={`mailto:${p.email}`} className="text-ink-200 hover:text-gold-400 inline-flex items-center gap-1"><Icon name="mail" size={14}/> email</a>}
               </div>
@@ -5453,7 +5487,7 @@ const PortfolioWidget = ({ onOpen }) => {
           </div>
           {s.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{s.notes}</div>}
           {s.url && (
-            <a href={s.url} target="_blank" rel="noreferrer"
+            <a href={safeUrl(s.url)} target="_blank" rel="noreferrer"
                className="inline-flex items-center gap-1.5 text-xs text-gold-400 hover:text-gold-300 mt-3">
               <Icon name="link" size={12}/> Log in / manage
             </a>
@@ -5634,10 +5668,10 @@ const PortfolioWidget = ({ onOpen }) => {
           {b.groupID && <><div className="text-ink-400">Group ID</div><div className="text-ink-100 font-mono">{b.groupID}</div></>}
         </div>
         {b.notes && <div className="text-ink-300 text-xs mt-3 line-clamp-2">{b.notes}</div>}
-        {b.loginUrl && (
+        {safeUrl(b.loginUrl) && (
           <>
             <div className="divider my-4"/>
-            <a href={b.loginUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open portal</a>
+            <a href={safeUrl(b.loginUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold-400 hover:text-gold-300"><Icon name="link" size={14}/> Open portal</a>
           </>
         )}
         <LinkChips links={b.links} entityKind="benefits" entityId={b.id} />
@@ -6057,7 +6091,9 @@ const PortfolioWidget = ({ onOpen }) => {
         if (toBoxEmbed(l.url)) {
           ctx.setPreviewFile(l);
         } else {
-          window.open(l.url, '_blank', 'noopener,noreferrer');
+          const href = safeUrl(l.url);
+          if (href) window.open(href, '_blank', 'noopener,noreferrer');
+          else ctx.showToast?.('That link has no usable web address');
         }
       };
       const reset = () => { setAdding(false); setLabel(''); setUrl(''); };
@@ -6266,7 +6302,7 @@ const PortfolioWidget = ({ onOpen }) => {
                       {Inner}
                     </button>
                   ) : (
-                    <a key={f.id} href={f.url} target="_blank" rel="noreferrer"
+                    <a key={f.id} href={safeUrl(f.url)} target="_blank" rel="noreferrer"
                        className="card p-4 flex items-start gap-3 hover:border-gold-500/40 transition group">
                       {Inner}
                     </a>
@@ -6311,7 +6347,14 @@ const PortfolioWidget = ({ onOpen }) => {
           const state = await decryptShared(pw);
           onUnlock(state, remember, pw);
         } catch (ex) {
-          setErr("Password didn't work. Try again.");
+          // A network failure or a corrupt payload is not a wrong password, and
+          // saying so sent people off retyping something that was never at fault.
+          const msg = String((ex && ex.message) || ex);
+          setErr(/fetch|network|load|Failed to fetch/i.test(msg)
+            ? "Couldn't load the household data — check your connection and try again."
+            : /JSON|Unexpected token|parse/i.test(msg)
+            ? "The household data on the server looks corrupt. Ask Claude to republish it."
+            : "Password didn't work. Try again.");
           setBusy(false);
         }
       };
