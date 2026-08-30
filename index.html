@@ -635,7 +635,9 @@
        behind the same reveal toggle — keeping the last four so a row stays
        recognisable without exposing the number. */
     const SECRET_FIELD_KEY = /ssn|social security|passport|tax ?id|driver'?s? licen[cs]e/i;
-    const SSN_SHAPED = /^\d{3}-?\d{2}-?\d{4}$/;
+    // Dashed only: a bare nine-digit string is far more often a frequent-flyer or
+    // member number, and hiding those behind the secrets toggle helped nobody.
+    const SSN_SHAPED = /^\d{3}-\d{2}-\d{4}$/;
     const isSecretField = (category, key, value) =>
       category === 'Identity' || SECRET_FIELD_KEY.test(key || '') || SSN_SHAPED.test(String(value || '').trim());
     const maskSecret = (value) => {
@@ -878,7 +880,7 @@
                 <div className="text-ember-400 text-[11px] font-mono mb-5 break-all">{String((this.state.error && this.state.error.message) || this.state.error)}</div>
                 <div className="flex gap-2">
                   <button onClick={()=>window.location.reload()} className="btn-primary px-3.5 py-2 rounded-xl text-sm font-medium">Reload</button>
-                  <button onClick={()=>{ if (window.confirm('Reset saved data on this device? Edits made on this device will be lost.')) { try { localStorage.removeItem(STORAGE_KEY); } catch {} window.location.reload(); } }}
+                  <button onClick={()=>{ if (window.confirm('Reset saved data on this device? Edits made on this device will be lost.')) { try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(APPLIED_UPDATES_KEY); localStorage.removeItem(TOMBSTONE_KEY); } catch {} window.location.reload(); } }}
                     className="px-3.5 py-2 rounded-xl text-sm bg-ink-700 hover:bg-ink-600 text-ink-200">Reset data</button>
                 </div>
               </div>
@@ -954,6 +956,22 @@
       const [previewFile, setPreviewFile] = useState(null);
       const [toast, setToast] = useState(null);
       const [paletteOpen, setPaletteOpen] = useState(false);
+      // Everything date-derived is computed during render against today(), and nothing
+      // re-rendered at midnight — a dashboard left open overnight kept showing
+      // yesterday's overdue set and "in 2 days" for something now due tomorrow.
+      const [, setDayTick] = useState(0);
+      useEffect(() => {
+        let timer;
+        const schedule = () => {
+          const now = new Date();
+          const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 30);
+          timer = setTimeout(() => { setDayTick(t => t + 1); schedule(); }, midnight - now);
+        };
+        schedule();
+        const onVisible = () => { if (!document.hidden) setDayTick(t => t + 1); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
+      }, []);
       const [propertyScope, setPropertyScope] = useState(loadScope);
 
       const saveFailedRef = useRef(false);
@@ -984,7 +1002,9 @@
           if (entry.kind === 'warranty') {
             next.appliances = (s.appliances||[]).map(a => a.id === entry.refId ? { ...a, warrantyDismissed: false } : a);
           } else if (entry.kind === 'vendor' && entry.originalDue) {
-            next.vendors = (s.vendors||[]).map(v => v.id === entry.refId ? { ...v, nextVisit: entry.originalDue } : v);
+            next.vendors = (s.vendors||[]).map(v => v.id === entry.refId
+              ? { ...v, nextVisit: entry.originalDue, lastVisit: entry.prevLastVisit !== undefined ? entry.prevLastVisit : v.lastVisit }
+              : v);
           } else if (entry.kind === 'maint' && entry.prevValue !== undefined) {
             next.maintenance = (s.maintenance||[]).map(t => t.id === entry.refId ? { ...t, lastCompleted: entry.prevValue } : t);
           } else if (entry.kind === 'property' && entry.originalDue) {
@@ -1025,30 +1045,41 @@
           }
           if (pwOverride) { try { localStorage.setItem(HOUSE_KEY, btoa(pw)); } catch {} }
           const fresh = (payload.ops || []).filter(o => o && o.id && !appliedSet.has(o.id));
-          if (fresh.length) {
+          // Only ops that actually change something count as applied. Recording the rest
+          // meant an update arriving before its target record existed was marked done and
+          // never retried, while the modal reported it as a change that had landed.
+          // Decided against the current state, not inside the updater — an updater runs at
+          // render time, so anything it collected would be empty here.
+          const willLand = (op) => {
+            const arr = state[op.kind];
+            if (!Array.isArray(arr)) return false;
+            if (op.op === 'add')    return !!(op.data && op.data.id && !arr.some(x => x.id === op.data.id));
+            if (op.op === 'update') return arr.some(x => x.id === op.match);
+            if (op.op === 'remove') return arr.some(x => x.id === op.match);
+            return false;
+          };
+          const landed = fresh.filter(willLand);
+          const skipped = fresh.filter(o => !landed.includes(o));
+          if (landed.length) {
             setState(s => {
               const next = { ...s };
-              fresh.forEach(op => {
+              landed.forEach(op => {
                 const arr = next[op.kind];
                 if (!Array.isArray(arr)) return;
-                if (op.op === 'add') {
-                  if (op.data && op.data.id && !arr.some(x => x.id === op.data.id)) next[op.kind] = [op.data, ...arr];
-                } else if (op.op === 'update') {
-                  next[op.kind] = arr.map(x => x.id === op.match ? { ...x, ...op.data } : x);
-                } else if (op.op === 'remove') {
-                  next[op.kind] = arr.filter(x => x.id !== op.match);
-                }
+                if (op.op === 'add') next[op.kind] = [op.data, ...arr];
+                else if (op.op === 'update') next[op.kind] = arr.map(x => x.id === op.match ? { ...x, ...op.data } : x);
+                else if (op.op === 'remove') { addTombstone(op.match); next[op.kind] = arr.filter(x => x.id !== op.match); }
               });
               return next;
             });
-            try { localStorage.setItem(APPLIED_UPDATES_KEY, JSON.stringify([...appliedIds, ...fresh.map(o => o.id)].slice(-500))); } catch {}
+            try { localStorage.setItem(APPLIED_UPDATES_KEY, JSON.stringify([...appliedIds, ...landed.map(o => o.id)].slice(-500))); } catch {}
           }
           if (manual) {
-            setModal(<CloudUpdatesModal payload={payload} applied={fresh} onClose={() => setModal(null)} />);
-          } else if (fresh.length) {
-            showToast(`${fresh.length} update${fresh.length===1?'':'s'} from the last scan`, {
+            setModal(<CloudUpdatesModal payload={payload} applied={landed} skipped={skipped.length} onClose={() => setModal(null)} />);
+          } else if (landed.length) {
+            showToast(`${landed.length} update${landed.length===1?'':'s'} from the last scan`, {
               label: 'View',
-              fn: () => setModal(<CloudUpdatesModal payload={payload} applied={fresh} onClose={() => setModal(null)} />),
+              fn: () => setModal(<CloudUpdatesModal payload={payload} applied={landed} skipped={skipped.length} onClose={() => setModal(null)} />),
             });
           }
         } catch (e) {
@@ -1200,6 +1231,8 @@
               next.vendors = (s.vendors||[]).map(v => v.id === item.id
                 ? { ...v, lastVisit: nowISO, nextVisit: (v.schedule?.recurring && v.schedule.freq) ? addInterval(nowISO, v.schedule.freq) : '' }
                 : v);
+            // Remember the visit date we overwrote so an undo can put it back.
+            logEntry.prevLastVisit = ((s.vendors||[]).find(v => v.id === item.id) || {}).lastVisit || '';
             } else if (item.kind === 'warranty') {
               // dismiss the warranty alert without changing the warrantyExpires field
               next.appliances = (s.appliances||[]).map(a => a.id === item.id ? { ...a, warrantyDismissed: true } : a);
@@ -1323,6 +1356,15 @@
     const NAV_SHEET_PRIMARY = NAV_PRIMARY.filter(n => !NAV_MOBILE_IDS.includes(n.id));
 
     /* Property scope segmented control */
+    /* The scope filter matches these strings exactly, so anything that writes the
+       field has to pick from them rather than typing. */
+    const PropertySelect = ({ id, value, onChange }) => (
+      <select id={id} value={value || ''} onChange={e => onChange(e.target.value)}>
+        <option value="">Both / unassigned</option>
+        {PROPERTIES.filter(x => x.id !== 'both').map(x => <option key={x.id} value={x.id}>{x.id}</option>)}
+      </select>
+    );
+
     const PropertyScopeBar = () => {
       const ctx = useContext(Ctx);
       const scope = ctx.propertyScope || 'both';
@@ -1651,8 +1693,13 @@
 
     const Modal = ({ children, onClose }) => {
       const shellRef = useRef(null);
+      // onClose is an inline arrow at every call site, so a dependency on it tore this
+      // effect down on every App render — re-stealing focus and running the restore
+      // cleanup mid-edit. Hold it in a ref and run the effect once per mount.
+      const closeRef = useRef(onClose);
+      closeRef.current = onClose;
       useEffect(() => {
-        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        const onKey = (e) => { if (e.key === 'Escape') closeRef.current(); };
         window.addEventListener('keydown', onKey);
         document.body.style.overflow = 'hidden';
         // Focus moves into the dialog, so keyboard and screen-reader users aren't
@@ -1666,7 +1713,7 @@
           document.body.style.overflow = '';
           if (opener && opener.focus) { try { opener.focus({ preventScroll: true }); } catch {} }
         };
-      }, [onClose]);
+      }, []);
       return (
         <div className="fixed inset-0 z-50 modal-backdrop flex items-end md:items-center justify-center px-3 md:px-6 pb-3 md:pb-0" onClick={onClose}>
           <div ref={shellRef} tabIndex={-1} role="dialog" aria-modal="true"
@@ -1708,6 +1755,8 @@
       );
     };
 
+    /* A record with no name renders as a blank card nobody can identify, so each
+       form's save button is disabled until its primary field has something in it. */
     const Btn = ({ variant='primary', icon, children, ...rest }) => (
       <button {...rest}
         className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition ${
@@ -1716,7 +1765,7 @@
           variant==='ghost'   ? 'btn-ghost border border-ink-600' :
           variant==='danger'  ? 'bg-ember-500/15 text-ember-400 hover:bg-ember-500/20 border border-ember-500/30' :
           ''
-        } ${rest.className||''}`}>
+        } ${rest.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${rest.className||''}`}>
         {icon && <Icon name={icon} size={16} />}
         {children}
       </button>
@@ -2560,7 +2609,8 @@ const usePriceQuotes = () => {
     if (!apiKey) { setError('Need a Finnhub API key — open Settings.'); return; }
     if (!symbols.length) return;
     setLoading(true); setError(null); setProgress({ done: 0, total: symbols.length });
-    const next = { ...quotes };
+    const fetched = {};
+    const next = fetched;   // fetchSym writes here; merged into state below
     const failed = [];
     // Finnhub free tier = 60 calls/min. Batch 25 in parallel, then wait 27s
     // between batches (~55/min effective) so we never trip the rate limit.
@@ -2589,8 +2639,11 @@ const usePriceQuotes = () => {
       setProgress({ done: Math.min(i + BATCH, symbols.length), total: symbols.length });
       if (i + BATCH < symbols.length) await new Promise(r => setTimeout(r, GAP_MS));
     }
-    setQuotes(next);
-    try { localStorage.setItem(QUOTES_CACHE_STORAGE, JSON.stringify(next)); } catch {}
+    // Merge into whatever the map is when the fetches land, rather than the snapshot
+    // taken before them: clearing quotes mid-refresh used to resurrect them.
+    let merged = next;
+    setQuotes(prev => { merged = { ...prev, ...fetched }; return merged; });
+    try { localStorage.setItem(QUOTES_CACHE_STORAGE, JSON.stringify(merged)); } catch {}
     setLoading(false);
     if (failed.length) setError(`Couldn't quote ${failed.length} symbol${failed.length===1?'':'s'} (often mutual funds / inactive).`);
   };
@@ -3467,7 +3520,7 @@ const PortfolioView = () => {
 const DafPanel = () => {
   const ctx = useContext(Ctx);
   const [val, setVal] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0,10));
+  const [date, setDate] = useState(() => toISO(today()));   // local day, not the UTC one
   const raw = ctx.state.dafValues || [];
   const rawIdx = new Map(raw.map((e, i) => [e.id, i]));
   // sort oldest → newest; ties on date break by insertion order (new entries are prepended, so lower raw index = newer)
@@ -4218,6 +4271,9 @@ const PortfolioWidget = ({ onOpen }) => {
     const DashboardItem = ({ item, kind, onComplete, onJump }) => {
       const [checking, setChecking] = useState(false);
       const firedRef = useRef(false);
+      // The latch is per-item: without this an item that survives the state update —
+      // an undo, a scope change — stayed greyed out and struck through for good.
+      useEffect(() => { firedRef.current = false; setChecking(false); }, [item.kind, item.id]);
       const handleCheck = (e) => {
         e.stopPropagation();
         if (!onComplete || firedRef.current) return;
@@ -4318,7 +4374,7 @@ const PortfolioWidget = ({ onOpen }) => {
       vehicles:{label:'Vehicle', icon:'car'}, benefits:{label:'Benefits', icon:'heart'}, files:{label:'File', icon:'folder'},
     };
 
-    const CloudUpdatesModal = ({ payload, applied, onClose }) => {
+    const CloudUpdatesModal = ({ payload, applied, skipped = 0, onClose }) => {
       const when = payload.generatedAt ? new Date(payload.generatedAt).toLocaleString(undefined, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : null;
       return (
         <>
@@ -4329,7 +4385,11 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="text-center py-6">
                 <div className="w-11 h-11 rounded-xl bg-sage-400/10 grid place-items-center text-sage-400 mx-auto mb-3"><Icon name="check" size={20}/></div>
                 <div className="text-ink-200 text-sm">You're up to date.</div>
-                <div className="text-ink-400 text-xs mt-1">Everything from the last scan is already in the app.</div>
+                <div className="text-ink-400 text-xs mt-1">
+                  {skipped > 0
+                    ? `${skipped} update${skipped===1?'':'s'} in the scan didn't match anything here — they'll be retried on the next refresh.`
+                    : 'Everything from the last scan is already in the app.'}
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -4556,7 +4616,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add vendor':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(v.company || v.name || '').trim()} title={String(v.company || v.name || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add vendor':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -4739,7 +4799,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add task':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(t.name || '').trim()} title={String(t.name || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add task':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -4972,7 +5032,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(a.name || '').trim()} title={String(a.name || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -5053,7 +5113,8 @@ const PortfolioWidget = ({ onOpen }) => {
     const InsuranceForm = ({ item, onClose }) => {
       const ctx = useContext(Ctx);
       const isNew = !item;
-      const [v, setV] = useState(item || { type:'home', carrier:'', policyNumber:'', agentName:'', agentPhone:'', agentEmail:'', premium:0, premiumCadence:'annual', renewalDate:'', coverageSummary:'', documentUrl:'', property:'', notes:'' });
+      const scopeDefault = ctx.propertyScope && ctx.propertyScope !== 'both' ? ctx.propertyScope : '';
+      const [v, setV] = useState(item || { type:'home', carrier:'', policyNumber:'', agentName:'', agentPhone:'', agentEmail:'', premium:0, premiumCadence:'annual', renewalDate:'', coverageSummary:'', documentUrl:'', property:scopeDefault, notes:'' });
       const setF = (k, val) => setV(prev => ({...prev, [k]: val}));
       const save = () => { if (isNew) ctx.addInsurance(v); else ctx.updateInsurance(item.id, v); ctx.showToast(isNew?'Policy added':'Policy updated'); onClose(); };
       const remove = () => { if (window.confirm(`Delete ${item.carrier}?`)) { ctx.deleteInsurance(item.id); ctx.showToast('Policy deleted'); onClose(); } };
@@ -5067,7 +5128,7 @@ const PortfolioWidget = ({ onOpen }) => {
                   {INS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div><label htmlFor="hq-f39">Property (optional)</label><input id="hq-f39" value={v.property||''} onChange={e=>setF('property', e.target.value)} placeholder="1619 Seattle"/></div>
+              <div><label htmlFor="hq-f39">Property (optional)</label><PropertySelect id="hq-f39" value={v.property} onChange={val=>setF('property', val)}/></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label htmlFor="hq-f40">Carrier</label><input id="hq-f40" value={v.carrier} onChange={e=>setF('carrier', e.target.value)}/></div>
@@ -5095,7 +5156,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(v.carrier || '').trim()} title={String(v.carrier || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -5183,7 +5244,7 @@ const PortfolioWidget = ({ onOpen }) => {
                   {UTIL_KINDS.map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
-              <div><label htmlFor="hq-f52">Property</label><input id="hq-f52" value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
+              <div><label htmlFor="hq-f52">Property</label><PropertySelect id="hq-f52" value={v.property} onChange={val=>setF('property', val)}/></div>
             </div>
             <div><label htmlFor="hq-f53">Provider</label><input id="hq-f53" value={v.provider} onChange={e=>setF('provider', e.target.value)}/></div>
             <div className="grid grid-cols-2 gap-3">
@@ -5207,7 +5268,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(v.provider || '').trim()} title={String(v.provider || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -5293,7 +5354,7 @@ const PortfolioWidget = ({ onOpen }) => {
                   {PROP_KINDS.map(k => <option key={k} value={k}>{k.replace('_',' ')}</option>)}
                 </select>
               </div>
-              <div><label htmlFor="hq-f60">Property (optional)</label><input id="hq-f60" value={v.property||''} onChange={e=>setF('property', e.target.value)}/></div>
+              <div><label htmlFor="hq-f60">Property (optional)</label><PropertySelect id="hq-f60" value={v.property} onChange={val=>setF('property', val)}/></div>
             </div>
             <div><label htmlFor="hq-f61">Label</label><input id="hq-f61" value={v.label} onChange={e=>setF('label', e.target.value)}/></div>
             <div><label htmlFor="hq-f62">Contact</label><input id="hq-f62" value={v.contact||''} onChange={e=>setF('contact', e.target.value)}/></div>
@@ -5317,7 +5378,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(v.label || '').trim()} title={String(v.label || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -5436,7 +5497,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(v.name || '').trim()} title={String(v.name || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -5528,7 +5589,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(v.make || v.model || '').trim()} title={String(v.make || v.model || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -5613,7 +5674,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Delete</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew?'Add':'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(v.provider || '').trim()} title={String(v.provider || '').trim() ? '' : 'Give this a name first'}>{isNew?'Add':'Save'}</Btn>
             </div>
           </div>
         </>
@@ -5816,7 +5877,7 @@ const PortfolioWidget = ({ onOpen }) => {
             {!isNew ? <Btn variant="danger" icon="trash" onClick={remove}>Remove</Btn> : <span/>}
             <div className="flex gap-2">
               <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-              <Btn icon="check" onClick={save}>{isNew ? 'Add bottle' : 'Save'}</Btn>
+              <Btn icon="check" onClick={save} disabled={!String(w.producer || w.label || '').trim()} title={String(w.producer || w.label || '').trim() ? '' : 'Give this a name first'}>{isNew ? 'Add bottle' : 'Save'}</Btn>
             </div>
           </div>
         </>
