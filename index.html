@@ -4222,7 +4222,7 @@ const CashAtRestCard = () => {
           const annualised = mms.intYtd * 365 / 211;   // 1 Jan to the 29 Jul statement date
           return (
             <p className="text-xs text-ember-400/90 leading-relaxed">
-              The posted rate is optimistic: {fmtMoney(mms.intYtd)} of interest on {fmtMoney(mms.value)} through {fmtDate(BANKING.asOf)}
+              The posted rate is optimistic: {fmtMoney(mms.intYtd)} of interest on {fmtMoney(mms.value)} through {fmtDate(BANKING.asOf)}{' '}
               annualises to about {fmtMoney(annualised)} — {(annualised / mms.value * 100).toFixed(3)}%, under half the {mms.apy}% the statement claims.
               {foregone > 0 && ` Since that statement the gap has cost about ${fmtMoney(foregone)}.`}
             </p>
@@ -4997,7 +4997,9 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className="font-display text-2xl text-gold-400 leading-none">{d.grade?.overall || 'B−'}</div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-xs">
+      {/* Three columns of long labels clip at 390px; two rows read better than a
+          truncated "SUGGESTIO…" and a wrapped ticker pair. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2.5 text-xs">
         <div>
           <div className="text-2xs uppercase text-ink-400">Concentration</div>
           <div className={`tabular-nums mt-0.5 ${conc > 25 ? 'text-ember-400' : 'text-ink-100'}`}>{conc.toFixed(0)}% PLTR+AMZN</div>
