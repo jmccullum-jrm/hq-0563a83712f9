@@ -2318,6 +2318,39 @@ const BANKING = {
   ],
   missingNote: 'No statements for the two kids’ SafeBalance accounts yet — drop their eStmts into the Spending docs folder in Box (or tell Claude the balances) and they’ll be added to the total.',
 };
+/* Every dollar earning next to nothing, wherever it sits. The dashboard's old
+   "cash drag" tile measured the wrong thing in both directions: it counted TFDXX
+   — a real money-market fund at a real yield — as drag, and excluded every dollar
+   at the bank. Bank rates come from the statement; the Merrill sweep rows carry no
+   rate in the data, so they are marked assumed rather than guessed at silently. */
+const CASH_SWEEP_RE = /BANK DEPOSIT PROGRAM|DEPOSIT PROGRAM|Cash Balance|^CASH$|IIAXX/i;
+const CASH_SWEEP_APY = 0.05;   // assumed; Merrill does not publish it in this data
+const cashAtRest = (targetApy = 3.7) => {
+  const rows = [];
+  BANKING.accounts.filter(a => a.value != null).forEach(a => rows.push({
+    where: 'Bank of America', name: a.name, value: a.value,
+    apy: a.apy != null ? a.apy : 0, assumed: a.apy == null,
+    intYtd: a.intYtd != null ? a.intYtd : null,
+  }));
+  const bySweep = {};
+  PORTFOLIO_DATA.holdings.forEach(h => {
+    if (!CASH_SWEEP_RE.test(`${h.description || ''} ${h.symbol || ''}`)) return;
+    bySweep[h.account] = (bySweep[h.account] || 0) + (h.value || 0);
+  });
+  Object.entries(bySweep).forEach(([account, value]) => rows.push({
+    where: 'Merrill sweep', name: account, value, apy: CASH_SWEEP_APY, assumed: true, intYtd: null,
+  }));
+  const total = rows.reduce((s, r) => s + r.value, 0);
+  const currentInterest = rows.reduce((s, r) => s + r.value * (r.apy / 100), 0);
+  const targetInterest = total * (targetApy / 100);
+  return {
+    rows: rows.sort((a, b) => b.value - a.value),
+    total, currentInterest, targetInterest,
+    gap: targetInterest - currentInterest,
+    perDay: (targetInterest - currentInterest) / 365,
+  };
+};
+
 /* Vested Mercury equity at the reference secondary mark. Indicative, not a 409A —
    it reads high, and every surface that shows it says so. Swap MERCURY_MARKS for a
    real MERCURY_FMV and this becomes a straight valuation with no caveat. */
@@ -3540,6 +3573,86 @@ const PortfolioView = () => {
   );
 };
 
+/* Every dollar earning nothing, in one place, with what the delay costs per day.
+   This used to be a hardcoded sentence about one account; the money is spread across
+   six, and the sentence understated the pile by $88K. */
+const CashAtRestCard = () => {
+  const [targetApy, setTargetApy] = useState(3.7);
+  const c = cashAtRest(targetApy);
+  const daysSince = Math.max(0, -(daysUntil(BANKING.asOf) || 0));
+  const foregone = c.perDay * daysSince;
+  return (
+    <div className="card p-4 md:p-5">
+      <SectionHeader title="Cash at rest"
+        hint="Every dollar earning near-zero, wherever it sits — bank balances plus the Merrill sweep."
+        action={<Pill tone={c.gap > 10000 ? 'overdue' : 'muted'}>{fmtMoney(c.gap)}/yr forgone</Pill>} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">At rest</div>
+          <div className="font-display text-xl text-gold-400 tabular-nums mt-0.5">{fmtMoney(c.total)}</div>
+          <div className="text-[11px] text-ink-400 mt-1">{c.rows.length} accounts</div>
+        </div>
+        <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Earning now</div>
+          <div className="font-display text-xl text-ink-100 tabular-nums mt-0.5">{fmtMoney(c.currentInterest)}<span className="text-ink-400 text-sm">/yr</span></div>
+          <div className="text-[11px] text-ink-400 mt-1">at the posted rates</div>
+        </div>
+        <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">At {targetApy}%</div>
+          <div className="font-display text-xl text-sage-400 tabular-nums mt-0.5">{fmtMoney(c.targetInterest)}<span className="text-ink-400 text-sm">/yr</span></div>
+          <div className="text-[11px] text-ink-400 mt-1">
+            <label htmlFor="hq-target-apy" className="!inline !mb-0 !normal-case !tracking-normal !text-[11px]">target </label>
+            <input id="hq-target-apy" type="number" step="0.1" min="0" max="10" value={targetApy}
+              onChange={e => setTargetApy(Math.max(0, Math.min(10, +e.target.value || 0)))}
+              className="!inline-block !w-16 !min-h-0 !py-0.5 !px-1.5 !text-[11px] ml-1" />
+          </div>
+        </div>
+        <div className="rounded-xl border border-ember-500/25 bg-ember-500/5 px-3.5 py-3">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Cost of waiting</div>
+          <div className="font-display text-xl text-ember-400 tabular-nums mt-0.5">{fmtMoney(c.perDay)}<span className="text-ink-400 text-sm">/day</span></div>
+          <div className="text-[11px] text-ink-400 mt-1">{fmtMoney(c.gap / 12)}/mo</div>
+        </div>
+      </div>
+      <div className="overflow-x-auto mt-3">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-ink-400 text-[10px] uppercase tracking-[0.12em] border-b border-ink-700">
+              <th className="text-left font-medium py-2">Account</th>
+              <th className="text-left font-medium py-2 hidden md:table-cell">Where</th>
+              <th className="text-right font-medium py-2">Balance</th>
+              <th className="text-right font-medium py-2">APY</th>
+              <th className="text-right font-medium py-2 hidden md:table-cell">Forgone /yr</th>
+            </tr>
+          </thead>
+          <tbody>
+            {c.rows.map((r, i) => (
+              <tr key={i} className="border-b border-ink-700/60 text-ink-300">
+                <td className="py-2 pr-2 text-ink-100">{r.name}</td>
+                <td className="py-2 pr-2 text-ink-400 hidden md:table-cell">{r.where}</td>
+                <td className="py-2 text-right tabular-nums text-ink-100">{fmtMoney(r.value)}</td>
+                <td className="py-2 text-right tabular-nums">{r.apy.toFixed(2)}%{r.assumed && <span className="text-ink-400"> ?</span>}</td>
+                <td className="py-2 text-right tabular-nums text-ember-400/90 hidden md:table-cell">{fmtMoney(r.value * (targetApy - r.apy) / 100)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+        {(() => {
+          const mms = BANKING.accounts.find(a => /Money Market Savings/i.test(a.name));
+          if (!mms || mms.intYtd == null) return null;
+          const days = 211;   // 1 Jan to the 29 Jul statement date
+          const annualised = mms.intYtd * 365 / days;
+          return `Reality check: ${fmtMoney(mms.intYtd)} of interest on ${fmtMoney(mms.value)} through ${fmtDate(BANKING.asOf)} annualises to about ${fmtMoney(annualised)} — ${(annualised / mms.value * 100).toFixed(3)}%, below even the ${mms.apy}% the statement claims. `;
+        })()}
+        Rates marked ? are not in the statement data and are assumed at {CASH_SWEEP_APY}%. The Merrill sweep is a same-account switch into a money-market fund;
+        the bank balance is a Preferred Deposit or T-bill decision. Washington has no income tax, so a Treasury's state exemption is worth nothing here — pick on yield.
+        {foregone > 0 && ` Since the ${fmtDate(BANKING.asOf)} statement, the gap has cost about ${fmtMoney(foregone)}.`}
+      </div>
+    </div>
+  );
+};
+
 /* BofA Charitable Gift Fund (DAF) — value log with growth tracking. Log a balance whenever you check the fund. */
 const DafPanel = () => {
   const ctx = useContext(Ctx);
@@ -3668,10 +3781,8 @@ const OutsideMerrillPanel = ({ scope }) => {
             ))}
           </div>
           <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{BANKING.missingNote}</div>
-          <div className="text-[11px] text-ember-400/90 mt-2 leading-relaxed">
-            The $883K money market savings earns 0.05% APY (~$440/yr). At a ~3.7% money-market-fund rate it would earn ~$32K/yr — see Suggestions.
-          </div>
         </div>
+        <CashAtRestCard />
       </div>
     );
   }
@@ -4131,9 +4242,11 @@ const PortfolioWidget = ({ onOpen }) => {
   const total = d.totalValue;
   const pltr = d.holdings.filter(h => h.symbol === 'PLTR').reduce((s,h) => s + (h.value||0), 0);
   const amzn = d.holdings.filter(h => h.symbol === 'AMZN').reduce((s,h) => s + (h.value||0), 0);
-  const cash = d.holdings.filter(h => h.assetClass === 'Cash & Equivalents').reduce((s,h) => s + (h.value||0), 0);
   const conc = (pltr+amzn)/total*100;
-  const cashP = cash/total*100;
+  // Idle cash, not "cash & equivalents": the old version counted the TFDXX money
+  // market fund as drag and ignored every dollar sitting at the bank.
+  const idle = cashAtRest();
+  const cashP = idle.total / householdTotal() * 100;
   return (
     <button onClick={onOpen} className="card p-5 md:p-6 text-left hover:border-gold-500/40 transition group w-full">
       <div className="flex items-start justify-between gap-3 mb-4">
@@ -4154,8 +4267,8 @@ const PortfolioWidget = ({ onOpen }) => {
           <div className={`tabular-nums mt-0.5 ${conc > 25 ? 'text-ember-400' : 'text-ink-100'}`}>{conc.toFixed(0)}% PLTR+AMZN</div>
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-ink-400">Cash drag</div>
-          <div className={`tabular-nums mt-0.5 ${cashP > 15 ? 'text-gold-400' : 'text-ink-100'}`}>{cashP.toFixed(0)}% in MMF</div>
+          <div className="text-[10px] uppercase tracking-wider text-ink-400">Idle cash</div>
+          <div className={`tabular-nums mt-0.5 ${cashP > 8 ? 'text-gold-400' : 'text-ink-100'}`}>{fmtMoneyK(idle.total)} · {cashP.toFixed(0)}%</div>
         </div>
         <div>
           <div className="text-[10px] uppercase tracking-wider text-ink-400">Suggestions</div>
