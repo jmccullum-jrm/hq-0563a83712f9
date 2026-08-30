@@ -155,15 +155,28 @@
     .modal-shell {
       background: #232019;
       border: 1px solid #322e27;
-      border-radius: 22px;
+      /* A sheet on a phone is flush to the edge it rises from; a dialog floats. */
+      border-radius: 22px 22px 0 0;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 64px -16px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5);
     }
-    /* Anim */
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: translateY(0);} }
-    .anim-in { animation: fadeUp .25s ease-out both; }
+    @media (min-width: 768px) { .modal-shell { border-radius: 22px; } }
+    /* Motion: one duration scale — 120ms press · 180ms backdrop · 200ms toast ·
+       220ms card and modal · 280ms sheet — and surfaces that move the way they are
+       anchored. A centred modal, a bottom sheet and a top-pinned toast were all
+       sharing one 250ms fadeUp, so half of them entered from the wrong direction. */
+    @keyframes fadeUp   { from { opacity: 0; transform: translateY(8px);}   to { opacity: 1; transform: none; } }
+    @keyframes sheetUp  { from { opacity: 0; transform: translateY(100%);}  to { opacity: 1; transform: none; } }
+    @keyframes toastIn  { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: none; } }
+    .anim-in    { animation: fadeUp  .22s cubic-bezier(.2,0,0,1) both; }
+    .anim-sheet { animation: sheetUp .28s cubic-bezier(.32,.72,0,1) both; }
+    .anim-toast { animation: toastIn .2s  cubic-bezier(.2,0,0,1) both; }
     /* Hide scrollbar on horizontal chip rows */
     .no-bar::-webkit-scrollbar { display: none; }
     .no-bar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* One source of truth for the bottom bar, so the FAB, the scroll padding and the
+       nav cannot drift apart — they did, by about 5px, which put the FAB permanently
+       over the bottom-right corner of the last card, where every edit button lives. */
+    :root { --bar: 3.5rem; }
     /* iOS safe area */
     .pb-safe { padding-bottom: calc(.75rem + env(safe-area-inset-bottom)); }
     .pt-safe { padding-top: calc(.5rem + env(safe-area-inset-top)); }
@@ -1859,7 +1872,7 @@
           </aside>
 
           {/* Main */}
-          <main className="flex-1 min-w-0 pb-36 md:pb-12">
+          <main className="flex-1 min-w-0 pb-[calc(var(--bar)+env(safe-area-inset-bottom)+5.5rem)] md:pb-12">
             {/* Top bar */}
             <header className="px-5 md:px-6 lg:px-10 pt-safe md:pt-10"><div className="max-w-[1160px] mx-auto">
               <div className="md:hidden flex items-center justify-between mb-4">
@@ -1930,20 +1943,23 @@
             </div>
           </nav>
 
-          {/* Quick-add FAB (mobile) */}
+          {/* Quick-add FAB (mobile) — only where there is something here to add. */}
+          {(view === 'dashboard' || ADD_TYPES.some(t => t.view === view)) && (
           <button onClick={()=>ctx.setModal(<QuickAdd onClose={()=>ctx.setModal(null)} />)}
             aria-label="Add"
-            className="md:hidden fixed right-4 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-30 w-14 h-14 rounded-full btn-primary shadow-2xl grid place-items-center">
+            className="md:hidden fixed right-4 bottom-[calc(var(--bar)+env(safe-area-inset-bottom)+1rem)] z-30 w-14 h-14 rounded-full btn-primary shadow-2xl grid place-items-center active:brightness-90">
             <Icon name="plus" size={22} />
           </button>
+          )}
 
           {/* Mobile "More" sheet */}
           {moreOpen && (
             <div className="md:hidden fixed inset-0 z-40 modal-backdrop flex items-end" onClick={()=>setMoreOpen(false)}>
               <div ref={moreRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="More sections"
-                className="modal-shell w-full anim-in focus:outline-none" onClick={e=>e.stopPropagation()}>
+                className="modal-shell w-full anim-sheet focus:outline-none" onClick={e=>e.stopPropagation()}>
+                <div className="mx-auto mt-2.5 mb-1 h-1 w-9 rounded-full bg-ink-500" aria-hidden="true" />
                 <ModalHeader title="More" subtitle="Records & references" onClose={()=>setMoreOpen(false)} />
-                <div className="p-4 grid grid-cols-2 gap-2.5 pb-safe max-h-[70vh] overflow-y-auto">
+                <div className="p-4 grid grid-cols-2 gap-2.5 pb-safe max-h-[70dvh] overflow-y-auto">
                   {NAV_SHEET_PRIMARY.map(n => (
                     <button key={n.id} onClick={()=>{ setView(n.id); setMoreOpen(false); }}
                       className={`card-soft p-4 flex items-center gap-3 text-left col-span-2 ${view===n.id?'border-gold-400/40':''}`}>
@@ -2041,9 +2057,11 @@
         };
       }, []);
       return (
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-end md:items-center justify-center px-3 md:px-6 pb-3 md:pb-0" onClick={onClose}>
+        <div className="fixed inset-0 z-50 modal-backdrop flex items-end md:items-center justify-center px-0 md:px-6 pb-0" onClick={onClose}>
           <div ref={shellRef} tabIndex={-1} role="dialog" aria-modal="true"
-            className="modal-shell w-full max-w-lg max-h-[90vh] overflow-y-auto anim-in focus:outline-none pb-safe md:pb-0" onClick={e=>e.stopPropagation()}>
+            className="modal-shell w-full max-w-lg max-h-[92dvh] overflow-y-auto anim-sheet md:anim-in focus:outline-none pb-safe md:pb-0" onClick={e=>e.stopPropagation()}>
+            {/* A sheet rises from the edge it is anchored to, and says it can be pushed back. */}
+            <div className="md:hidden mx-auto mt-2.5 mb-1 h-1 w-9 rounded-full bg-ink-500" aria-hidden="true" />
             {children}
           </div>
         </div>
@@ -2056,7 +2074,7 @@
           <div className="font-display text-xl tracking-tight">{title}</div>
           {subtitle && <div className="text-ink-300 text-sm mt-0.5">{subtitle}</div>}
         </div>
-        <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-ink-100">
+        <button onClick={onClose} aria-label="Close" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-full grid place-items-center text-ink-300 hover:bg-ink-700 hover:text-ink-100">
           <Icon name="x" size={18} />
         </button>
       </div>
@@ -2078,7 +2096,7 @@
             const tone = TOAST_TONES[t.tone] || TOAST_TONES.ok;
             return (
               <div key={t.id} role="status" aria-live="polite"
-                className="card px-4 py-2.5 text-sm flex items-center gap-2 shadow-2xl max-w-full anim-in pointer-events-auto">
+                className="card px-4 py-2.5 text-sm flex items-center gap-2 shadow-2xl max-w-full anim-toast pointer-events-auto">
                 <Icon name={tone.icon} size={16} className={tone.className + ' shrink-0'} />
                 <span className="min-w-0">{t.msg}</span>
                 {t.action && (
@@ -2098,7 +2116,8 @@
        form's save button is disabled until its primary field has something in it. */
     const Btn = ({ variant='primary', icon, children, ...rest }) => (
       <button {...rest}
-        className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition ${
+        className={`inline-flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition
+          px-4 py-2.5 min-h-[44px] md:min-h-0 md:px-3.5 md:py-2 ${
           variant==='primary' ? 'btn-primary' :
           variant==='soft'    ? 'bg-ink-700 hover:bg-ink-600 text-ink-100' :
           variant==='ghost'   ? 'btn-ghost border border-ink-600' :
@@ -2209,9 +2228,9 @@
 
       let idx = -1;
       return (
-        <div className="fixed inset-0 z-[60] modal-backdrop flex items-start justify-center px-3 pt-[8vh] md:pt-[12vh]"
+        <div className="fixed inset-0 z-[60] modal-backdrop flex items-start justify-center px-3 pt-[8dvh] md:pt-[12dvh]"
              onClick={onClose} onKeyDown={onKey}>
-          <div className="modal-shell w-full max-w-xl anim-in overflow-hidden flex flex-col max-h-[76vh]" onClick={e=>e.stopPropagation()}
+          <div className="modal-shell w-full max-w-xl anim-in overflow-hidden flex flex-col max-h-[76dvh]" onClick={e=>e.stopPropagation()}
                role="dialog" aria-modal="true" aria-label="Search Home HQ">
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-ink-600 shrink-0">
               <Icon name="search" size={17} className="text-ink-400 shrink-0" />
@@ -3243,7 +3262,7 @@ const PriceSettingsModal = ({ priceState, onClose }) => {
   const [draft, setDraft] = useState(priceState.apiKey || '');
   return (
     <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center px-4" onClick={onClose}>
-      <div className="modal-shell w-full max-w-md max-h-[85vh] overflow-y-auto p-6 anim-in" onClick={e => e.stopPropagation()}>
+      <div className="modal-shell w-full max-w-md max-h-[85dvh] overflow-y-auto p-6 anim-in" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="font-display text-lg">Live pricing</div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700"><Icon name="x" size={16}/></button>
@@ -3310,7 +3329,7 @@ const BoxSettingsModal = ({ onClose, onSaved, kindHighlight }) => {
   );
   return (
     <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center px-4" onClick={onClose}>
-      <div className="modal-shell w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 anim-in" onClick={e => e.stopPropagation()}>
+      <div className="modal-shell w-full max-w-lg max-h-[85dvh] overflow-y-auto p-6 anim-in" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="font-display text-lg flex items-center gap-2">
             <Icon name="camera" size={18} className="text-gold-400"/>
@@ -5072,7 +5091,7 @@ const PortfolioWidget = ({ onOpen }) => {
         setTimeout(() => onComplete(), 280);
       };
       return (
-        <div className={`card p-4 flex items-start gap-3 transition-all ${checking ? 'opacity-40 scale-95' : ''}`}>
+        <div className={`card p-4 flex items-start gap-3 transition-[opacity,transform] duration-200 ease-out ${checking ? 'opacity-40 translate-x-1' : ''}`}>
           {onComplete && (
             <button onClick={handleCheck} title="Mark done"
               className="w-11 h-11 -m-2.5 -mt-2 grid place-items-center shrink-0">
@@ -5103,7 +5122,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <span className="text-ink-400 text-xs">{fmtDate(item.when,{month:'short',day:'numeric'})}</span>
             </div>
           </div>
-          <button onClick={onJump} title="Open" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="chevR" size={16}/></button>
+          <button onClick={onJump} title="Open" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="chevR" size={16}/></button>
         </div>
       );
     };
@@ -5173,7 +5192,7 @@ const PortfolioWidget = ({ onOpen }) => {
       return (
         <>
           <ModalHeader title="Refresh" subtitle={when ? `Last scan: ${when}` : 'Updates feed'} onClose={onClose} />
-          <div className="p-5 md:p-6 space-y-4 max-h-[65vh] overflow-y-auto">
+          <div className="p-5 md:p-6 space-y-4 max-h-[65dvh] overflow-y-auto">
             {payload.note && <div className="card-soft p-3.5 text-sm text-ink-200 leading-relaxed">{payload.note}</div>}
             {applied.length === 0 ? (
               <div className="text-center py-6">
@@ -5291,7 +5310,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{v.company}</div>
               <div className="text-ink-200 text-sm">{v.name}</div>
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {v.nextVisit && (
@@ -5508,7 +5527,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="text-sm font-medium leading-snug">{m.name}</div>
               <div className="text-ink-300 text-xs mt-0.5">{freqLabel(m.freq)}{m.estimatedCost?` · ~$${m.estimatedCost}`:''}</div>
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <Pill tone={status.tone} dot>{status.label}</Pill>
@@ -5758,7 +5777,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{a.name}</div>
               {(brand || model) && <div className="text-ink-200 text-sm">{brand} {model && <span className="text-ink-300">· {model}</span>}</div>}
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           {a.serial && <div className="text-ink-400 text-xs mt-2">SN {a.serial}</div>}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -5875,7 +5894,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{p.carrier}</div>
               {p.coverageSummary && <div className="text-ink-300 text-sm">{p.coverageSummary}</div>}
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           {p.policyNumber && <div className="text-ink-200 text-xs mt-2 font-mono">Policy {p.policyNumber}</div>}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -6009,7 +6028,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="font-display text-lg leading-tight mt-0.5">{u.provider}</div>
             {u.accountNumber && <div className="text-ink-300 text-xs mt-1 font-mono">{u.accountNumber}</div>}
           </div>
-          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
         </div>
         <div className="mt-3 flex items-center gap-2 flex-wrap">
           {u.monthlyEstimate ? <Pill tone="muted">~${u.monthlyEstimate}/mo</Pill> : null}
@@ -6116,7 +6135,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{p.label}</div>
               {p.contact && <div className="text-ink-300 text-sm">{p.contact}</div>}
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {p.nextDue && <Pill tone={n<0?'overdue':n<=30?'soon':'info'} dot>Due {fmtDate(p.nextDue)}</Pill>}
@@ -6313,7 +6332,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="text-xs uppercase tracking-wider text-ink-400">{s.category}</div>
               <div className="font-display text-lg leading-tight mt-0.5">{s.name}</div>
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {s.cost ? <Pill tone="muted">${s.cost} {s.cadence||''}</Pill> : null}
@@ -6413,7 +6432,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="font-display text-lg leading-tight mt-0.5">{v.model}{v.trim?` ${v.trim}`:''}</div>
               {v.primaryDriver && <div className="text-ink-300 text-sm">Driver: {v.primaryDriver}</div>}
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           {v.vin && <div className="text-ink-300 text-xs mt-2 font-mono">VIN {v.vin}</div>}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -6503,7 +6522,7 @@ const PortfolioWidget = ({ onOpen }) => {
             <div className="text-xs uppercase tracking-wider text-ink-400">{b.type}</div>
             <div className="font-display text-lg leading-tight mt-0.5">{b.provider}</div>
           </div>
-          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+          <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
           {b.memberID && <><div className="text-ink-400">Member ID</div><div className="text-ink-100 font-mono">{b.memberID}</div></>}
@@ -6594,7 +6613,7 @@ const PortfolioWidget = ({ onOpen }) => {
       }, [onClose]);
       return (
         <div className="fixed inset-0 z-50 modal-backdrop flex items-end md:items-center justify-center px-3 md:px-6 pb-3 md:pb-0" onClick={onClose}>
-          <div className="modal-shell w-full max-w-5xl h-[88vh] md:h-[82vh] flex flex-col anim-in overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="modal-shell w-full max-w-5xl h-[88dvh] md:h-[82dvh] flex flex-col anim-in overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-3 p-4 border-b border-ink-600">
               <div className="min-w-0 flex-1">
                 <div className="font-display text-base leading-tight truncate">{label}</div>
@@ -6773,7 +6792,7 @@ const PortfolioWidget = ({ onOpen }) => {
               <div className="text-ink-200 text-sm">{w.label}</div>
               <div className="text-ink-300 text-xs mt-1">{w.vintage} · {w.varietal}</div>
             </div>
-            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-9 h-9 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
+            <button onClick={onEdit} aria-label="Edit" title="Edit" className="w-11 h-11 -m-1 md:w-9 md:h-9 md:m-0 rounded-lg grid place-items-center text-ink-300 hover:bg-ink-700 shrink-0"><Icon name="edit" size={15}/></button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <Pill tone={meta.tone} dot>
