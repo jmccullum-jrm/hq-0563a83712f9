@@ -1986,7 +1986,7 @@ const MERCURY_EQUITY = {
       granted:5644, vested:705, settled:0, vesting:null,
       detail:'Vesting schedule not in the Carta export — the vested count is Carta’s reported figure, not computed here. Nothing settled yet.' },
   ],
-  notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet. Exercise cost is real money out of pocket; the shares it buys have no price attached here, so this section stays out of the household total.',
+  notes: 'Vested-to-date is computed from each grant’s own schedule rather than read off Carta’s stored figure, and the two are compared side by side so a stale export shows up as a delta instead of passing silently. ES-4093 has no schedule in the export, so its count falls back to Carta’s number, flagged as such. Nothing exercised or settled yet. Share counts are hard facts; the dollar figures are indicative only — they come from secondary-market marks, not a 409A, so they read high and stay out of the household total.',
 };
 
 /* Month arithmetic that clamps to the end of short months — a Jan-31 vesting
@@ -2059,6 +2059,56 @@ const mercuryVesting = (asOfISO) => {
     vestedExerciseCost: sum(g => g.vestedExerciseCost),
     nextVest: grants.map(g => g.next).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date))[0] || null,
     discrepancies: grants.filter(g => g.delta !== 0),
+  };
+};
+
+/* Indicative secondary-market marks — explicitly NOT a 409A. These are preferred and
+   secondary prices; a 409A common valuation sits materially below them because preferred
+   carries liquidation preferences common doesn't. Everything derived from these therefore
+   reads HIGH, is labelled indicative wherever it appears, and stays out of householdTotal().
+   The per-share figures come from secondary marketplaces working back from valuation and an
+   estimated share count — not from a filing. Replace this whole block with a
+   MERCURY_FMV = { price, asOf } the day Carta shows the real common FMV. */
+const MERCURY_MARKS = [
+  { source:'Forge',                 price:17.37, asOf:'2026-08-19', kind:'secondary',
+    note:'Secondary marketplace mark — most recent, trade-based, so it headlines here' },
+  { source:'Nasdaq Private Market', price:16.51, asOf:'2026-07-07', kind:'secondary',
+    note:'Secondary marketplace estimate' },
+  { source:'Series D (reported)',   price:17.72, asOf:'2026-05-20', kind:'preferred',
+    note:'$200M at $5.2B led by TCV — per-share figure as reported by secondary marketplaces, not a filing' },
+];
+const MERCURY_REF_MARK = 'Forge';
+
+/* Value a vesting split at one per-share mark: options at intrinsic spread over the
+   strike (floored at zero), RSUs at the full mark — the same treatment the Anthropic
+   block gives its 409A price. */
+const mercuryValueAt = (v, price) => {
+  const perShare = (g) => g.strike != null ? Math.max(0, price - g.strike) : price;
+  const grants = v.grants.map(g => ({
+    id: g.id,
+    perShare: perShare(g),
+    vestedValue: g.vested * perShare(g),
+    unvestedValue: g.unvested * perShare(g),
+  }));
+  return {
+    price,
+    grants,
+    byId: Object.fromEntries(grants.map(g => [g.id, g])),
+    vestedValue:   grants.reduce((s, g) => s + g.vestedValue, 0),
+    unvestedValue: grants.reduce((s, g) => s + g.unvestedValue, 0),
+  };
+};
+
+/* Low/high across every mark, so the dashboard shows a range rather than pretending
+   to a single price it doesn't have. */
+const mercuryValueRange = (v) => {
+  const all = MERCURY_MARKS.map(m => ({ ...m, value: mercuryValueAt(v, m.price) }));
+  const span = (f) => ({ lo: Math.min(...all.map(f)), hi: Math.max(...all.map(f)) });
+  return {
+    all,
+    ref: all.find(m => m.source === MERCURY_REF_MARK) || all[0],
+    vested:   span(m => m.value.vestedValue),
+    unvested: span(m => m.value.unvestedValue),
   };
 };
 
@@ -2558,6 +2608,7 @@ const PortfolioView = () => {
   }, []);
   const acctTotal = acctRows.reduce((s,a) => s + a.value, 0);
   const mercury = mercuryVesting();
+  const mercuryRange = mercuryValueRange(mercury);
 
   const pillsRow = (
     <div className="flex gap-2 overflow-x-auto no-bar -mx-1 px-1">
@@ -2980,7 +3031,8 @@ const PortfolioView = () => {
         {/* Amanda — Mercury equity comp (Carta) */}
         <div className="card p-4 md:p-5">
           <SectionHeader title="Amanda — Mercury Equity"
-            hint={`${mercury.vested.toLocaleString()} of ${mercury.granted.toLocaleString()} sh vested — share counts only, no valuation on hand, so it isn’t in the totals above. Detail under the Amanda — Mercury Equity tab.`} />
+            hint={`${mercury.vested.toLocaleString()} of ${mercury.granted.toLocaleString()} sh vested · ${fmtMoneyK(mercuryRange.vested.lo)}–${fmtMoneyK(mercuryRange.vested.hi)} indicative on secondary marks — no 409A yet, so it isn’t in the totals above. Detail under the Amanda — Mercury Equity tab.`}
+            action={<Pill tone="soon">indicative</Pill>} />
           <div className="space-y-2.5">
             {mercury.grants.map(g => (
               <div key={g.id} className="rounded-xl border border-dashed border-ink-600 px-3.5 py-3">
@@ -2990,6 +3042,7 @@ const PortfolioView = () => {
                     <div className="text-[11px] text-ink-400 mt-0.5 leading-relaxed">
                       Vested {g.vested.toLocaleString()} · unvested {g.unvested.toLocaleString()}
                       {g.next ? ` · next ${g.next.shares.toLocaleString()} sh on ${fmtDate(g.next.date)}` : ''}
+                      {mercuryRange.ref.value.byId[g.id] ? ` · ~${fmtMoneyK(mercuryRange.ref.value.byId[g.id].vestedValue)} vested (indicative)` : ''}
                     </div>
                     <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
                       <div style={{width: g.pct + '%'}} className="bg-sage-400"/>
@@ -3004,8 +3057,9 @@ const PortfolioView = () => {
             ))}
           </div>
           <div className="text-[11px] text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
-            {MERCURY_EQUITY.company} via {MERCURY_EQUITY.source}, {fmtDate(MERCURY_EQUITY.asOf)}. Vested counts are computed from each grant’s schedule.
-            {mercury.discrepancies.length > 0 && ' Carta’s stored figure disagrees on ' + mercury.discrepancies.map(g => g.id).join(', ') + ' — see the tab.'}
+            {MERCURY_EQUITY.company} via {MERCURY_EQUITY.source}, {fmtDate(MERCURY_EQUITY.asOf)}. Vested counts are computed from each grant’s schedule; dollars are priced off
+            the {mercuryRange.ref.source} secondary mark (${mercuryRange.ref.price.toFixed(2)}/sh, {fmtDate(mercuryRange.ref.asOf)}) — an upper bound, not a 409A.
+            {mercury.discrepancies.length > 0 && ' Carta’s stored vested figure disagrees on ' + mercury.discrepancies.map(g => g.id).join(', ') + ' — see the tab.'}
           </div>
         </div>
       </div>
@@ -3153,6 +3207,8 @@ const OutsideMerrillPanel = ({ scope }) => {
     const nowISO = toISO(today());
     const upcoming = opt ? opt.tranches.filter(t => t.date > nowISO).slice(0, 6) : [];
     const vestRel = (d) => !d ? '—' : (d <= nowISO ? 'vested' : fmtRelative(d));
+    const range = mercuryValueRange(v);
+    const ref = range.ref;
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -3162,9 +3218,74 @@ const OutsideMerrillPanel = ({ scope }) => {
           <PortfolioStat label="Cost to exercise all" value={fmtMoney(v.exerciseCost)} />
         </div>
         <div className="text-[11px] text-ink-400 -mt-1">
-          Share counts only — no 409A or preferred price on hand for {MERCURY_EQUITY.company}, so nothing here is valued in dollars or counted in the household total.
-          {' '}{MERCURY_EQUITY.holder} · {MERCURY_EQUITY.source} export as of {fmtDate(MERCURY_EQUITY.asOf)}.
+          {MERCURY_EQUITY.holder} · {MERCURY_EQUITY.source} export as of {fmtDate(MERCURY_EQUITY.asOf)}. Share counts are computed from the vesting schedules;
+          dollar figures below are indicative only — priced off secondary-market marks, not a 409A, so they read high and are not in the household total.
           {v.vestedExerciseCost ? ` Exercising just the vested portion costs ${fmtMoney(v.vestedExerciseCost)}.` : ''}
+        </div>
+
+        {/* Indicative value — secondary marks, deliberately kept separate from the share-count facts above. */}
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Indicative value"
+            hint={`No 409A on hand, so this is priced off public secondary-market marks. Options at the spread over the $${v.grants[0].strike.toFixed(2)} strike, RSUs at the full mark.`}
+            action={<Pill tone="soon">indicative</Pill>} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Vested · indicative range</div>
+              <div className="font-display text-xl md:text-2xl text-gold-400 tabular-nums mt-0.5">
+                {fmtMoneyK(range.vested.lo)} – {fmtMoneyK(range.vested.hi)}
+              </div>
+              <div className="text-[11px] text-ink-400 mt-1">
+                {v.vested.toLocaleString()} sh · {fmtMoney(range.ref.value.vestedValue)} at the {ref.source} mark
+              </div>
+            </div>
+            <div className="rounded-xl border border-ink-700 bg-ink-800/40 px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">Unvested · indicative range</div>
+              <div className="font-display text-xl md:text-2xl text-ink-100 tabular-nums mt-0.5">
+                {fmtMoneyK(range.unvested.lo)} – {fmtMoneyK(range.unvested.hi)}
+              </div>
+              <div className="text-[11px] text-ink-400 mt-1">
+                {v.unvested.toLocaleString()} sh · {fmtMoney(range.ref.value.unvestedValue)} at the {ref.source} mark
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto mt-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-ink-400 text-[10px] uppercase tracking-[0.12em] border-b border-ink-700">
+                  <th className="text-left font-medium py-2">Mark</th>
+                  <th className="text-left font-medium py-2 hidden md:table-cell">As of</th>
+                  <th className="text-right font-medium py-2">$/share</th>
+                  <th className="text-right font-medium py-2">Vested</th>
+                  <th className="text-right font-medium py-2 hidden md:table-cell">Unvested</th>
+                </tr>
+              </thead>
+              <tbody>
+                {range.all.map(m => (
+                  <tr key={m.source} className={`border-b border-ink-700/60 ${m.source === ref.source ? 'text-ink-100' : 'text-ink-300'}`}>
+                    <td className="py-2 pr-2">
+                      {m.source}
+                      {m.kind === 'preferred' && <span className="text-ink-500 text-[10px]"> · preferred</span>}
+                      {m.source === ref.source && <span className="text-gold-400 text-[10px]"> · reference</span>}
+                    </td>
+                    <td className="py-2 pr-2 tabular-nums text-ink-400 hidden md:table-cell">{fmtDate(m.asOf)}</td>
+                    <td className="py-2 text-right tabular-nums">${m.price.toFixed(2)}</td>
+                    <td className="py-2 text-right tabular-nums">{fmtMoneyK(m.value.vestedValue)}</td>
+                    <td className="py-2 text-right tabular-nums text-ink-400 hidden md:table-cell">{fmtMoneyK(m.value.unvestedValue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="text-[11px] text-ember-400/90 mt-3 pt-3 border-t border-ink-700 leading-relaxed">
+            These are preferred and secondary prices, not a 409A. A 409A values <em>common</em> stock and sits materially below them, because preferred
+            carries liquidation preferences and protections common doesn’t — so treat every figure here as an upper bound, not a valuation.
+            The per-share numbers come from secondary marketplaces working back from headline valuation and an estimated share count, not from a filing.
+            Nothing here is counted in the household total.
+          </div>
+          <div className="text-[11px] text-ink-400 mt-2 leading-relaxed">
+            For the real number: Carta shows the current common FMV on the holdings page and in the exercise flow. Drop it in and this section prices properly.
+            The {v.grants[0].id} strike of ${v.grants[0].strike.toFixed(2)} was itself the 409A in force at the {fmtDate(v.grants[0].issued)} grant date — the company has since gone from a $3.5B Series C to $5.2B.
+          </div>
         </div>
 
         {v.discrepancies.length > 0 && (
@@ -3219,6 +3340,7 @@ const OutsideMerrillPanel = ({ scope }) => {
                       <span className="text-ink-500"> — </span>
                       <span className="text-ink-300">Unvested {g.unvested.toLocaleString()}</span>
                       {g.strike != null && <span className="text-ink-500"> · ${g.strike.toFixed(2)}/sh strike · {fmtMoney(g.vestedExerciseCost)} to exercise what’s vested</span>}
+                      {ref.value.byId[g.id] && <span className="text-ink-500"> · ~{fmtMoneyK(ref.value.byId[g.id].vestedValue)} vested at the {ref.source} mark (indicative)</span>}
                     </div>
                     <div className="mt-1.5 flex h-1.5 rounded overflow-hidden bg-ink-700/50 max-w-[260px]">
                       <div style={{width: g.pct + '%'}} className="bg-sage-400"/>
