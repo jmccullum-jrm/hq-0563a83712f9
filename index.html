@@ -620,7 +620,18 @@
         notes:'Contract PDF "MCCULLUM TESLA.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock). Claims: zurichna.com / dealer service dept.' },
       { id:'ins-zurich-volvo', type:'Extended warranty (Zurich VSC)', carrier:'Zurich', coverageSummary:'Vehicle service contract — Volvo',
         policyNumber:'VIN YV4102PK3L1553423', documentUrl:'https://mail.google.com/mail/#all/195f792addd95b46',
-        notes:'Contract PDF "MCCULLUM VOLVO.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock). Claims/review: vsc.review@zurichna.com.' },
+        notes:'ON A CAR THE HOUSEHOLD NO LONGER OWNS — this VIN is the 2020 XC90, traded in 7/13/26. '
+            + 'A prepaid vehicle service contract is usually refundable pro-rata on disposal of the vehicle; '
+            + 'ask vsc.review@zurichna.com what unearned premium is due back. '
+            + 'Contract PDF "MCCULLUM VOLVO.pdf" attached to the 4/2/25 email from Audi Seattle (Cory Pollock).' },
+      /* Read off the declarations page, endorsement 5 effective 07/13/2026. */
+      { id:'ins-cincinnati-auto', type:'auto', carrier:'Cincinnati Insurance', property:'1619 Seattle',
+        coverageSummary:'2026 Volvo XC90 + 2020 Tesla Model Y — BI 250/500, PD 100k, PIP 10k, UIM 250/500, comp/coll $500',
+        policyNumber:'A01 1262269', premium:5501, premiumCadence:'semi-annual', renewalDate:'2026-10-14',
+        agentName:'Rose Lawton — Acrisure West Insurance Services', agentPhone:'509-213-6853', agentEmail:'rlawton@acrisure.com',
+        notes:'Semi-annual direct bill. Volvo $3,293 of the premium, Tesla $2,208. VCFS Auto Leasing Company '
+            + 'is additional insured/lessor on the Volvo. Any premium increase from the vehicle swap is billed '
+            + 'directly by Cincinnati. Claims 877-242-2544. Agency 425-291-5200.' },
       /* From the family IDs sheet (8/14/26) */
       { id:'ins-protective-life', type:'Term life — Justin & Amanda', carrier:'Protective', coverageSummary:'$1M term life, both spouses',
         premium:433, premiumCadence:'annual', documentUrl:'https://myaccount.protective.com/login',
@@ -631,7 +642,23 @@
         premium:522, documentUrl:'https://www.safeco.com/', notes:'From the family IDs sheet.' },
     ];
 
-    const seedVehicles = [];
+    /* Both vehicles read off the Cincinnati auto declarations, endorsement 5 effective
+       07/13/2026 (Box: Car / Volvo 2026 / "07-13-2026 Auto Cincinnati Endt Replace 20
+       Volvo w-26 Volvo.pdf"). The 2020 XC90 was traded in on delivery of the 2026. */
+    const seedVehicles = [
+      { id:'veh-xc90-2026', year:2026, make:'Volvo', model:'XC90', trim:'Hybrid B6 AWD Ultra (6-seat)',
+        vin:'YV4062JF1T1480395', primaryDriver:'Amanda',
+        warrantyProvider:'Volvo Car Financial Services (lease)', warrantyExpires:'',
+        notes:'Leased 7/13/26, 51 miles at delivery. Amanda is sole lessee. Garaged 1619 42nd Ave E. '
+            + 'Lessor and additional insured: VCFS Auto Leasing Company, PO Box 91300, Mobile AL 36691-1300. '
+            + 'Titled lienholder on the policy is VCFS Lien Company, LLC. Agreed value $82,081. '
+            + 'Lease requires 100/300 minimum liability and caps comp/collision deductibles at $1,000 — '
+            + 'the policy carries 250/500 and $500/$500, so both clear.' },
+      { id:'veh-modely-2020', year:2020, make:'Tesla', model:'Model Y', trim:'Long Range',
+        vin:'5YJYGDEE7LF008709', primaryDriver:'Justin',
+        warrantyProvider:'Zurich (vehicle service contract)', warrantyExpires:'',
+        notes:'Agreed value $27,499 on the Cincinnati policy.' },
+    ];
 
     const seedUtilities = [];
 
@@ -676,13 +703,49 @@
     const seedWine = [];
 
     /* ---------- suggestions (prepopulated from the 7/31/26 Merrill statement scan) ---------- */
+    /* The parking lot. Anything typed here is a request for the household's Claude —
+       either run now in a Claude Code session, or left parked until the next one. */
+    const seedAsks = [
+      { id:'ask-newcar', status:'done', createdAt:'2026-08-31', doneAt:'2026-08-31',
+        text:'We have a new car — see my emails and docs in Box and update the app.',
+        result:'Found the Acrisure thread and the Cincinnati endorsement in Box. Added the 2026 Volvo XC90 '
+             + 'Hybrid B6 Ultra (VIN YV4062JF1T1480395, leased 7/13/26, Amanda sole lessee) and the 2020 Tesla '
+             + 'Model Y, added the Cincinnati auto policy A01 1262269 ($5,501 semi-annual, renews 10/14/26), and '
+             + 'flagged that the Zurich service contract is still written against the traded-in 2020 XC90.' },
+      { id:'ask-finance', status:'done', createdAt:'2026-08-31', doneAt:'2026-08-31',
+        text:'Update our finance strategy based on what you know now.',
+        result:'Added the Mercury early-exercise question — 75,000 unvested options at a $13.86 spread, '
+             + '$421K to exercise, losing 2,500 shares of optionality a month — and noted it competes with the '
+             + 'idle-cash sweep for the same dollars. Closed out the insurance half of the new-car item.' },
+    ];
+
     const seedSuggestions = [
-      { id:'sg-amanda-car', priority:'high', done:false, source:'Your note to self, 8/13/26',
-        title:'Amanda’s new car — change insurance & sort the Zurich warranty',
-        body:'Your 8/13 email note: “change insurance for amandas new car! …and zurich.” Add the new car to the auto policy, and decide the Zurich VSC — the Tesla and Volvo both have Zurich contracts on file (see Insurance), so ask Audi Seattle/the selling dealer about coverage for the new one and whether the old car’s contract is cancellable for a prorated refund.' },
+      { id:'sg-amanda-car', priority:'med', done:false, source:'Cincinnati endt 5, eff 7/13/26 · Acrisure thread 8/17/26',
+        title:'Zurich still holds a service contract on the Volvo you traded in',
+        body:'The insurance half is finished — Rose Lawton replaced the 2020 XC90 with the 2026 XC90 Hybrid B6 on 8/17, '
+           + 'VCFS Auto Leasing is additional insured, and 250/500 liability with $500 deductibles clears everything the lease requires. '
+           + 'What is still open: the Zurich vehicle service contract on file is written against VIN YV4102PK3L1553423 — the 2020 car, '
+           + 'gone since 7/13/26. A prepaid VSC is normally refundable pro-rata once the vehicle leaves your hands, and roughly two of its '
+           + 'years are unused. Email vsc.review@zurichna.com with the VIN and the disposal date and ask what unearned premium is due back. '
+           + 'A leased 2026 is under full factory warranty, so there is nothing to replace it with.' },
+      { id:'sg-mercury-exercise', priority:'high', done:false, source:'Carta 8/29/26 · Forge mark 8/19/26',
+        title:'75,000 unvested Mercury options can still be early-exercised — the window narrows 2,500 a month',
+        body:'ES-1881 grants 120,000 options at $3.51 and Carta shows all 120,000 exercisable today, because the grant permits early exercise. '
+           + '45,000 have vested; 75,000 have not. At the $17.37 Forge mark the spread is $13.86 a share — about $1.66M across the whole grant. '
+           + 'Exercising all of it costs $421,200 in cash at the strike. '
+           + 'Why the timing matters: exercising an option that has already vested measures the spread on the day you exercise, and for ISOs that '
+           + 'spread is an AMT preference item. Exercising shares before they vest, with an 83(b) election filed inside 30 days, fixes the measurement '
+           + 'at today’s spread instead of a larger one later, and starts the long-term holding clock early. Every month that passes moves 2,500 more '
+           + 'shares out of the early-exercise column and into the already-vested one. '
+           + 'The counterweights are real: $421K is most of the idle cash, it buys more exposure to a single private company on top of 32% already in '
+           + 'PLTR and AMZN, and the money is illiquid until a liquidity event. There is also an ISO/NSO split on this grant that changes the tax '
+           + 'treatment of each portion. This is a CPA conversation, not a dashboard decision — but it is the largest untouched number in the household '
+           + 'and it is the only one with a monthly clock on it.' },
       { id:'sg-bofa-cash', priority:'high', done:false, source:'BofA stmt 7/29/26',
         title:'$883K sitting in BofA savings at 0.05% APY',
-        body:'The Money Market Savings account (#…3955) earns ~$440/yr at 0.05%. Parked in an actual money-market fund or T-bills at ~3.7% it would earn ~$32K/yr — that’s $2,600/mo of free yield. Sweep everything beyond your checking buffer into BLF FEDFUND at Merrill (already used there), a Preferred Deposit tier, or a Treasury ladder.' },
+        body:'The Money Market Savings account (#…3955) earns ~$440/yr at 0.05%. Parked in an actual money-market fund or T-bills at ~3.7% it would earn ~$32K/yr — that’s $2,600/mo of free yield. Sweep everything beyond your checking buffer into BLF FEDFUND at Merrill (already used there), a Preferred Deposit tier, or a Treasury ladder. '
+           + 'One caveat now: a full early exercise of Amanda’s Mercury options would consume $421K of this same cash, so decide that question before '
+           + 'locking anything into a long Treasury ladder.' },
       { id:'sg-pltr-glidepath', priority:'high', done:false, source:'Merrill stmt 7/31/26',
         title:'Decide the PLTR exit path before the collar expires (Jan 2027)',
         body:'PLTR is $1.32M — 18.7% of the portfolio, with a $1.29M unrealized LT gain (basis ~$2.70/sh). The Jan-2027 $100P/$180C collar covers only 4,000 of 10,724 shares. Start the glide path now: sell in tranches across tax years, keep annual LT gains near WA’s ~$270K capital-gains excise threshold, use specific-lot ID.' },
@@ -962,6 +1025,7 @@
       dismissedGaps: [],   // gap titles the household has answered
       lastDigestAt: null,  // so the next digest can say what got done since
       suggestions: seedSuggestions,
+      asks: seedAsks,
       dafValues: seedDafValues,
       ids: seedIds,
       dismissedEnds: [],   // loose-end keys the household has said no to
@@ -1183,7 +1247,9 @@
         out.push({
           key: `veh:${src.vin}`, module: 'vehicles', icon: 'car',
           title: `${after || 'Vehicle'} — VIN on file, no vehicle record`,
-          why: `The VIN is recorded in ${src.from}, but Vehicles is empty.`,
+          why: `The VIN is recorded in ${src.from}, but no vehicle in the app carries it — `
+             + `either the car is not logged yet, or that record is written against a car the `
+             + `household no longer owns.`,
           record: { make: make || '', model: rest.join(' '), vin: src.vin,
                     warrantyProvider: src.warrantyProvider || '', notes: src.notes },
         });
@@ -1327,7 +1393,7 @@
         // (wine, portfolio, future modules) is auto-backfilled — a stale save can
         // never crash the app by missing a top-level key.
         const migrated = { ...initialState, ...saved };
-        const ENTITY_KEYS = ['vendors','maintenance','appliances','wine','insurance','vehicles','utilities','property','subscriptions','benefits','files','suggestions','dafValues','ids'];
+        const ENTITY_KEYS = ['vendors','maintenance','appliances','wine','insurance','vehicles','utilities','property','subscriptions','benefits','files','suggestions','dafValues','ids','asks'];
         ENTITY_KEYS.forEach(k => {
           if (!Array.isArray(migrated[k])) migrated[k] = initialState[k];
         });
@@ -1563,6 +1629,7 @@
       const sugOps  = mk('suggestions');
       const filOps  = mk('files');
       const dafOps  = mk('dafValues');
+      const askOps  = mk('asks');
 
       const ctx = {
         state, setState, view, setView, modal, setModal, showToast,
@@ -1632,6 +1699,7 @@
         addSubscription: subOps.add, updateSubscription: subOps.update, deleteSubscription: subOps.delete,
         addBenefit: benOps.add, updateBenefit: benOps.update, deleteBenefit: benOps.delete,
         addSuggestion: sugOps.add, updateSuggestion: sugOps.update, deleteSuggestion: sugOps.delete,
+        addAsk: askOps.add, updateAsk: askOps.update, deleteAsk: askOps.delete,
         addFile: filOps.add, updateFile: filOps.update, deleteFile: filOps.delete,
         // Promote a derived loose end into a real record, or say no to it for good.
         adoptLooseEnd: (end) => {
@@ -1796,6 +1864,7 @@
           <div className="min-h-screen relative">
             <Shell view={view} setView={setView}>
               {view === 'dashboard'    && <DashboardView />}
+              {view === 'asks'         && <AsksView />}
               {view === 'suggestions'  && <SuggestionsView />}
               {view === 'vendors'      && <VendorsView />}
               {view === 'maintenance'  && <MaintenanceView />}
@@ -1844,6 +1913,7 @@
     ];
     const NAV_OTHER = [
       { id:'wine',        label:'Wine',        icon:'wine' },
+      { id:'asks',        label:'Ask Claude',  icon:'sparkles' },
     ];
     const NAV_ALL = [...NAV_PRIMARY, ...NAV_RECORDS, ...NAV_OTHER];
 
@@ -1857,7 +1927,7 @@
        setView('vehicles') in the file, every search result and every card jump keeps
        working. Only the nav is regrouped. */
     const NAV_GROUPS = [
-      { id:'today',    label:'Today',    icon:'home',   views:['dashboard'] },
+      { id:'today',    label:'Today',    icon:'home',   views:['dashboard','asks'] },
       { id:'money',    label:'Money',    icon:'chart',  views:['portfolio','subscriptions','suggestions'] },
       { id:'houses',   label:'Houses',   icon:'key',    views:['maintenance','vendors','appliances','property','utilities'] },
       { id:'coverage', label:'Coverage', icon:'shield', views:['insurance','vehicles','benefits'] },
@@ -1885,6 +1955,7 @@
       if (!s) return null;
       if (id === 'done') return (s.completedLog || []).length;
       if (id === 'suggestions') return (s.suggestions || []).filter(x => !x.done).length;
+      if (id === 'asks')        return (s.asks || []).filter(x => x.status !== 'done').length;
       const arr = s[id];
       return Array.isArray(arr) ? arr.length : null;
     };
@@ -2669,6 +2740,127 @@
               <span className="ml-auto hidden md:inline">{flat.length} result{flat.length === 1 ? '' : 's'}</span>
             </div>
           </div>
+        </div>
+      );
+    };
+
+    /* ---------- Ask Claude ----------
+       The app has no backend, so an ask cannot dispatch itself. What it can do is be
+       a reliable parking lot: write the thing down the moment you think of it, and
+       hand the whole open list to Claude Code in one paste next time you are there. */
+    const ASK_PRESETS = [
+      'Scan my email and Box for anything the app is missing, and update it.',
+      'Update our finance strategy based on what you know now.',
+      'Check every subscription I have not confirmed and tell me what to cancel.',
+      'What is coming up in the next 90 days that I have not planned for?',
+    ];
+
+    const AsksView = () => {
+      const ctx = useContext(Ctx);
+      const { state } = ctx;
+      const list = state.asks || [];
+      const [draft, setDraft] = useState('');
+      const [copied, setCopied] = useState(false);
+      const open = list.filter(a => a.status !== 'done');
+      const done = list.filter(a => a.status === 'done');
+
+      const add = (text) => {
+        const t = (text || '').trim();
+        if (!t) return;
+        ctx.addAsk({ id: 'ask-' + uid(), text: t, status: 'open', createdAt: toISO(today()) });
+        setDraft('');
+        ctx.showToast('Parked for Claude');
+      };
+
+      // One paste is the whole handoff: the asks plus enough context that Claude
+      // does not have to ask which household or where the data lives.
+      const brief = () => {
+        const lines = open.map((a, i) => `${i + 1}. ${a.text}`).join('\n');
+        return `Here are ${open.length} request${open.length === 1 ? '' : 's'} from Home HQ`
+             + ` (the McCullum household dashboard, index.html in this repo):\n\n${lines}\n\n`
+             + `Work through them, update the app, run the test suite, and publish to main.`;
+      };
+      const copy = async () => {
+        try { await navigator.clipboard.writeText(brief()); setCopied(true); setTimeout(()=>setCopied(false), 2200); }
+        catch { ctx.showToast('Could not reach the clipboard — select the text below instead', null, 'error'); }
+      };
+
+      return (
+        <div className="space-y-6">
+          <Readout
+            value={String(open.length)} unit={open.length === 1 ? ' open request' : ' open requests'}
+            parts={[
+              done.length > 0 && `${done.length} done`,
+              open.length > 0 && { text: 'Copy the lot for Claude', alert: true, onClick: copy },
+            ]} />
+
+          <div className="card p-4 md:p-5 space-y-3">
+            <label htmlFor="ask-draft" className="!mb-0">Ask Claude to do something</label>
+            <textarea id="ask-draft" rows="3" value={draft} onChange={e=>setDraft(e.target.value)}
+              onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') add(draft); }}
+              placeholder="e.g. We have a new car — check my email and Box and update the app." />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Btn icon="plus" onClick={()=>add(draft)} disabled={!draft.trim()}>Park it</Btn>
+              <span className="text-2xs text-ink-400">&#8984;&#8629; to add</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {ASK_PRESETS.map(pr => (
+                <button key={pr} onClick={()=>add(pr)}
+                  className="px-2.5 py-1.5 rounded-full text-xs text-ink-400 hover:text-ink-100 border border-ink-600 hover:border-ink-500 text-left">
+                  {pr.length > 52 ? pr.slice(0, 52) + '…' : pr}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {open.length > 0 && (<>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Btn variant="soft" icon={copied ? 'check' : 'copy'} onClick={copy}>
+                {copied ? 'Copied — paste into Claude Code' : `Copy ${open.length} request${open.length===1?'':'s'} for Claude`}
+              </Btn>
+              <span className="text-xs text-ink-400">Paste it into a Claude Code session on this repo.</span>
+            </div>
+            <Ledger valueWidth="0rem" hasActions>
+              {open.map(a => (
+                <Row key={a.id} title={a.text} wrap label={a.text.slice(0, 60)}
+                  meta={[a.status === 'sent' ? 'handed to Claude' : 'parked',
+                         a.createdAt ? `added ${fmtDate(a.createdAt)}` : null]}
+                  when={null}
+                  tone={a.status === 'sent' ? 'soon' : undefined}
+                  action={
+                    <span className="flex items-center gap-1.5">
+                      {a.status !== 'sent' && (
+                        <button onClick={()=>ctx.updateAsk(a.id, { status:'sent' })}
+                          className="px-2 py-1 rounded-lg text-xs bg-ink-700 hover:bg-ink-600 text-ink-100 whitespace-nowrap">Handed over</button>
+                      )}
+                      <button onClick={()=>ctx.updateAsk(a.id, { status:'done', doneAt: toISO(today()) })}
+                        className="px-2 py-1 rounded-lg text-xs bg-sage-500/15 text-sage-400 border border-sage-500/25 hover:bg-sage-500/20">Done</button>
+                      <button onClick={()=>ctx.deleteWithUndo('asks', a, a.text.slice(0, 40))}
+                        className="px-2 py-1 rounded-lg text-xs bg-ember-500/12 text-ember-500 border border-ember-500/25 hover:bg-ember-500/20">Delete</button>
+                    </span>} />
+              ))}
+            </Ledger>
+          </>)}
+
+          {open.length === 0 && (
+            <p className="text-sm text-ink-400 py-2">Nothing parked. Write anything above and it waits here until you next open Claude Code.</p>
+          )}
+
+          {done.length > 0 && (<>
+            <div className="divider" />
+            <div className="text-2xs uppercase tracking-wide text-ink-400">Done</div>
+            <Ledger valueWidth="0rem" hasActions>
+              {done.map(a => (
+                <Row key={a.id} tone="ok" wrap label={a.text.slice(0, 60)}
+                  title={<span className="text-ink-300">{a.text}</span>}
+                  meta={[a.result, a.doneAt ? `finished ${fmtDate(a.doneAt)}` : null]}
+                  when={null}
+                  action={
+                    <button onClick={()=>ctx.updateAsk(a.id, { status:'open' })}
+                      className="px-2 py-1 rounded-lg text-xs text-ink-400 hover:text-ink-100 whitespace-nowrap">Reopen</button>} />
+              ))}
+            </Ledger>
+          </>)}
         </div>
       );
     };
