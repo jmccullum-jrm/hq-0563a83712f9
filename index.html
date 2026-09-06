@@ -606,11 +606,55 @@
         notes:'Couples $225/session · claims: CPT 90847, ICD F43.20, TaxID 853373840 · 2366 Eastlake Ave E, Suite 436, Seattle WA 98102 · invoiced through 6/26.' },
       { id:'v-tim-stanley', company:'co-op therapy — Tim Stanley', name:'Tim Stanley', serviceType:'Therapy',
         notes:'$180/session · claims: CPT 90834, ICD F43.20, Modifier 95, TaxID 471131773 · 7220 Woodlawn Ave NE Suite #305, Seattle WA 98115 · invoiced through 6/25.' },
+      /* ---- Added 9/6/26 from a full Gmail sweep (invoice platforms, claims, contractor threads). ---- */
+      { id:'v-furnace-doctors', company:'Furnace Doctors Inc', name:'Furnace Doctors', serviceType:'HVAC', email:'furnacedoctorsinc@aol.com', property:'1619 Seattle',
+        notes:'First American home-warranty claim #315726050, work order 622639846 — $2,159 out-of-pocket quoted. Justin’s 8/28 “Approved” reply bounced (550), so the contractor never saw it and the job is stalled. Re-send the approval.' },
+      { id:'v-greenwood-heating', company:'Greenwood Heating & Home Services', name:'Greenwood Heating', serviceType:'HVAC', phone:'206-784-1818', property:'1619 Seattle',
+        notes:'Accounting 206-486-8106. Invoice #757516654 has carried an unpaid balance since 7/8/26. They do not take Amex.' },
+      { id:'v-hotwire', company:'HotWire HVAC / Appliance Repair', name:'HotWire dispatch', serviceType:'Appliance repair', email:'dispatch@hotwirerepair.com', property:'1619 Seattle',
+        notes:'Services the Wine Guardian cellar unit. Last invoice #19433.' },
+      { id:'v-arcon-electric', company:'Arcon Electric', name:'Arcon', serviceType:'Electrical', property:'1619 Seattle',
+        notes:'arcon.construction. Last invoice #264322-1 — pay by check to skip the 3% Square fee.' },
+      { id:'v-home-appliance-svc', company:'Home Appliance Service LLC', name:'Home Appliance Service', serviceType:'Appliance repair', property:'1619 Seattle',
+        notes:'$154.77 service call 8/28/26.' },
+      { id:'v-clear-skies', company:'Clear Skies Cleaning', name:'Sofia Austin', serviceType:'Gutters & roof cleaning', phone:'206-669-7706', email:'info@clearskiescleaning.com', property:'1619 Seattle',
+        notes:'Gutter and roof cleaning. Books 4–6 weeks out — call in September for a pre-rain clean.' },
+      { id:'v-loberg-roofing', company:'Loberg Roofing', name:'Joe DeLeon', serviceType:'Roofing', property:'1619 Seattle',
+        notes:'Fixed the January 2026 roof leak — invoice 45081. First call for anything roof-related.' },
+      { id:'v-jsr-construction', company:'JSR Construction', name:'Brandon Rogers', serviceType:'General contractor', phone:'208-309-1957', property:'4322 Sun Valley',
+        notes:'Hailey, ID. Alt 208-309-1938. Invoice 1290 — $4,592 of Sun Valley extras; whether it has been paid is not visible in email.' },
+      { id:'v-interstate-heating', company:'Interstate Heating', name:'Dylan Scherer', serviceType:'HVAC', property:'4322 Sun Valley',
+        notes:'Sun Valley heating service.' },
+      { id:'v-aurora-wa', company:'Aurora WA Services', name:'Aurora', serviceType:'Appliance repair', phone:'425-588-0088', property:'1619 Seattle',
+        notes:'First American appliance claim, work order 622763786 (Fisher & Paykel). Still “awaiting approval” on First American’s side as of 9/6/26 — chase the warranty company, not Aurora.' },
+      { id:'v-cascade-pest', company:'Cascade Pest Control', name:'Cascade Pest', serviceType:'Pest control', phone:'425-641-6264', property:'1619 Seattle',
+        notes:'Snohomish office. Recurring service on roughly a six-week cycle.' },
+      { id:'v-vinotheque', company:'Vinotheque / WhisperKOOL', name:'Adam Eigenberger', serviceType:'Wine cellar', property:'1619 Seattle',
+        notes:'WhisperKOOL cooling unit — order #78283. The card payment on that order did not settle; confirm before they ship or cancel.' },
+      { id:'v-jj-general', company:'J&J General Contracting', name:'J&J', serviceType:'General contractor', property:'1619 Seattle',
+        notes:'Timbertech deck estimate #2024 on file.' },
+      { id:'v-marc-kaufman', company:'Kaufman Filppu Ford PLLC', name:'Marc Kaufman, JD, CPA', serviceType:'Tax & accounting', phone:'425-285-0628', email:'marc@kfftax.com',
+        notes:'12330 NE 8th St, Suite 101, Bellevue. Files the returns, sets the quarterly estimates, wants the 8/31 paystubs and Merrill YTD tax summary every fall.' },
+      { id:'v-merrill-team', company:'Merrill Lynch — Hollomon Dellinger Pascucci Group', name:'Heather Steiner, CFP® · Stephen Hollomon', serviceType:'Wealth management', phone:'206-464-8630', email:'heather_steiner@ml.com',
+        notes:'Heather runs the day-to-day; Stephen is the senior advisor. Both equity packets (Anthropic + Mercury) were sent 8/27–8/29/26.' },
+      { id:'v-acrisure', company:'Acrisure (insurance broker)', name:'Rose Lawton', serviceType:'Insurance broker', phone:'509-213-6853', email:'rlawton@acrisure.com',
+        notes:'Cincinnati auto/home. The Liberty Mutual landlord policy is serviced by the Acrisure office at 425-291-5200.' },
     ];
 
-    const seedMaintenance = [];
+    /* Cadences inferred from the vendor history in Gmail (9/6/26). lastCompleted is the
+       last date email can prove; the app rolls the next-due forward from there. */
+    const seedMaintenance = [
+      { id:'m-pest-cycle',    name:'Pest control visit (Cascade)',          freq:{count:6, unit:'weeks'},  lastCompleted:'2026-08-10', estimatedCost:0,   vendorHint:'Cascade Pest Control', property:'1619 Seattle', notes:'Roughly every six weeks per the appointment emails; exact last visit not confirmed.' },
+      { id:'m-gutters-roof',  name:'Gutter & roof cleaning',                freq:{count:1, unit:'years'},  lastCompleted:'2025-10-15', estimatedCost:0,   vendorHint:'Clear Skies Cleaning', property:'1619 Seattle', notes:'Sofia books 4–6 weeks out — call in early September to land before the rain.' },
+      { id:'m-furnace-svc',   name:'Furnace / heat pump service',           freq:{count:1, unit:'years'},  lastCompleted:'2025-10-15', estimatedCost:0,   vendorHint:'Greenwood Heating', property:'1619 Seattle', notes:'Last-service date is approximate. Greenwood and Furnace Doctors have both been out in 2026; make one of them the annual.' },
+      { id:'m-wine-cellar',   name:'Wine cellar cooling check',             freq:{count:1, unit:'years'},  lastCompleted:'2026-06-01', estimatedCost:0,   vendorHint:'HotWire', property:'1619 Seattle', notes:'Wine Guardian serviced by HotWire (inv #19433); WhisperKOOL replacement on order.' },
+    ];
 
-    const seedAppliances = [];
+    const seedAppliances = [
+      { id:'ap-rachio', name:'Rachio irrigation controller', room:'Garage', brand:'Rachio', model:'', serial:'Rachio-D4E653', purchaseDate:'', purchasePrice:0, warrantyExpires:'', manualUrl:'https://support.rachio.com', property:'1619 Seattle', notes:'Device ID from the Rachio account emails.' },
+      { id:'ap-whisperkool', name:'WhisperKOOL wine cellar cooling unit', room:'Wine cellar', brand:'WhisperKOOL', model:'', serial:'', purchaseDate:'2026-08-20', purchasePrice:0, warrantyExpires:'', manualUrl:'https://www.vinotheque.com', property:'1619 Seattle', notes:'Vinotheque order #78283 — card payment unsettled as of 9/6/26. Replaces/supplements the Wine Guardian unit HotWire services.' },
+      { id:'ap-fisher-paykel', name:'Fisher & Paykel appliance (under warranty claim)', room:'Kitchen', brand:'Fisher & Paykel', model:'', serial:'', purchaseDate:'', purchasePrice:0, warrantyExpires:'', manualUrl:'', property:'1619 Seattle', notes:'First American work order 622763786 assigned to Aurora WA Services; approval pending. Fill in model/serial from the unit’s door sticker.' },
+    ];
 
     /* ---------- NEW MODULE SEEDS ---------- */
     const seedInsurance = [
@@ -638,8 +682,9 @@
         notes:'Policy portal also at ildpiocs1.protective.com. From the family IDs sheet.' },
       { id:'ins-palomar-eq', type:'Earthquake', carrier:'Palomar', coverageSummary:'Earthquake coverage (per family sheet — add policy # and premium)',
         notes:'Listed on the family IDs sheet with no details — pull the policy doc when handy.' },
-      { id:'ins-safeco-4322', type:'Home — 4322 Sun Valley', carrier:'Safeco', property:'4322 Sun Valley', coverageSummary:'Home policy for Fairway Nine',
-        premium:522, documentUrl:'https://www.safeco.com/', notes:'From the family IDs sheet.' },
+      { id:'ins-safeco-4322', type:'Landlord — 4322 Sun Valley', carrier:'Liberty Mutual (formerly Safeco)', property:'4322 Sun Valley', coverageSummary:'Landlord policy for Fairway Nine — the Sun Valley rental',
+        policyNumber:'OH2396332', premium:522, premiumCadence:'annual', renewalDate:'2026-09-23', agentName:'Acrisure', agentPhone:'425-291-5200',
+        documentUrl:'https://www.libertymutual.com/log-in', notes:'Safeco rebranded to Liberty Mutual in 2026 — same policy. Renewal notice 8/2026: “all set to renew” 9/23/26. Premium is the old IDs-sheet figure; confirm against the renewal declarations.' },
     ];
 
     /* Both vehicles read off the Cincinnati auto declarations, endorsement 5 effective
@@ -662,7 +707,14 @@
 
     const seedUtilities = [];
 
-    const seedProperty = [];
+    const seedProperty = [
+      { id:'p-bofa-mortgage-1619', kind:'mortgage', label:'BofA mortgage …1090', contact:'Bank of America Home Loans', phone:'800-669-6607', email:'', loginUrl:'https://secure.bankofamerica.com/login', amount:0, cadence:'monthly', nextDue:'', property:'1619 Seattle',
+        notes:'Account ending 1090 per BofA statement emails. Payment amount and due day not in email — fill from the mortgage statement.' },
+      { id:'p-side-sewer-permit', kind:'other', label:'Side-sewer permit — case 003157-26CP', contact:'Seattle SDCI', phone:'', email:'', loginUrl:'https://cosaccela.seattle.gov/portal', amount:0, cadence:'', nextDue:'', property:'1619 Seattle',
+        notes:'Open permit case from 2026 side-sewer work. Close it out once the final inspection passes.' },
+      { id:'p-sv-rental', kind:'other', label:'Sun Valley rental — 2025 revenue $12,453.63', contact:'', phone:'', email:'', loginUrl:'', amount:0, cadence:'', nextDue:'', property:'4322 Sun Valley',
+        notes:'Rented part of the year; 32 personal-use nights in 2025. Marc raised whether it should sit in an LLC — unresolved.' },
+    ];
 
     /* Rebuilt 8/14/26 from the statements in Box (Venture card Apr-Aug, Amex Delta Apr-Aug, BofA checking Jun-Jul). */
     const seedSubscriptions = [
@@ -689,7 +741,11 @@
       { id:'sub-mlbtv',      name:'MLB.TV',                       category:'streaming',  cost:221.09, cadence:'annual', renewalDate:'2027-04-03', url:'https://www.mlb.com/account', notes:'Renewed 4/3/26 on Amex.' },
       { id:'sub-anthropic', confidence:'unconfirmed', question:'Seen once (4/30) — confirm plan',  name:'Anthropic (Claude/API)',       category:'software',   cost:5.53,   cadence:'monthly', renewalDate:'2026-08-30', url:'https://claude.ai/settings/billing', notes:'Seen once (4/30, Amex) — confirm plan.' },
       // -- large dues (cadence unconfirmed) --
-      { id:'sub-broadmoor', confidence:'cadence-unconfirmed', question:'Monthly or quarterly? $23,693/yr rides on the answer',  name:'Broadmoor Golf Club dues',     category:'membership', cost:2961.58, cadence:'monthly', renewalDate:'2026-09-13', url:'https://www.broadmoorgolfclub.org', notes:'$2,961.58 from BofA checking 7/13 — confirm whether monthly or quarterly dues.' },
+      { id:'sub-broadmoor', confidence:'cadence-unconfirmed', question:'Monthly or quarterly? $23,693/yr rides on the answer',  name:'Broadmoor Golf Club dues',     category:'membership', cost:2961.58, cadence:'monthly', renewalDate:'2026-09-13', url:'https://www.broadmoorgolfclub.org', notes:'$2,961.58 from BofA checking 7/13 — confirm whether monthly or quarterly dues. Club announced a new dues schedule effective April 2026 (Gmail) — the figure above may already be stale.' },
+      // -- new since the August rebuild (Gmail receipts, 9/6/26) --
+      { id:'sub-skylight', confidence:'unconfirmed', question:'Confirm the plan price — receipt came from Apple, not Skylight', name:'Skylight Calendar Plus', category:'software', cost:39, cadence:'annual', renewalDate:'2027-09-05', url:'https://account.apple.com/account/manage', notes:'Apple subscription confirmation 9/5/26 for Skylight App · Calendar Plus. Price not in the receipt; $39/yr is the list price.' },
+      { id:'sub-hbomax',   name:'HBO Max (via Amazon)',       category:'streaming', cost:16.99, cadence:'monthly', renewalDate:'2026-09-19', url:'https://www.amazon.com/gp/video/settings', notes:'Started 8/19/26 through Amazon Prime Video Channels.' },
+      { id:'sub-tumble-creek', confidence:'unconfirmed', question:'Dues amount and cadence unknown — pull a statement', name:'Tumble Creek Club (Suncadia)', category:'membership', cost:0, cadence:'monthly', renewalDate:'', url:'https://www.tumblecreekclub.com', notes:'Membership correspondence in Gmail but no dues statement found. Enter the amount when the next statement lands.' },
       // -- possibly lapsed (not seen in the latest statements) --
       { id:'sub-bottomless', confidence:'lapsed', question:'Not seen since 5/11 — cancelled?', name:'Bottomless coffee',            category:'other',      cost:27.25,  cadence:'monthly', renewalDate:'', url:'https://bottomless.com/login', notes:'Last seen 5/11 — looks cancelled or paused.' },
       { id:'sub-spectrum', confidence:'lapsed', question:'Not seen since May — tuition-like, finished?',   name:'Spectrum Dance Theater',       category:'membership', cost:306.85, cadence:'monthly', renewalDate:'', url:'https://spectrumdance.org', notes:'Apr & May on Venture (tuition-like) — not seen since; season may have ended.' },
@@ -717,8 +773,21 @@
         result:'Added the Mercury early-exercise question — 75,000 unvested options at a $13.86 spread, '
              + '$421K to exercise, losing 2,500 shares of optionality a month — and noted it competes with the '
              + 'idle-cash sweep for the same dollars. Closed out the insurance half of the new-car item.' },
+      { id:'ask-vendors-0906', status:'done', createdAt:'2026-09-06', doneAt:'2026-09-06',
+        text:'Search all my email for vendors and update the app.',
+        result:'Sixteen vendors added from invoice platforms, warranty claims and contractor threads — HVAC (Furnace Doctors, Greenwood, Interstate), appliance repair (HotWire, Aurora, Home Appliance Service), '
+             + 'Arcon Electric, Clear Skies gutters, Loberg Roofing, JSR Construction, Cascade Pest, Vinotheque, J&J, plus the CPA, the Merrill team and Acrisure. Open balances and the bounced Furnace Doctors approval went to Suggestions.' },
+      { id:'ask-updates-0906', status:'done', createdAt:'2026-09-06', doneAt:'2026-09-06',
+        text:'Search email for other updates that need to happen.',
+        result:'Safeco → Liberty Mutual landlord policy OH2396332 (renews 9/23); Skylight Calendar Plus and HBO Max added, Tumble Creek flagged; Rachio, WhisperKOOL and the Fisher & Paykel claim added to Appliances; '
+             + 'pest, gutter, furnace and wine-cellar cadences added to Maintenance; BofA mortgage …1090, the side-sewer permit and the Sun Valley rental facts added to Property.' },
+      { id:'ask-finance-0906', status:'done', createdAt:'2026-09-06', doneAt:'2026-09-06',
+        text:'Reanalyze the finances.',
+        result:'Found 34,900 Stripe shares ($2.2M at the $63 409A) that were not in the household total — now a Portfolio scope of their own. Added the estimated-tax calendar (Q3 due 9/15) and the Sep 10 Merrill review to Money dates, '
+             + 'and wrote up the Stripe concentration, the Q3 estimate, and the four open vendor payments as suggestions.' },
     ];
 
+    // (seedAsks continues above; seedSuggestions below)
     const seedSuggestions = [
       { id:'sg-amanda-car', priority:'med', done:false, source:'Cincinnati endt 5, eff 7/13/26 · Acrisure thread 8/17/26',
         title:'Zurich still holds a service contract on the Volvo you traded in',
@@ -728,6 +797,33 @@
            + 'gone since 7/13/26. A prepaid VSC is normally refundable pro-rata once the vehicle leaves your hands, and roughly two of its '
            + 'years are unused. Email vsc.review@zurichna.com with the VIN and the disposal date and ask what unearned premium is due back. '
            + 'A leased 2026 is under full factory warranty, so there is nothing to replace it with.' },
+      { id:'sg-stripe-position', priority:'high', done:false, source:'Stripe GEM 2/24/26 · Shareworks 4/7/26 · Merrill thread 3/17/26',
+        title:'34,900 Stripe shares — $2.2M at the 409A — were missing from the household total',
+        body:'Amanda still holds 34,900 vested Stripe RSU shares after the Q1 tender took 14,530 at $63 (about $915K in proceeds, ~$610K of it long-term gain at the ~$21 W-2 basis). '
+           + 'At the same $63 409A the remainder is worth $2.20M with $1.47M of embedded gain — larger than the Mercury position and now counted in the total. '
+           + 'Three things follow. First, the tender proceeds landed in April, so the 2026 tax bill already carries a ~$610K LT gain plus WA capital-gains excise above the $270K threshold — check that Marc sized the Q3 estimate for it. '
+           + 'Second, Stripe tenders recur roughly yearly at the current 409A; the next one is the clean way to keep trimming toward Merrill’s 15–25% target without a secondary-market discount. '
+           + 'Third, Stripe plus Mercury plus PLTR is now three concentrated single-name positions — the Sep 10 review is the place to set a target weight for all three together.' },
+      { id:'sg-q3-estimate', priority:'high', done:false, source:'KFF 8/29/26 · IRS calendar', targetDate:'2026-09-15', amount:37500,
+        title:'Q3 estimated tax is due 9/15 — confirm the amount and which account it pulls from',
+        body:'Marc asked for the 8/31 paystubs (sent 8/31) and Heather’s Merrill YTD tax summary to size the payment. Q2 was $37,500 pulled from savings …3955. '
+           + 'The Q1 Stripe tender gain and the July income-ETF purchases both push this quarter up; if the figure has not arrived by 9/11, ask. The Oaktree K-1 is still outstanding and Marc has asked Heather for it twice.' },
+      { id:'sg-furnace-bounce', priority:'high', done:false, source:'Gmail 8/28/26 (bounce)',
+        title:'Your Furnace Doctors approval never arrived — the $2,159 heating job is stalled',
+        body:'On 8/28 you replied “Approved” to Furnace Doctors for First American claim #315726050 (work order 622639846). That message bounced with a 550 — the aol.com address rejected it — so the contractor is still waiting. '
+           + 'Call them or re-send from a different address, and check the First American claim page for the same work order so the warranty portion is released. Heating season starts in a month.' },
+      { id:'sg-vendor-balances', priority:'med', done:false, source:'Gmail sweep 9/6/26',
+        title:'Four vendor payments are open or unconfirmed',
+        body:'Greenwood Heating invoice #757516654 has shown a balance since 7/8 — pay by check or card (no Amex). '
+           + 'Vinotheque order #78283 for the WhisperKOOL unit says the card did not settle. '
+           + 'JSR Construction invoice 1290 ($4,592, Sun Valley extras) has no payment confirmation in email. '
+           + 'Aurora WA Services is waiting on First American to approve work order 622763786 for the Fisher & Paykel — chase the warranty company. All four are now in Vendors with the reference numbers.' },
+      { id:'sg-fireplace-valve', priority:'low', done:false, source:'Gmail 2026',
+        title:'The playroom fireplace gas valve still needs a technician',
+        body:'Mentioned in email and never closed out. Greenwood or Furnace Doctors can do gas-appliance work; fold it into whichever heating visit happens first so it is not a separate call-out fee.' },
+      { id:'sg-liberty-renewal', priority:'low', done:false, source:'Liberty Mutual renewal notice 8/2026', targetDate:'2026-09-23',
+        title:'Sun Valley landlord policy renews 9/23 — it is a rental, make sure the policy says so',
+        body:'Safeco became Liberty Mutual; policy OH2396332 renews automatically on 9/23. The property earned $12,453 in 2025 rent with 32 personal nights, so it needs landlord/dwelling-fire coverage with loss-of-rents, not a standard homeowner form. Read the renewal declarations for the form type and the liability limit, and ask Acrisure (425-291-5200) if it is still written as owner-occupied.' },
       { id:'sg-mercury-exercise', priority:'high', done:false, source:'Carta 8/29/26 · Forge mark 8/19/26',
         title:'75,000 unvested Mercury options can still be early-exercised — the window narrows 2,500 a month',
         body:'ES-1881 grants 120,000 options at $3.51 and Carta shows all 120,000 exercisable today, because the grant permits early exercise. '
@@ -745,7 +841,7 @@
         title:'$883K sitting in BofA savings at 0.05% APY',
         body:'The Money Market Savings account (#…3955) earns ~$440/yr at 0.05%. Parked in an actual money-market fund or T-bills at ~3.7% it would earn ~$32K/yr — that’s $2,600/mo of free yield. Sweep everything beyond your checking buffer into BLF FEDFUND at Merrill (already used there), a Preferred Deposit tier, or a Treasury ladder. '
            + 'One caveat now: a full early exercise of Amanda’s Mercury options would consume $421K of this same cash, so decide that question before '
-           + 'locking anything into a long Treasury ladder.' },
+           + 'locking anything into a long Treasury ladder. You raised this with Heather on 8/13 and spoke on 8/14 — the outcome is not in email, so if the money has moved, mark this done.' },
       { id:'sg-pltr-glidepath', priority:'high', done:false, source:'Merrill stmt 7/31/26',
         title:'Decide the PLTR exit path before the collar expires (Jan 2027)',
         body:'PLTR is $1.32M — 18.7% of the portfolio, with a $1.29M unrealized LT gain (basis ~$2.70/sh). The Jan-2027 $100P/$180C collar covers only 4,000 of 10,724 shares. Start the glide path now: sell in tranches across tax years, keep annual LT gains near WA’s ~$270K capital-gains excise threshold, use specific-lot ID.' },
@@ -1138,6 +1234,15 @@
        dates, annual renewals that are otherwise invisible for eleven months, and any
        suggestion carrying a target date. Everything here is derived — nothing is a
        second copy of a number kept somewhere else. */
+    /* Federal estimated-tax dates for a calendar-year filer, plus the Merrill
+       review. Amounts are the CPA's most recent instruction, not a computation. */
+    const TAX_CALENDAR = [
+      { when:'2026-09-10', title:'Merrill review — both equity packets on the table', amount:0, why:'Proposed 3pm with Heather Steiner & Stephen Hollomon · Stripe trim, Mercury early exercise, PLTR collar' },
+      { when:'2026-09-15', title:'Q3 2026 estimated tax due', amount:37500, why:'Marc Kaufman sets the figure from the 8/31 paystubs and Merrill YTD summary — Q2 was $37,500 from savings …3955' },
+      { when:'2027-01-15', title:'Q4 2026 estimated tax due', amount:37500, why:'Placeholder at the Q2 figure until Marc confirms' },
+      { when:'2027-04-15', title:'2026 return + Q1 2027 estimate', amount:0, why:'2025 balance was $72,500 plus a $22K extension payment — budget for a similar spring' },
+    ];
+
     const collectMoneyDates = (state, days = 120) => {
       const out = [];
       const nowISO = toISO(today());
@@ -1187,6 +1292,13 @@
           title: `${s.name} renews`, amount: s.cost || 0,
           why: `${s.cadence} · ${fmtMoney(s.cost || 0)} charge`,
         });
+      });
+
+      // Estimated-tax deadlines: the CPA sets the amount a few days before each one,
+      // so the row carries the last known figure and says so.
+      TAX_CALENDAR.forEach(t => {
+        if (!within(t.when)) return;
+        out.push({ when: t.when, n: daysUntil(t.when), kind: 'tax', jumpTo: 'suggestions', title: t.title, amount: t.amount || 0, why: t.why });
       });
 
       // Insurance renewals carry real money and a real deadline.
@@ -2110,7 +2222,7 @@
       const nice = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
       const group = navGroupOf(view);
       const leaves = navLeaves(group);
-      const title = group.id === 'today' ? '' : group.label;
+      const title = group.id === 'today' ? (view === 'asks' ? 'Ask Claude' : '') : group.label;
       const addHere = ADD_TYPES.find(t => t.view === view);
       const openAdd = () => ctx.setModal(addHere ? addHere.form(()=>ctx.setModal(null))
                                                  : <QuickAdd onClose={()=>ctx.setModal(null)} />);
@@ -2469,7 +2581,7 @@
                             className="text-ink-400 hover:text-ink-100 shrink-0"><Icon name="x" size={13}/></button>}
         </label>
         {chips.length > 0 && (
-          <div className="flex items-center gap-1 overflow-x-auto no-bar">
+          <div className="flex items-center gap-1 flex-wrap">
             {chips.map(c => (
               <button key={c.id} onClick={()=>setActive(active === c.id ? null : c.id)}
                 aria-pressed={active === c.id}
@@ -2748,6 +2860,9 @@
        The app has no backend, so an ask cannot dispatch itself. What it can do is be
        a reliable parking lot: write the thing down the moment you think of it, and
        hand the whole open list to Claude Code in one paste next time you are there. */
+    /* Where “Send to Claude” mails the parked asks. It is the household's own inbox;
+       Claude reads it back with a Gmail search on the subject. */
+    const ASK_MAIL_TO = 'jmccullum@gmail.com';
     const ASK_PRESETS = [
       'Scan my email and Box for anything the app is missing, and update it.',
       'Update our finance strategy based on what you know now.',
@@ -2784,6 +2899,17 @@
         try { await navigator.clipboard.writeText(brief()); setCopied(true); setTimeout(()=>setCopied(false), 2200); }
         catch { ctx.showToast('Could not reach the clipboard — select the text below instead', null, 'error'); }
       };
+      // The no-paste path. Mailing the list to your own inbox with a fixed subject
+      // makes it findable: every Claude Code session on this repo — and the Monday
+      // routine — starts by searching Gmail for that subject (see CLAUDE.md).
+      const ASK_MAIL_SUBJECT = '[HomeHQ ask]';
+      const mailHref = () => 'mailto:' + ASK_MAIL_TO + '?subject=' + encodeURIComponent(ASK_MAIL_SUBJECT + ' ' + toISO(today()))
+                          + '&body=' + encodeURIComponent(brief());
+      const send = () => {
+        window.location.href = mailHref();
+        open.forEach(a => { if (a.status !== 'sent') ctx.updateAsk(a.id, { status:'sent', sentAt: toISO(today()) }); });
+        ctx.showToast('Opened in Mail — send it and Claude picks it up next run');
+      };
 
       return (
         <div className="space-y-6">
@@ -2791,7 +2917,7 @@
             value={String(open.length)} unit={open.length === 1 ? ' open request' : ' open requests'}
             parts={[
               done.length > 0 && `${done.length} done`,
-              open.length > 0 && { text: 'Copy the lot for Claude', alert: true, onClick: copy },
+              open.length > 0 && { text: 'Send the lot to Claude', alert: true, onClick: send },
             ]} />
 
           <div className="card p-4 md:p-5 space-y-3">
@@ -2815,10 +2941,13 @@
 
           {open.length > 0 && (<>
             <div className="flex items-center gap-2 flex-wrap">
-              <Btn variant="soft" icon={copied ? 'check' : 'copy'} onClick={copy}>
-                {copied ? 'Copied — paste into Claude Code' : `Copy ${open.length} request${open.length===1?'':'s'} for Claude`}
+              <Btn icon="mail" onClick={send} data-act="send-asks">
+                {`Send ${open.length} request${open.length===1?'':'s'} to Claude`}
               </Btn>
-              <span className="text-xs text-ink-400">Paste it into a Claude Code session on this repo.</span>
+              <Btn variant="soft" icon={copied ? 'check' : 'copy'} onClick={copy}>
+                {copied ? 'Copied' : 'Copy instead'}
+              </Btn>
+              <span className="text-xs text-ink-400">Send emails the list to your inbox under “{ASK_MAIL_SUBJECT}”; every Claude Code run and the Monday update read that subject first. Copy is for pasting into a session yourself.</span>
             </div>
             <Ledger valueWidth="0rem" hasActions>
               {open.map(a => (
@@ -2843,7 +2972,7 @@
           </>)}
 
           {open.length === 0 && (
-            <p className="text-sm text-ink-400 py-2">Nothing parked. Write anything above and it waits here until you next open Claude Code.</p>
+            <p className="text-sm text-ink-400 py-2">Nothing parked. Write anything above — then Send it, or leave it here for the Monday update.</p>
           )}
 
           {done.length > 0 && (<>
@@ -3333,6 +3462,25 @@ const cashAtRest = (targetApy = 3.7) => {
    it reads high, and every surface that shows it says so. Swap MERCURY_MARKS for a
    real MERCURY_FMV and this becomes a straight valuation with no caveat. */
 const mercuryHousehold = () => mercuryValueRange(mercuryVesting()).ref;
+
+/* ---------- Amanda — Stripe equity (Shareworks) ---------- */
+/* Fully vested RSUs from Amanda's time at Stripe. Unlike Mercury this has a real
+   409A: the Q1 2026 tender bought at $63.00/sh, "our new 409A price effective
+   February 20, 2026". 49,430 shares were on hand on 3/17/26 (per Justin to Merrill);
+   the tender took 14,530 of the 17,233 offered (pro-rata, 4/7/26), leaving 34,900.
+   Basis is the CPA's W-2 average of ~$21/sh, so nearly all of it is LT gain. */
+const STRIPE_EQUITY = {
+  holder: 'Amanda', company: 'Stripe', source: 'Shareworks CS74383933',
+  shares: 34900, asOf: '2026-04-07',
+  mark: { price: 63.00, asOf: '2026-02-20', kind: '409A', note: 'Q1 2026 tender price = new 409A effective 2/20/26 (Stripe GEM email 2/24/26)' },
+  basisPerShare: 21,
+  history: [
+    { date:'2026-03-17', event:'49,430 shares on hand (Justin to Heather, Merrill)' },
+    { date:'2026-04-07', event:'Tender allocation: 14,530 of 17,233 offered sold at $63 (oversubscribed, pro-rata) — ~$915K proceeds' },
+  ],
+};
+const stripeValue = () => STRIPE_EQUITY.shares * STRIPE_EQUITY.mark.price;
+const stripeGain  = () => STRIPE_EQUITY.shares * (STRIPE_EQUITY.mark.price - STRIPE_EQUITY.basisPerShare);
 const mercuryVestedValue = () => mercuryHousehold().value.vestedValue;
 
 /* What the household total is made of, and how old each input is. The figure blends
@@ -3346,14 +3494,15 @@ const HOUSEHOLD_SOURCES = () => [
   { label: '529 college savings', value: EDUCATION_529.total,    asOf: EDUCATION_529.asOf,  stale: 45 },
   { label: 'Vested Anthropic equity', value: equityVesting().vestedValue, asOf: EQUITY_FMV.asOf, stale: 60 },
   { label: 'Vested Mercury equity',   value: mercuryVestedValue(),        asOf: mercuryHousehold().asOf, stale: 60, indicative: true },
+  { label: 'Stripe shares (409A)',     value: stripeValue(),               asOf: STRIPE_EQUITY.mark.asOf, stale: 400 },
 ];
 const householdOldest = () => HOUSEHOLD_SOURCES()
   .slice()
   .sort((a, b) => (a.asOf || '').localeCompare(b.asOf || ''))[0];
 
 /* Merrill snapshot + bank cash + 529s + vested equity comp — Anthropic options at
-   intrinsic spread, Mercury at the indicative secondary mark. */
-const householdTotal = () => PORTFOLIO_DATA.totalValue + BANKING.total + EDUCATION_529.total + equityVesting().vestedValue + mercuryVestedValue();
+   intrinsic spread, Mercury at the indicative secondary mark, Stripe at its 409A. */
+const householdTotal = () => PORTFOLIO_DATA.totalValue + BANKING.total + EDUCATION_529.total + equityVesting().vestedValue + mercuryVestedValue() + stripeValue();
 
 /* Outside-Merrill positions as holding rows, so "All Accounts" reflects the whole household. */
 const outsideHoldings = () => {
@@ -3390,6 +3539,14 @@ const outsideHoldings = () => {
     description:`Mercury vested equity — ${mv.vested.toLocaleString()} sh at the ${mref.source} mark $${mref.price.toFixed(2)} (options at spread; indicative, no 409A)`,
     quantity:mv.vested, price:null, value:mref.value.vestedValue,
     unrealizedGL:null, unrealizedGLPct:null, costBasis:null,
+    securityType:'Private Equity', assetClass:'Equity', sector:null,
+  });
+  rows.push({
+    account:'Amanda — Stripe Equity', accountNum:STRIPE_EQUITY.source, taxType:'Equity comp', owner:'Amanda',
+    productClass:'Private Equity', symbol:'STRP',
+    description:`Stripe — ${STRIPE_EQUITY.shares.toLocaleString()} vested RSU shares at the $${STRIPE_EQUITY.mark.price.toFixed(2)} 409A (${fmtDate(STRIPE_EQUITY.mark.asOf, {month:'short', year:'numeric'})})`,
+    quantity:STRIPE_EQUITY.shares, price:STRIPE_EQUITY.mark.price, value:stripeValue(),
+    unrealizedGL:stripeGain(), unrealizedGLPct:(STRIPE_EQUITY.mark.price / STRIPE_EQUITY.basisPerShare - 1) * 100, costBasis:STRIPE_EQUITY.shares * STRIPE_EQUITY.basisPerShare,
     securityType:'Private Equity', assetClass:'Equity', sector:null,
   });
   return rows;
@@ -4012,7 +4169,7 @@ const PortfolioView = () => {
   const [showSettings, setShowSettings] = useState(false);
   const priceState = usePriceQuotes();
   const d = PORTFOLIO_DATA;
-  const OUTSIDE_SCOPES = ['Cash & Banking', 'Bennett 529', 'Cameron 529', 'Anthropic Equity', 'Amanda — Mercury Equity', 'Amanda — Other', 'Charitable DAF'];
+  const OUTSIDE_SCOPES = ['Cash & Banking', 'Bennett 529', 'Cameron 529', 'Anthropic Equity', 'Amanda — Mercury Equity', 'Amanda — Stripe Equity', 'Amanda — Other', 'Charitable DAF'];
   const accounts = ['__all__', ...d.accounts.map(a => a.name), ...OUTSIDE_SCOPES];
   const isOutside = OUTSIDE_SCOPES.includes(scope);
 
@@ -4183,8 +4340,8 @@ const PortfolioView = () => {
         </div>
         <p className="text-ink-400 text-xs mt-2 max-w-[64ch]">
           Merrill {fmtMoneyK(d.totalValue)} across {d.numAccounts} accounts and {d.holdings.length} positions, plus bank cash,
-          the 529s and vested equity comp — five inputs dated {fmtDate(householdOldest().asOf, {month:'short', day:'numeric'})} onward.
-          Anthropic options are net of exercise cost; Mercury sits at an indicative secondary mark, not a 409A. The DAF is tracked separately.
+          the 529s and vested equity comp — six inputs dated {fmtDate(householdOldest().asOf, {month:'short', day:'numeric'})} onward.
+          Anthropic options are net of exercise cost; Mercury sits at an indicative secondary mark, not a 409A; Stripe is at its February 409A. The DAF is tracked separately.
         </p>
       </div>
 
@@ -4791,7 +4948,7 @@ const OutsideMerrillPanel = ({ scope }) => {
       { name:'E*Trade brokerage', sub:'From the family IDs sheet — login under IDs & Logins', url:'https://us.etrade.com/e/t/user/login' },
       { name:'Fidelity NetBenefits — 401(k)', sub:'Amanda’s 401(k) (Stripe/Mercury employer plan)', url:'https://nb.fidelity.com' },
       { name:'ShareWorks — Palantir equity', sub:'Account DS-585985-07', url:'https://shareworks.solium.com' },
-      { name:'ShareWorks — Stripe equity', sub:'Account CS74383933', url:'https://shareworks.solium.com' },
+      { name:'ShareWorks — Stripe equity', sub:'Account CS74383933 — now valued under “Amanda — Stripe Equity”', url:'https://shareworks.solium.com' },
     ];
     return (
       <div className="card p-4 md:p-5">
@@ -4838,6 +4995,39 @@ const OutsideMerrillPanel = ({ scope }) => {
           <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{BANKING.missingNote}</div>
         </div>
         <CashAtRestCard />
+      </div>
+    );
+  }
+  if (scope === 'Amanda — Stripe Equity') {
+    const S = STRIPE_EQUITY;
+    const value = stripeValue(), gain = stripeGain();
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <PortfolioStat label="Shares held" value={S.shares.toLocaleString()} />
+          <PortfolioStat label="409A price" value={fmtMoney(S.mark.price)} />
+          <PortfolioStat label="Value at 409A" value={fmtMoney(value)} />
+          <PortfolioStat label="Embedded LT gain" value={fmtMoney(gain)} />
+        </div>
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="Stripe — Amanda" hint={`Fully vested RSU shares held at ${S.source}. Unlike Mercury this is a real 409A, so the value counts in the household total without an “indicative” flag.`}
+            action={<a href="https://shareworks.solium.com" target="_blank" rel="noreferrer" className="text-xs text-gold-400 hover:text-gold-300 inline-flex items-center gap-1"><Icon name="link" size={12}/> Shareworks</a>} />
+          <div className="space-y-2.5 text-sm">
+            <div className="flex justify-between gap-3"><span className="text-ink-300">Mark</span><span className="text-ink-100 tabular-nums text-right">{fmtMoney(S.mark.price)} · {S.mark.kind} · {fmtDate(S.mark.asOf)}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-ink-300">Cost basis (CPA W-2 average)</span><span className="text-ink-100 tabular-nums">~{fmtMoney(S.basisPerShare)}/sh · {fmtMoney(S.shares * S.basisPerShare)}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-ink-300">Share count as of</span><span className="text-ink-100">{fmtDate(S.asOf)}</span></div>
+          </div>
+          <div className="text-xs text-ink-400 mt-3 pt-3 border-t border-ink-700 leading-relaxed">{S.mark.note}.</div>
+        </div>
+        <div className="card p-4 md:p-5">
+          <SectionHeader title="How the count got here" />
+          <div className="space-y-2">
+            {S.history.map(h => (
+              <div key={h.date} className="flex gap-3 text-sm"><span className="text-ink-400 tabular-nums shrink-0 w-20">{fmtDate(h.date, {month:'short', day:'numeric'})}</span><span className="text-ink-200">{h.event}</span></div>
+            ))}
+          </div>
+          <p className="text-xs text-ink-400 mt-3 leading-relaxed">Tenders come roughly yearly and require selling at least 5% of vested holdings; only shares held six months past vest are eligible. Merrill floated trimming 15–25% of the position in March — the tender did about 29%.</p>
+        </div>
       </div>
     );
   }
