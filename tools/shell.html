@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#070a12" />
+  <title>Home HQ</title>
+  <!-- Icons. iOS masks apple-touch-icon itself, so the PNG is full-bleed and opaque;
+       a transparent or pre-rounded source is what renders as a black tile. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="manifest" href="./site.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Home HQ" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: {
+              950: '#04060b',
+              900: '#070a12',
+              850: '#0c111a',
+              800: '#131a2b',
+              750: '#181f33',
+              700: '#1b2338',
+              650: '#222a45',
+              600: '#2d3757',
+              500: '#4a5876',
+              450: '#71809f',
+              400: '#a8b3d2',
+              300: '#bac4e0',
+              200: '#ccd5ec',
+              100: '#e8edf9',
+              50:  '#f7faff',
+            },
+            gold: {
+              300: '#dbb245',
+              400: '#d3a03a',
+              500: '#bd8c2c',
+              600: '#95701f',
+            },
+            sage:   { 400: '#569f92', 500: '#3f7d72' },
+            ember:  { 400: '#ffc0a0', 500: '#e07a52' },
+          },
+          fontFamily: {
+            display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          /* Six visible steps — 11 · 12 · 14 · 18 · 24 · 30/38 — with line-height and
+             tracking baked in, so neither is chosen by hand at a call site again.
+             Before this the file held sixteen sizes, six of them inside a 4px band,
+             which is why every piece of secondary text read as one grey mass. */
+          fontSize: {
+            '2xs':  ['11px', { lineHeight: '1.35', letterSpacing: '.02em' }],
+            'xs':   ['12px', { lineHeight: '1.45' }],
+            'sm':   ['14px', { lineHeight: '1.5' }],
+            'base': ['16px', { lineHeight: '1.5' }],
+            'lg':   ['18px', { lineHeight: '1.25', letterSpacing: '-.01em' }],
+            'xl':   ['24px', { lineHeight: '1.12', letterSpacing: '-.015em' }],
+            '2xl':  ['24px', { lineHeight: '1.12', letterSpacing: '-.015em' }],
+            '3xl':  ['30px', { lineHeight: '1.05', letterSpacing: '-.02em' }],
+            '4xl':  ['clamp(28px, 2.4vw + 18px, 38px)', { lineHeight: '1.02', letterSpacing: '-.02em' }],
+            '5xl':  ['clamp(28px, 2.4vw + 18px, 38px)', { lineHeight: '1.02', letterSpacing: '-.02em' }],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { color: #e8edf9; -webkit-font-smoothing: antialiased; }
+    /* A single warm wash in the app's own accent, so the page has a direction of light.
+       This replaces .grain, whose 0.012 alpha at 0.35 opacity worked out to one 8-bit
+       level on one pixel in nine — invisible, in exchange for a full-viewport layer. */
+    html, body {
+      background: radial-gradient(120% 55% at 50% -8%, rgba(211,160,58,.05), transparent 62%), #070a12;
+      background-attachment: fixed;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; font-feature-settings: "ss01","cv11"; }
+    .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; font-weight: 500; font-variant-numeric: tabular-nums; }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2d3757; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a5876; }
+    /* Card */
+    .card {
+      background: linear-gradient(180deg, #253052 0%, #1e2742 100%);
+      border: 1px solid #3d4a70;
+      border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 3px rgba(0,0,0,.4);
+    }
+    /* A raised tap target, for the tiles that were using .card-soft — a recessed well —
+       to mean the opposite of what it means everywhere else. */
+    .card-raised {
+      background: #38456b;
+      border: 1px solid #46537a;
+      border-radius: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .card-soft {
+      background: #101725;
+      border: 1px solid #1b2440;
+      border-radius: 16px;
+    }
+    /* Grid and flex items default to min-width:auto, so a wide table sitting inside
+       an overflow-x-auto wrapper stretches its card — and the whole page — instead
+       of scrolling within it. This is what made Portfolio scroll sideways on phones. */
+    .card, .card-soft { min-width: 0; }
+    .btn-primary {
+      background: linear-gradient(180deg,#d3a03a,#bd8c2c);
+      color: #0b1120;
+      font-weight: 600;
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn-ghost { background: transparent; color: #e8edf9; }
+    .btn-ghost:hover { background: #1b2338; }
+    .pill { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .55rem; border-radius: 999px; font-size: 11px; font-weight: 500; line-height: 1; }
+    .pill-overdue { background: rgba(255,192,160,0.12); color: #ffdcd0; border: 1px solid rgba(255,192,160,0.28); }
+    .pill-soon    { background: rgba(211,160,58,0.12); color: #dbb245; border: 1px solid rgba(211,160,58,0.25); }
+    .pill-ok      { background: rgba(86,159,146,0.12); color: #8fc4b9; border: 1px solid rgba(86,159,146,0.25); }
+    .pill-info    { background: #1b2338; color: #bac4e0; border: 1px solid #2d3757; }
+    .pill-muted   { background: #1b2338; color: #a1acc9; border: 1px solid #2d3757; }
+    .tnum { font-variant-numeric: tabular-nums slashed-zero; letter-spacing: .045em; }
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, #2d3757, transparent); }
+    /* ---- The ledger: one surface, records ruled off each other ----
+       Replaces the 3-up grids of cards. A status rail is one dead-straight
+       vertical line down the sheet, broken only where something needs you —
+       unlike a pill, which sits at a different x on every row. */
+    .ledger { background: linear-gradient(180deg, #253052 0%, #1e2742 100%);
+              border: 1px solid #3d4a70; border-radius: 18px;
+              box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 3px rgba(0,0,0,.4);
+              overflow: hidden; }
+    .lrow { position: relative; width: 100%; text-align: left; min-height: 56px;
+            display: grid; align-items: center; gap: .75rem;
+            padding: .625rem .75rem .625rem 1.125rem;
+            grid-template-columns: minmax(0,1fr) 2rem;
+            transition: background .12s ease; }
+    @media (min-width: 768px) {
+      .lrow { grid-template-columns: minmax(0,1fr) var(--lrow-when, 9rem) var(--lrow-value, 5.5rem) 2rem; }
+      .ledger[data-act="1"] .lrow { grid-template-columns: minmax(0,1fr) var(--lrow-value, 5.5rem) auto; }
+      .ledger[data-act="1"] .lrow > .lrow-when { display: none; }
+    }
+    .lrow + .lrow::before { content:''; position:absolute; left:16px; right:0; top:0;
+                            height:1px; background:#3d4a70; }
+    .lrow:hover { background: rgba(255,255,255,.022); }
+    .lrow:focus-visible { outline: 2px solid #d3a03a; outline-offset: -2px; }
+    /* The global press-scale (175) shrinks the whole row and reads as a glitch. */
+    .lrow:active { transform: none; }
+    .lgroup { position: sticky; top: 0; z-index: 10; }
+    /* Expand in place with no measurement and no library. */
+    .lexp { display: grid; grid-template-rows: 0fr;
+            transition: grid-template-rows 220ms cubic-bezier(.2,.8,.3,1); }
+    .lexp[data-open="1"] { grid-template-rows: 1fr; }
+    .lexp > * { overflow: hidden; }
+    @media (prefers-reduced-motion: reduce) { .lexp { transition: none; } }
+    .lrail { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+    .lrail-now  { background: #ffc0a0; }
+    .lrail-soon { background: #d3a03a; }
+    .lrail-ok   { background: rgba(86,159,146,.45); }
+    /* Row rules are the only thing separating tap targets now; keep them
+       when the OS overrides our colours entirely. */
+    @media (forced-colors: active) {
+      .lrow + .lrow { border-top: 1px solid CanvasText; }
+      .ledger { border: 1px solid CanvasText; }
+      .lrail { forced-color-adjust: none; }
+    }
+    input, select, textarea {
+      background: #0b101b !important; border: 1px solid #2d3757 !important; color: #e8edf9 !important;
+      border-radius: 12px; padding: .65rem .85rem; width: 100%; font-size: 16px; min-height: 44px;
+    }
+    /* 16px is the threshold below which iOS Safari zooms the page on focus; the old
+       .95rem (15.2px) meant tapping any field re-laid out the whole view. Desktop can
+       have the smaller type back, where no such behaviour exists. */
+    @media (min-width: 768px) {
+      input, select, textarea { font-size: .95rem; }
+    }
+    input[type="checkbox"], input[type="radio"] { min-height: 0; width: auto; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #bd8c2c !important; box-shadow: 0 0 0 3px rgba(189,140,44,.18); }
+    /* Chromeless field for the command palette — the rules above are !important. */
+    .bare-input, .bare-input:focus {
+      background: transparent !important; border: none !important; box-shadow: none !important;
+      padding: 0 !important; min-height: 0 !important; border-radius: 0;
+    }
+    kbd { font-family: inherit; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #bd8c2c; outline-offset: 2px; border-radius: 8px; }
+    /* 134 hover states and nothing acknowledged a tap on the device this app is most
+       used from. One global rule: every enabled control settles slightly on press.
+       Fast in, slower out, and disabled controls stay put. */
+    button:not(:disabled):active, a:active, [role="button"]:not([aria-disabled="true"]):active {
+      transform: scale(0.975);
+      transition-duration: 60ms;
+    }
+    button, a, [role="button"] { transition: transform 140ms cubic-bezier(.2,.8,.3,1); }
+    @media (prefers-reduced-motion: reduce) {
+      button:not(:disabled):active, a:active, [role="button"]:active { transform: none; }
+      .anim-in { animation: none; }
+    }
+    label { font-size: .75rem; color: #a1acc9; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .35rem; display: block; }
+    .modal-backdrop { background: rgba(8,7,5,0.7); backdrop-filter: blur(8px); }
+    .modal-shell {
+      background: #38456b;
+      border: 1px solid #47557d;
+      /* A sheet on a phone is flush to the edge it rises from; a dialog floats. */
+      border-radius: 22px 22px 0 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 64px -16px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5);
+    }
+    @media (min-width: 768px) { .modal-shell { border-radius: 22px; } }
+    /* Motion: one duration scale — 120ms press · 180ms backdrop · 200ms toast ·
+       220ms card and modal · 280ms sheet — and surfaces that move the way they are
+       anchored. A centred modal, a bottom sheet and a top-pinned toast were all
+       sharing one 250ms fadeUp, so half of them entered from the wrong direction. */
+    @keyframes fadeUp   { from { opacity: 0; transform: translateY(8px);}   to { opacity: 1; transform: none; } }
+    @keyframes sheetUp  { from { opacity: 0; transform: translateY(100%);}  to { opacity: 1; transform: none; } }
+    @keyframes toastIn  { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: none; } }
+    .anim-in    { animation: fadeUp  .22s cubic-bezier(.2,0,0,1) both; }
+    .anim-sheet { animation: sheetUp .28s cubic-bezier(.32,.72,0,1) both; }
+    .anim-toast { animation: toastIn .2s  cubic-bezier(.2,0,0,1) both; }
+    /* Hide scrollbar on horizontal chip rows */
+    .no-bar::-webkit-scrollbar { display: none; }
+    .no-bar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* One source of truth for the bottom bar, so the FAB, the scroll padding and the
+       nav cannot drift apart — they did, by about 5px, which put the FAB permanently
+       over the bottom-right corner of the last card, where every edit button lives. */
+    :root { --bar: 3.5rem; }
+    /* iOS safe area */
+    .pb-safe { padding-bottom: calc(.75rem + env(safe-area-inset-bottom)); }
+    .pt-safe { padding-top: calc(.5rem + env(safe-area-inset-top)); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Everything the app knows (code and household data) is in #hq-sealed, encrypted
+       with the household password. This shell is the only part that is readable. -->
+  <div id="hq-unlock" class="min-h-screen relative z-10 items-center justify-center px-6" style="display:none">
+    <form id="hq-unlock-form" class="card p-8 md:p-10 w-full max-w-sm anim-in" autocomplete="on">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-ink-900 font-display font-semibold text-lg">H</div>
+        <div>
+          <div class="font-display text-xl tracking-tight leading-none">Home HQ</div>
+          <div class="text-ink-400 text-xs uppercase tracking-wider mt-1">Private</div>
+        </div>
+      </div>
+      <div class="text-ink-300 text-sm mb-5">Enter the household password to open.</div>
+      <input id="hq-pw" type="password" name="password" autocomplete="current-password" placeholder="Password" autofocus
+        class="w-full px-3 py-2.5 rounded-xl bg-ink-800 border border-ink-600 text-ink-100 text-sm focus:outline-none focus:border-gold-500/50" />
+      <div id="hq-err" class="text-ember-400 text-xs mt-2" style="display:none"></div>
+      <label class="flex items-center gap-2 mt-4 text-ink-300 text-xs cursor-pointer select-none">
+        <input id="hq-keep" type="checkbox" checked style="width:1rem;height:1rem;min-height:0;accent-color:#bd8c2c" />
+        Stay unlocked on this device
+      </label>
+      <button id="hq-go" type="submit"
+        class="btn-primary w-full mt-4 px-3.5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">Open</button>
+    </form>
+  </div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Pinned to Babel 7: unversioned "latest" broke the app when unpkg began serving
+       Babel 8 (preset-react now defaults to the automatic runtime, which emits import
+       statements that can't run in a plain <script>). Do not unpin. -->
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+  <script id="hq-sealed" type="application/octet-stream">__SEALED__</script>
+  <script>
+    /* Unlock: base64(salt 16 | nonce 12 | AES-GCM ciphertext), key from PBKDF2-SHA256
+       at 200k iterations. Written by tools/hq.mjs seal. A remembered password sits in
+       localStorage as homehq.k, the key the app's updates feed already used. */
+    (function () {
+      var KEY = 'homehq.k';
+      var shell = document.getElementById('hq-unlock');
+      var form = document.getElementById('hq-unlock-form');
+      var pwBox = document.getElementById('hq-pw');
+      var keep = document.getElementById('hq-keep');
+      var go = document.getElementById('hq-go');
+      var err = document.getElementById('hq-err');
+      var toB64 = function (text) { return btoa(String.fromCharCode.apply(null, new TextEncoder().encode(text))); };
+      var fromB64 = function (b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); })); };
+
+      async function open(pw) {
+        var data = Uint8Array.from(atob(document.getElementById('hq-sealed').textContent.trim()), function (c) { return c.charCodeAt(0); });
+        var km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+        var key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: data.slice(0, 16), iterations: 200000, hash: 'SHA-256' },
+          km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+        var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.slice(16, 28) }, key, data.slice(28));
+        return new TextDecoder().decode(plain);
+      }
+      function run(src) {
+        var s = document.createElement('script');
+        s.textContent = Babel.transform(src, { presets: ['react'] }).code;
+        document.body.appendChild(s);
+      }
+      function ask(message) {
+        shell.style.display = 'flex';
+        err.textContent = message || '';
+        err.style.display = message ? 'block' : 'none';
+        go.disabled = false; go.textContent = 'Open';
+        pwBox.focus();
+      }
+      async function unlock(pw, remember) {
+        var src = await open(pw);   // throws on a wrong password
+        try { if (remember) localStorage.setItem(KEY, toB64(pw)); else localStorage.removeItem(KEY); } catch (e) {}
+        shell.remove();
+        run(src);
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!pwBox.value || go.disabled) return;
+        go.disabled = true; go.textContent = 'Opening…'; err.style.display = 'none';
+        unlock(pwBox.value, keep.checked).catch(function (ex) {
+          ask(ex && ex.name === 'OperationError' ? "That password didn't work." : "Home HQ couldn't start: " + ((ex && ex.message) || ex));
+        });
+      });
+
+      var saved = null;
+      try { saved = localStorage.getItem(KEY); } catch (e) {}
+      if (!saved) return ask();
+      var pw; try { pw = fromB64(saved); } catch (e) { pw = null; }
+      if (!pw) return ask();
+      unlock(pw, true).catch(function (ex) {
+        if (ex && ex.name === 'OperationError') {
+          try { localStorage.removeItem(KEY); } catch (e) {}
+          ask('The household password has changed. Enter the new one.');
+        } else ask("Home HQ couldn't start: " + ((ex && ex.message) || ex));
+      });
+    })();
+  </script>
+</body>
+</html>
