@@ -49,13 +49,13 @@ const MAP = {
   const checks = {
     'finance flipped to done with result': by['ask-finance']?.status === 'done' && !!by['ask-finance']?.result,
     'user ask kept, still open': by['ask-mine']?.status === 'open',
-    'new seed asks added': !!by['ask-vendors-0906'] && !!by['ask-sweep-0928'],
+    'new seed asks added': !!by['ask-vendors-0906'] && !!by['ask-sweep-0928'] && !!by['ask-sweep-1110'],
     'deleted ask stays deleted': !by['ask-updates-0906'],
     'seed-closed suggestion closes with its closing note': sg['sg-q3-estimate']?.done === true && /paid 9\/15/.test(sg['sg-q3-estimate']?.title || ''),
     'reopened suggestion stays open': sg['sg-vendor-balances']?.done === false && sg['sg-vendor-balances']?.title === 'reopened by the household',
     'open suggestion untouched': sg['sg-stripe-position']?.done === false && sg['sg-stripe-position']?.title === 'untouched',
     'saved logins scrubbed, row kept': !!etrade && !('password' in etrade) && !('username' in etrade) && !('fields' in etrade) && !('notes' in etrade),
-    'new sweep suggestions added': !!sg['sg-anthropic-exercise-0928'] && !!sg['sg-fsa-receipts-0928'],
+    'new sweep suggestions added': !!sg['sg-anthropic-exercise-0928'] && !!sg['sg-fsa-receipts-0928'] && !!sg['sg-concentration-1110'],
     'no page errors': errs.length === 0,
   };
   console.log(JSON.stringify(checks, null, 1), errs);
